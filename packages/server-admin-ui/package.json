@@ -42,7 +42,7 @@
     "reconnecting-websocket": "^4.4.0",
     "redux": "^3.7.2",
     "redux-thunk": "^2.3.0",
-    "sass-loader": "^6.0.7",
+    "sass-loader": "^11.1.1",
     "simple-line-icons": "^2.5.5",
     "style-loader": "^2.0.0",
     "webpack": "^5.0.0",
