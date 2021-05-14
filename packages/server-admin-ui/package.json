@@ -29,7 +29,7 @@
     "lodash.get": "^4.4.2",
     "lodash.remove": "^4.7.0",
     "lodash.set": "^4.3.2",
-    "node-sass": "^4.14.1",
+    "node-sass": "^6.0.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-html-parser": "^2.0.2",
