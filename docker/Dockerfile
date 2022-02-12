@@ -23,29 +23,38 @@ WORKDIR /home/node/signalk_build
 COPY --chown=node:node ./.. .
 RUN chmod +x docker/startup.sh
 
-# RUN npm login # login credential need to be pushed inside docker and removed after publish
+ARG NPM_TOKEN
+COPY .npmrc /home/node/signalk_build/.npmrc
+COPY .npmrc /home/node/signalk_build/packages/server-api/.npmrc
+COPY .npmrc /home/node/signalk_build/packages/server-admin-ui/.npmrc
+COPY .npmrc /home/node/signalk_build/packages/streams/.npmrc
 
 RUN npm install
 
 WORKDIR /home/node/signalk_build/packages/server-api
 RUN npm run build
-# RUN npm publish
+RUN npm publish
 
 WORKDIR /home/node/signalk_build/packages/server-admin-ui
 RUN npm run build
-# RUN npm publish
+RUN npm publish
+
+WORKDIR /home/node/signalk_build/packages/streams
+RUN npm run build
+RUN npm publish
 
 WORKDIR /home/node/signalk_build
 RUN npm run build
-# RUN npm publish
-RUN npm pack  # for testing
+RUN npm publish
+# RUN npm pack  # for testing
 
 RUN mkdir -p /home/node/signalk
 RUN mkdir -p /home/node/.signalk
 
 WORKDIR /home/node/signalk
 USER root
-RUN npm i -g ./../signalk_build/signalk-server*.tgz
+# RUN npm i -g ./../signalk_build/signalk-server*.tgz
+RUN npm i -g signalk-server
 USER node
 RUN rm -rf /home/node/signalk_build
 
