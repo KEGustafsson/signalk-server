@@ -36,6 +36,7 @@ export function startDeltaStatistics(app: any) {
       }
     })
     app.lastIntervalDeltaCount = app.deltaCount
+    var uptime: any = process.uptime();
     app.handleMessage('defaults', {
       context: `vessels.self`,
       updates: [
@@ -43,7 +44,7 @@ export function startDeltaStatistics(app: any) {
           values: [
             {
               path: 'uptime',
-              value: parseInt(process.uptime()),
+              value: parseInt(uptime),
             },
           ]
         },
