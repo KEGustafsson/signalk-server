@@ -72,7 +72,11 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: signalk-npm-files
-          path: patch          
+          path: patch
+      - name: Read patch folder
+        run: |
+          ls -la
+          ls -la patch
       - name: Build and push
         uses: docker/build-push-action@v2
         with:
