@@ -67,7 +67,6 @@ jobs:
       - name: Read docker folder
         run: |
           ls -la docker
-          ls -la patch
       - uses: actions/download-artifact@v3
         with:
           name: signalk-npm-files
