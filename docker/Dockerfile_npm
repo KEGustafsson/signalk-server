@@ -1,18 +1,18 @@
 FROM signalk/signalk-server-base:latest
 
-ADD docker docker
+ADD patch patch
 
 RUN ls -la \
-  && ls -la docker \
+  && ls -la patch \
   && pwd
 
-RUN npm i -g /docker/signalk-server-*.tgz \
+RUN npm i -g /patch/signalk-server-*.tgz \
   && ln -s /usr/lib/node_modules/signalk-server /home/node/signalk
 
 WORKDIR /home/node/signalk
-RUN npm i /docker/signalk-server-admin-ui-*.tgz --save \
-  && npm i /docker/signalk-server-api-*.tgz --save \
-  && npm i /docker/signalk-streams-*.tgz --save
+RUN npm i /patch/signalk-server-admin-ui-*.tgz --save \
+  && npm i /patch/signalk-server-api-*.tgz --save \
+  && npm i /patch/signalk-streams-*.tgz --save
 
 COPY --chown=node docker/startup.sh startup.sh
 RUN chmod +x startup.sh
