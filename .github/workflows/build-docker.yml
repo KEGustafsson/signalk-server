@@ -27,14 +27,14 @@ jobs:
           npm install --package-lock-only
           npm ci && npm cache clean --force
           npm run build:all
-          npm pack && mv *.tgz ./../patch/
+          npm pack && mv *.tgz ./patch/
           cd packages/server-admin-ui
-          npm pack && mv *.tgz ./../../../patch/
+          npm pack && mv *.tgz ./../../patch/
           cd ./../server-api
-          npm pack && mv *.tgz ./../../../patch/
+          npm pack && mv *.tgz ./../../patch/
           cd ./../streams
-          npm pack && mv *.tgz ./../../../patch/
-          cd ./../../..
+          npm pack && mv *.tgz ./../../patch/
+          cd ./../..
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
