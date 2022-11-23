@@ -22,6 +22,7 @@ jobs:
           node-version: '16.x'
       - name: Build npm files locally and upload to artifacts
         run: |
+          mkdir patch
           npm cache clean -f
           npm install npm@latest -g
           npm install --package-lock-only
