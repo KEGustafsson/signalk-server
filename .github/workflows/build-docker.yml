@@ -22,26 +22,25 @@ jobs:
           node-version: '16.x'
       - name: Build npm files locally and upload to artifacts
         run: |
-          mkdir patch
           npm cache clean -f
           npm install npm@latest -g
           npm install --package-lock-only
           npm ci && npm cache clean --force
           npm run build:all
-          npm pack && mv *.tgz ./patch/
+          npm pack && mv *.tgz ./docker/
           cd packages/server-admin-ui
-          npm pack && mv *.tgz ./../../patch/
+          npm pack && mv *.tgz ./../../docker/
           cd ./../server-api
-          npm pack && mv *.tgz ./../../patch/
+          npm pack && mv *.tgz ./../../docker/
           cd ./../streams
-          npm pack && mv *.tgz ./../../patch/
+          npm pack && mv *.tgz ./../../docker/
           cd ./../..
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           name: signalk-npm-files
           retention-days: 1
-          path: patch/*.tgz
+          path: docker/*.tgz
           
   build_docker_images:
     runs-on: ubuntu-latest
@@ -70,12 +69,10 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: signalk-npm-files
-          path: patch
+          path: docker
       - name: Read docker folder
         run: |
-          ls -la
           ls -la docker
-          ls -la patch
       - name: Build and push
         uses: docker/build-push-action@v2
         with:
