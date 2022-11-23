@@ -1,6 +1,6 @@
 FROM signalk/signalk-server-base:latest
 
-ADD docker patch
+ADD patch patch
 
 RUN ls -la \
   && ls -la patch \
