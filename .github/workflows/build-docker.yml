@@ -64,19 +64,17 @@ jobs:
         with:
           username: kgustafs
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Make patch folder
+      - name: Read docker folder
         run: |
-          mkdir patch
-          ls -la
-          ls -la patch
+          ls -la docker
       - uses: actions/download-artifact@v3
         with:
           name: signalk-npm-files
-          path: patch
-      - name: Read patch folder
+          path: docker
+      - name: Read docker folder
         run: |
           ls -la
-          ls -la patch
+          ls -la docker
       - name: Build and push
         uses: docker/build-push-action@v2
         with:
