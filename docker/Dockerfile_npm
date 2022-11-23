@@ -2,6 +2,10 @@ FROM signalk/signalk-server-base:latest
 
 ADD docker patch
 
+RUN ls -la \
+  && ls -la patch \
+  && pwd
+
 RUN npm i -g /patch/signalk-server-*.tgz \
   && ln -s /usr/lib/node_modules/signalk-server /home/node/signalk
 
