@@ -1,0 +1,28 @@
+diff --git a/packages/server-admin-ui/src/views/Dashboard/Dashboard.js b/packages/server-admin-ui/src/views/Dashboard/Dashboard.js
+index 50c674b..c2b1a5d 100644
+--- a/packages/server-admin-ui/src/views/Dashboard/Dashboard.js
++++ b/packages/server-admin-ui/src/views/Dashboard/Dashboard.js
+@@ -18,6 +18,9 @@ const Dashboard = (props) => {
+     wsClients,
+     providerStatistics,
+     uptime,
++    loadAvg1m,
++    loadAvg5m,
++    loadAvg15m
+   } = props.serverStatistics || {
+     deltaRate: 0,
+     numberOfAvailablePaths: 0,
+@@ -71,6 +74,13 @@ const Dashboard = (props) => {
+                       {uptimeD} days, {uptimeH} hours, {uptimeM} minutes
+                     </strong>
+                   </div>
++                  <div className="callout callout-primary">
++                    <small className="text-muted">Average CPU Load (1/5/15min)</small>
++                    <br />
++                    <strong className="h5">
++                      {loadAvg1m} {loadAvg5m} {loadAvg15m}
++                    </strong>
++                  </div>
+                 </Col>
+                 <Col xs="12" md="6">
+                   <div className="text-muted">

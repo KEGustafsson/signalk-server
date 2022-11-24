@@ -1,0 +1,13 @@
+diff --git a/src/config/config.ts b/src/config/config.ts
+index 28243c5..90201d5 100644
+--- a/src/config/config.ts
++++ b/src/config/config.ts
+@@ -89,7 +89,7 @@ export function load(app: ConfigApp) {
+     config.version = pkg.version
+     config.description = pkg.description
+
+-    checkPackageVersion('@signalk/server-admin-ui', pkg, app.config.appPath)
++    //checkPackageVersion('@signalk/server-admin-ui', pkg, app.config.appPath)
+   } catch (err) {
+     console.error('error parsing package.json', err)
+     process.exit(1)

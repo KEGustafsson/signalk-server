@@ -1,0 +1,32 @@
+diff --git a/src/deltastats.ts b/src/deltastats.ts
+index 94fed68..231fa0d 100644
+--- a/src/deltastats.ts
++++ b/src/deltastats.ts
+@@ -15,6 +15,7 @@
+ */
+ 
+ import { isUndefined, values } from 'lodash'
++import os from 'os'
+ 
+ export function startDeltaStatistics(app: any) {
+   app.deltaCount = 0
+@@ -23,6 +24,7 @@ export function startDeltaStatistics(app: any) {
+ 
+   return setInterval(() => {
+     updateProviderPeriodStats(app)
++    const loadAverage = os.loadavg()
+     app.emit('serverevent', {
+       type: 'SERVERSTATISTICS',
+       from: 'signalk-server',
+@@ -31,7 +33,10 @@ export function startDeltaStatistics(app: any) {
+         numberOfAvailablePaths: app.streambundle.getAvailablePaths().length,
+         wsClients: app.interfaces.ws ? app.interfaces.ws.numClients() : 0,
+         providerStatistics: app.providerStatistics,
+-        uptime: process.uptime()
++        uptime: process.uptime(),
++        loadAvg1m: loadAverage[0].toFixed(2),
++        loadAvg5m: loadAverage[1].toFixed(2),
++        loadAvg15m: loadAverage[2].toFixed(2)
+       }
+     })
+     app.lastIntervalDeltaCount = app.deltaCount
