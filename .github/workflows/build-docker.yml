@@ -24,6 +24,7 @@ jobs:
 
       - name: Build npm files locally and upload artifacts
         run: |
+          git apply ./patch/*.patch
           npm cache clean -f
           npm install npm@latest -g
           npm install --package-lock-only
