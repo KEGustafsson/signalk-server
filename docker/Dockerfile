@@ -1,4 +1,4 @@
-FROM signalk/signalk-server-base:latest AS base
+FROM kgustafs/signalk-server-base:20.04 AS base
 
 USER node
 RUN mkdir -p /home/node/.signalk/ \
