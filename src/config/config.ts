@@ -8,7 +8,6 @@
  * You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
-
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -97,7 +96,12 @@ export function load(app: ConfigApp) {
     config.version = pkg.version
     config.description = pkg.description
 
-    checkPackageVersion('@signalk/server-admin-ui', pkg, app.config.appPath)
+    //if dependencies are installed from tarballs like in
+    //master docker build the version will be like
+    //file:signalk-server-admin-ui-1.44.1.tgz
+    if (!process.env.SKIP_ADMINUI_VERSION_CHECK) {
+      checkPackageVersion('@signalk/server-admin-ui', pkg, app.config.appPath)
+    }
   } catch (err) {
     console.error('error parsing package.json', err)
     process.exit(1)
