@@ -169,7 +169,7 @@
     "eslint-plugin-react": "^7.31.8",
     "freeport-promise": "^1.0.0",
     "lint-staged": "^10.0.3",
-    "mocha": "^7.0.1",
+    "mocha": "^10.2.0",
     "prettier": "^2.7.1",
     "rimraf": "^3.0.2",
     "ts-node": "^10.9.1",
