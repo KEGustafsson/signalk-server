@@ -49,10 +49,10 @@
     "redux-thunk": "2.3.0",
     "sass-loader": "^13.2.0",
     "simple-line-icons": "^2.5.5",
-    "style-loader": "^2.0.0",
-    "webpack": "^5.0.0",
+    "style-loader": "^3.3.1",
+    "webpack": "^5.75.0",
     "webpack-bundle-analyzer": "^3.9.0",
-    "webpack-cli": "^4.2.0"
+    "webpack-cli": "^5.0.1"
   },
   "scripts": {
     "prepublishOnly": "npm run clean && npm run build",
