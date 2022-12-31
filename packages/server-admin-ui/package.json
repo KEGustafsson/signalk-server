@@ -35,7 +35,7 @@
     "node-sass": "^8.0.0",
     "prettier": "^2.3.2",
     "react": "^16.14.0",
-    "react-bootstrap": "^2.7.0",
+    "react-bootstrap": "^1.6.6",
     "react-copy-to-clipboard": "^5.0.3",
     "react-dom": "^16.14.0",
     "react-html-parser": "^2.0.2",
