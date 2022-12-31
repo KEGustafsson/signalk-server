@@ -40,23 +40,6 @@ export default ({ plugin, onSubmit }) => {
       })
     }}
   />
-  console.log(form)
-  return(form)
 
-/*  return ( 
-    <Form
-      schema={topSchema}
-      uiSchema={uiSchema}
-      formData={plugin.data || {}}
-      onSubmit={(submitData) => {
-        onSubmit({
-          ...submitData.formData,
-          enabled,
-          enableLogging,
-          enableDebug,
-        })
-      }}
-    />
-  )
-*/
+  return(form)
 }
