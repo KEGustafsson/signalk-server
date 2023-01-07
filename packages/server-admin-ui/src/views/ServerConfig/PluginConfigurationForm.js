@@ -41,11 +41,11 @@ export default ({ plugin, onSubmit }) => {
       })
     }}
   />
-  console.log(topSchema)
+  console.log(JSON.stringify({ topSchema }, null, 4))
   console.log("-----")
-  console.log(uiSchema)
+  console.log(JSON.stringify({ uiSchema }, null, 4))
   console.log("-----")
-  console.log(plugin.data)
+  console.log(JSON.stringify({ plugin.data }, null, 4))
   console.log("-----")
   return(form)
   
