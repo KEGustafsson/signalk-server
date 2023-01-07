@@ -1,6 +1,6 @@
 import React, { Component } from 'react'
-//import Form from '@rjsf/bootstrap-4'
-import Form from '@rjsf/core'
+import Form from '@rjsf/bootstrap-4'
+//import Form from '@rjsf/core'
 
 export default ({ plugin, onSubmit }) => {
   const schema = JSON.parse(JSON.stringify(plugin.schema))
