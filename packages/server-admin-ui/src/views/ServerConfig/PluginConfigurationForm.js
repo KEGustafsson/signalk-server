@@ -41,7 +41,12 @@ export default ({ plugin, onSubmit }) => {
       })
     }}
   />
-  console.log(form)
+  console.log(topSchema)
+  console.log("-----")
+  console.log(uiSchema)
+  console.log("-----")
+  console.log(plugin.data)
+  console.log("-----")
   return(form)
   
 /*
