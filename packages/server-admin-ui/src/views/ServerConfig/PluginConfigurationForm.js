@@ -59,8 +59,6 @@ export default ({ plugin, onSubmit }) => {
   console.log("-----")
   console.log(JSON.stringify({ topSchema }, null, 4))
   console.log("-----")
-  console.log(JSON.stringify({ plugin.uiSchema }, null, 4))
-  console.log("-----")
   return(form)
   
 /*
