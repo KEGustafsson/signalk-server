@@ -20,13 +20,6 @@ export default ({ plugin, onSubmit }) => {
         properties: schema.properties,
       },
     },
-    ui: {
-      "ui:button": {
-        type: "button",
-        title: "-",
-        className: "btn-danger"
-      }
-    }
   }
 
   if (plugin.statusMessage) {
