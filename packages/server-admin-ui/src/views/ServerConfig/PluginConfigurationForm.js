@@ -26,13 +26,6 @@ export default ({ plugin, onSubmit }) => {
         title: "-",
         className: "btn-danger"
       }
-    },
-    ui: {
-      "ui:button": {
-        type: "button",
-        title: "+",
-        className: "btn-success"
-      }
     }
   }
 
