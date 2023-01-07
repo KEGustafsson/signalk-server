@@ -27,6 +27,24 @@ export default ({ plugin, onSubmit }) => {
   }
 
   const { enabled, enableLogging, enableDebug } = plugin.data
+
+  const form = <Form
+    schema={topSchema}
+    uiSchema={uiSchema}
+    formData={plugin.data || {}}
+    onSubmit={(submitData) => {
+      onSubmit({
+        ...submitData.formData,
+        enabled,
+        enableLogging,
+        enableDebug,
+      })
+    }}
+  />
+  console.log(form)
+  return(form)
+  
+/*
   return (
     <Form
       schema={topSchema}
@@ -42,4 +60,5 @@ export default ({ plugin, onSubmit }) => {
       }}
     />
   )
+*/
 }
