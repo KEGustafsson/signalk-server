@@ -18,7 +18,6 @@
     "@fortawesome/fontawesome-free": "^5.15.1",
     "@rjsf/bootstrap-4": "^4.2.3", 
     "@rjsf/core": "^4.2.3",
-    "@signalk/server-admin-ui-dependencies": "1.0.1",
     "ansi-to-html": "^0.6.14",
     "babel-loader": "^8.1.0",
     "buffer": "^6.0.3",
