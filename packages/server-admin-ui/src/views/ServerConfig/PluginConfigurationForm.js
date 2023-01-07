@@ -20,6 +20,20 @@ export default ({ plugin, onSubmit }) => {
         properties: schema.properties,
       },
     },
+    ui: {
+      "ui:button": {
+        type: "button",
+        title: "-",
+        className: "btn-danger"
+      }
+    },
+    ui: {
+      "ui:button": {
+        type: "button",
+        title: "+",
+        className: "btn-success"
+      }
+    }
   }
 
   if (plugin.statusMessage) {
@@ -44,6 +58,8 @@ export default ({ plugin, onSubmit }) => {
 
   console.log("-----")
   console.log(JSON.stringify({ topSchema }, null, 4))
+  console.log("-----")
+  console.log(JSON.stringify({ plugin.uiSchema }, null, 4))
   console.log("-----")
   return(form)
   
