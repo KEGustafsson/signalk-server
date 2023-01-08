@@ -1,5 +1,5 @@
 import React, { Component } from 'react'
-import Form from '@rjsf/bootstrap-4'
+import Form from 'react-jsonschema-form-bs4'
 
 export default ({ plugin, onSubmit }) => {
   const schema = JSON.parse(JSON.stringify(plugin.schema))
