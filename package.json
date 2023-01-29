@@ -71,7 +71,6 @@
     "node": ">=10"
   },
   "workspaces": [
-    "packages/server-admin-ui-dependencies",
     "packages/server-admin-ui",
     "packages/streams",
     "packages/server-api"
