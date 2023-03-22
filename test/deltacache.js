@@ -55,6 +55,24 @@ const testDelta = {
         }
       ]
     }
+  ],
+  context: 'aircraft.self',
+  updates: [
+    {
+      timestamp: '2014-05-03T09:14:11.100Z',
+    }
+  ],
+  context: 'aton.self',
+  updates: [
+    {
+      timestamp: '2014-05-03T09:14:11.100Z',
+    }
+  ],
+  context: 'sar.self',
+  updates: [
+    {
+      timestamp: '2014-05-03T09:14:11.100Z',
+    }
   ]
 }
 
@@ -110,15 +128,15 @@ const expectedOrder = [
     ]
   },
   {
-    "context": "vessels.urn:mrn:signalk:uuid:db826a2c-c80a-4f69-8199-a83e41f45127",
-    "updates": [
+    context: "vessels.urn:mrn:signalk:uuid:db826a2c-c80a-4f69-8199-a83e41f45127",
+    updates: [
       {
-        "$source": "deltaFromHttp",
-        "timestamp": "2014-05-03T09:14:11.099Z",
-        "values": [
+        $source: "deltaFromHttp",
+        timestamp: "2014-05-03T09:14:11.099Z",
+        values: [
           {
-            "path": "imaginary.path",
-            "value": 17404540
+            path: "imaginary.path",
+            value: 17404540
           }
         ]
       }
