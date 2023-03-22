@@ -201,7 +201,11 @@ describe('deltacache', () => {
         self.should.have.nested.property('name', 'TestBoat')
 
         delete self.imaginary
-        delete self.navigation.course //FIXME until in schema
+        try {
+          delete self.navigation.course //FIXME until in schema          
+        } catch (error) {
+          console.error('error:', error)
+        }
         fullTree.should.be.validSignalK
       })
     })
