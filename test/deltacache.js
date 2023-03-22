@@ -55,24 +55,6 @@ const testDelta = {
         }
       ]
     }
-  ],
-  context: 'aircraft.self',
-  updates: [
-    {
-      timestamp: '2014-05-03T09:14:11.100Z',
-    }
-  ],
-  context: 'aton.self',
-  updates: [
-    {
-      timestamp: '2014-05-03T09:14:11.100Z',
-    }
-  ],
-  context: 'sar.self',
-  updates: [
-    {
-      timestamp: '2014-05-03T09:14:11.100Z',
-    }
   ]
 }
 
@@ -207,7 +189,7 @@ describe('deltacache', () => {
         console.log('---------------------------------------------------------------------------------------------')
         console.log(JSON.stringify(fullTree, null, 2))
         console.log('---------------------------------------------------------------------------------------------')
-        const self = _.get(fullTree, fullTree.self)
+        const self = _.get(fullTree.self)
         self.should.have.nested.property('navigation.trip.log.value', 43374)
         self.should.have.nested.property('imaginary.path.value', 17404540)
         self.should.have.nested.property(
