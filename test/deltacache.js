@@ -7,7 +7,7 @@ const freeport = require('freeport-promise')
 const { startServerP, sendDelta } = require('./servertestutilities')
 const { COURSE_API_INITIAL_DELTA_COUNT } = require('../lib/api/course/')
 
-const testDelta = {
+const testDelta = ({
   context: 'vessels.self',
   updates: [
     {
@@ -56,7 +56,50 @@ const testDelta = {
       ]
     }
   ]
+},
+{
+  context: 'aircraft.self',
+  updates: [
+    {
+      timestamp: '2014-05-03T09:14:11.096Z',
+      values: [
+        {
+          path: '',
+          value: { name: 'TestBoat' }
+        }
+      ]
+    }
+  ]
+},
+{
+  context: 'aton.self',
+  updates: [
+    {
+      timestamp: '2014-05-03T09:14:11.096Z',
+      values: [
+        {
+          path: '',
+          value: { name: 'TestBoat' }
+        }
+      ]
+    }
+  ]
+},
+{
+  context: 'sar.self',
+  updates: [
+    {
+      timestamp: '2014-05-03T09:14:11.096Z',
+      values: [
+        {
+          path: '',
+          value: { name: 'TestBoat' }
+        }
+      ]
+    }
+  ]
 }
+)
 
 const expectedOrder = [
   {
