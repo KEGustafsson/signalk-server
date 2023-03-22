@@ -189,7 +189,7 @@ describe('deltacache', () => {
         console.log('---------------------------------------------------------------------------------------------')
         console.log(JSON.stringify(fullTree, null, 2))
         console.log('---------------------------------------------------------------------------------------------')
-        const self = _.get(fullTree.self)
+        const self = _.get(fullTree, fullTree.self)
         self.should.have.nested.property('navigation.trip.log.value', 43374)
         self.should.have.nested.property('imaginary.path.value', 17404540)
         self.should.have.nested.property(
@@ -201,9 +201,10 @@ describe('deltacache', () => {
           3.85
         )
         self.should.have.nested.property('name', 'TestBoat')
-
+        
         delete self.imaginary
-        delete self.navigation.course //FIXME until in schema          
+        delete self.navigation.course //FIXME until in schema 
+        delete fullTree.navigation.course        
         fullTree.should.be.validSignalK
       })
     })
