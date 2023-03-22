@@ -182,80 +182,70 @@ describe('deltacache', () => {
       })
   })
 
-  try {
-    it('returns valid full tree', function () {
-      return serverP.then(server => {
-        return deltaP.then(() => {
-          const fullTree = server.app.deltaCache.buildFull(null, [])
-  
-          const self = _.get(fullTree, fullTree.self)
-          self.should.have.nested.property('navigation.trip.log.value', 43374)
-          self.should.have.nested.property('imaginary.path.value', 17404540)
-          self.should.have.nested.property(
-            'navigation.courseOverGroundTrue.value',
-            172.9
-          )
-          self.should.have.nested.property(
-            'navigation.speedOverGround.value',
-            3.85
-          )
-          self.should.have.nested.property('name', 'TestBoat')
-  
-          delete self.imaginary
-          delete self.navigation.course //FIXME until in schema          
-          fullTree.should.be.validSignalK
-        })
-      })
-    })    
-  } catch (error) {
-    console.error('err:', error)
-  }
+  it('returns valid full tree', function () {
+    return serverP.then(server => {
+      return deltaP.then(() => {
+        const fullTree = server.app.deltaCache.buildFull(null, [])
+        console.log('---------------------------------------------------------------------------------------------')
+        console.log(JSON.stringify(fullTree, null, 2))
+        console.log('---------------------------------------------------------------------------------------------')
+        const self = _.get(fullTree, fullTree.self)
+        self.should.have.nested.property('navigation.trip.log.value', 43374)
+        self.should.have.nested.property('imaginary.path.value', 17404540)
+        self.should.have.nested.property(
+          'navigation.courseOverGroundTrue.value',
+          172.9
+        )
+        self.should.have.nested.property(
+          'navigation.speedOverGround.value',
+          3.85
+        )
+        self.should.have.nested.property('name', 'TestBoat')
 
-  try {
-    it('deltas ordered properly', function () {
-      return serverP.then(server => {
-        return deltaP.then(() => {
-          // eslint-disable-next-line no-unused-vars
-          var deltas = server.app.deltaCache.getCachedDeltas((delta) => true, null)
-            .filter(delta => delta.updates[0].$source != 'courseApi')
-          // console.log(JSON.stringify(deltas, null, 2))
-          deltas.length.should.equal(expectedOrder.length)
-          for (var i = 0; i < expectedOrder.length; i++) {
-            if (!deltas[i].updates[0].meta) {
-              deltas[i].updates[0].values[0].path.should.equal(
-                expectedOrder[i].updates[0].values[0].path
-              )
-            } else {
-              deltas[i].updates[0].meta[0].path.should.equal(
-                expectedOrder[i].updates[0].meta[0].path
-              )
-            }
+        delete self.imaginary
+        delete self.navigation.course //FIXME until in schema          
+        fullTree.should.be.validSignalK
+      })
+    })
+  })
+
+  it('deltas ordered properly', function () {
+    return serverP.then(server => {
+      return deltaP.then(() => {
+        // eslint-disable-next-line no-unused-vars
+        var deltas = server.app.deltaCache.getCachedDeltas((delta) => true, null)
+          .filter(delta => delta.updates[0].$source != 'courseApi')
+        // console.log(JSON.stringify(deltas, null, 2))
+        deltas.length.should.equal(expectedOrder.length)
+        for (var i = 0; i < expectedOrder.length; i++) {
+          if (!deltas[i].updates[0].meta) {
+            deltas[i].updates[0].values[0].path.should.equal(
+              expectedOrder[i].updates[0].values[0].path
+            )
+          } else {
+            deltas[i].updates[0].meta[0].path.should.equal(
+              expectedOrder[i].updates[0].meta[0].path
+            )
           }
-        })
+        }
       })
-    })    
-  } catch (error) {
-    console.error('err:', error)
-  }
+    })
+  })
 
-  try {
-    it('returns /sources correctly', function () {
-      return serverP.then(server => {
-        return deltaP.then(() => {
-          const fullTree = server.app.deltaCache.buildFull(null, ['sources'])
-          const self = _.get(fullTree, fullTree.self)
-          delete self.imaginary
-          delete self.navigation.course //FIXME until in schema
-          fullTree.should.be.validSignalK
-          fullTree.sources.should.deep.equal({
-            courseApi: {},
-            defaults: {},
-            deltaFromHttp: {}
-          })
+  it('returns /sources correctly', function () {
+    return serverP.then(server => {
+      return deltaP.then(() => {
+        const fullTree = server.app.deltaCache.buildFull(null, ['sources'])
+        const self = _.get(fullTree, fullTree.self)
+        delete self.imaginary
+        delete self.navigation.course //FIXME until in schema
+        fullTree.should.be.validSignalK
+        fullTree.sources.should.deep.equal({
+          courseApi: {},
+          defaults: {},
+          deltaFromHttp: {}
         })
       })
     })
-  } catch (error) {
-    console.error('err:', error)
-  }
+  })
 })
