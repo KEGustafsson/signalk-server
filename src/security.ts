@@ -356,7 +356,7 @@ export function createCertificateOptions(
 ) {
   const location = app.config.configPath ? app.config.configPath : './settings'
   debug(`Creating certificate files in ${location}`)
-  generate(function (err, pems) {
+  generate([{ name: 'commonName', value: 'localhost' }], { days: 3650 }, function (err, pems) {
     writeFileSync(keyFile, pems.private)
     chmodSync(keyFile, '600')
     writeFileSync(certFile, pems.cert)
