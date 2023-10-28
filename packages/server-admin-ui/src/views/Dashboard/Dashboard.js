@@ -161,15 +161,33 @@ const Dashboard = (props) => {
                               </span>{' '}
                             </span>
                           )}
-                          <div className="bars">
+                          <div className="bars progress-xs">
                             <Progress
-                              className="progress-xs"
                               color="warning"
                               value={
                                 (providerStats.deltaRate / deltaRate) * 100
                               }
                             />
+                            {providerStats.writeRate > 0 && (
+                              <Progress
+                                color="info"
+                                value={
+                                  100
+                                }
+                              />
+                            )}
                           </div>
+                          {providerStats.writeRate > 0 && (
+                            <div className="bars">
+                              <Progress
+                                className="progress-xs"
+                                color="info"
+                                value={
+                                  100
+                                }
+                              />
+                            </div>
+                          )}
                         </li>
                       )
                     })}
