@@ -162,11 +162,9 @@ const Dashboard = (props) => {
                             </span>
                           )}
                           <div className="bars">
-                            <div className="progress-xs">
-                              <div class="progress">
-                                <div class="progress-bar bg-warning" role="progressbar" aria-valuenow={(providerStats.deltaRate / deltaRate) * 100} aria-valuemin="0" aria-valuemax="100"></div>
-                                <div class="progress-bar bg-info" role="progressbar" aria-valuenow={100 - (providerStats.deltaRate / deltaRate) * 100} aria-valuemin="0" aria-valuemax="100"></div>
-                              </div>
+                            <div className="progress-xs progress">
+                              <div class="progress-bar bg-warning" role="progressbar" style={{ width: ((providerStats.deltaRate / deltaRate) * 100) + '%' }} aria-valuenow={((providerStats.deltaRate / deltaRate) * 100)} aria-valuemin="0" aria-valuemax="100"></div>
+                              <div class="progress-bar bg-info" role="progressbar" style={{ width: (100 - (providerStats.deltaRate / deltaRate) * 100) + '%' }} aria-valuenow={100 - (providerStats.deltaRate / deltaRate) * 100} aria-valuemin="0" aria-valuemax="100"></div>
                             </div>
                           </div>
                         </li>
