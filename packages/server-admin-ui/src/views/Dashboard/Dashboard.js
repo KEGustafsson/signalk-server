@@ -163,20 +163,20 @@ const Dashboard = (props) => {
                           )}
                           <div className="bars">
                             <div className="progress-xs">
-                            {providerStats.writeRate > 0 && (
-                                <Progress
-                                  color="info"
-                                  value={
-                                    100
-                                  }
-                                />
-                              )}
                               <Progress
                                 color="warning"
                                 value={
                                   (providerStats.deltaRate / deltaRate) * 100
                                 }
                               />
+                              {providerStats.writeRate > 0 && (
+                                <Progress
+                                  color="info"
+                                  value={
+                                    100 - (providerStats.deltaRate / deltaRate) * 100
+                                  }
+                                />
+                              )}
                             </div>
                           </div>
                         </li>
