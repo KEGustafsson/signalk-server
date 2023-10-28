@@ -82,21 +82,21 @@ const Dashboard = (props) => {
                         linkType = providerStatus.find(
                           (item) => item.id === providerId
                         ).statusType
-                      } catch (error) {}
+                      } catch (error) { }
                       const inputPulseIconClass =
                         'icon-login' +
                         (providerStats.deltaRate > 50
                           ? ' text-primary fa-pulse-fast'
                           : providerStats.deltaRate > 0
-                          ? ' text-primary fa-pulse'
-                          : '')
+                            ? ' text-primary fa-pulse'
+                            : '')
                       const outputPulseIconClass =
                         'icon-logout' +
                         (providerStats.writeRate > 50
                           ? ' text-primary fa-pulse-fast'
                           : providerStats.writeRate > 0
-                          ? ' text-primary fa-pulse'
-                          : '')
+                            ? ' text-primary fa-pulse'
+                            : '')
                       return (
                         <li
                           key={providerId}
@@ -163,20 +163,10 @@ const Dashboard = (props) => {
                           )}
                           <div className="bars">
                             <div className="progress-xs">
-                              <Progress
-                                color="warning"
-                                value={
-                                  (providerStats.deltaRate / deltaRate) * 100
-                                }
-                              />
-                              {providerStats.writeRate > 0 && (
-                                <Progress
-                                  color="info"
-                                  value={
-                                    100 - (providerStats.deltaRate / deltaRate) * 100
-                                  }
-                                />
-                              )}
+                              <div class="progress">
+                                <div class="progress-bar bg-warning" role="progressbar" aria-valuenow={(providerStats.deltaRate / deltaRate) * 100} aria-valuemin="0" aria-valuemax="100"></div>
+                                <div class="progress-bar bg-info" role="progressbar" aria-valuenow={100 - (providerStats.deltaRate / deltaRate) * 100} aria-valuemin="0" aria-valuemax="100"></div>
+                              </div>
                             </div>
                           </div>
                         </li>
@@ -216,8 +206,8 @@ const Dashboard = (props) => {
                         const lastError =
                           status.lastError && status.lastError != status.message
                             ? status.lastErrorTimeStamp +
-                              ': ' +
-                              status.lastError
+                            ': ' +
+                            status.lastError
                             : ''
                         return (
                           <tr
@@ -225,10 +215,10 @@ const Dashboard = (props) => {
                             onClick={() => {
                               props.history.push(
                                 '/serverConfiguration/' +
-                                  (status.statusType === 'plugin'
-                                    ? 'plugins/'
-                                    : 'connections/') +
-                                  status.id
+                                (status.statusType === 'plugin'
+                                  ? 'plugins/'
+                                  : 'connections/') +
+                                status.id
                               )
                             }}
                           >
