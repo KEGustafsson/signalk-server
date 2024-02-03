@@ -82,28 +82,28 @@ const Dashboard = (props) => {
                         linkType = providerStatus.find(
                           (item) => item.id === providerId
                         ).statusType
-                      } catch (error) { }
+                      } catch (error) {}
                       const inputPulseIconClass =
                         'icon-login' +
                         (providerStats.deltaRate > 50
                           ? ' text-primary fa-pulse-fast'
                           : providerStats.deltaRate > 0
-                            ? ' text-primary fa-pulse'
-                            : '')
+                          ? ' text-primary fa-pulse'
+                          : '')
                       const outputPulseIconClass =
                         'icon-logout' +
                         (providerStats.writeRate > 50
                           ? ' text-primary fa-pulse-fast'
                           : providerStats.writeRate > 0
-                            ? ' text-primary fa-pulse'
-                            : '')
+                          ? ' text-primary fa-pulse'
+                          : '')
                       if (linkType === 'provider') {
                         return (
                           <li
                             key={providerId}
                             onClick={() =>
                               props.history.push(
-                                `/serverConfiguration/providers/${providerId}`
+                                `/serverConfiguration/connections/${providerId}`
                               )
                             }
                           >
@@ -125,7 +125,9 @@ const Dashboard = (props) => {
                               }}
                             />
                             <span className="title">
-                              {providerIdLink(providerId)}
+                              {linkType === 'plugin'
+                                ? pluginNameLink(providerId)
+                                : providerIdLink(providerId)}
                             </span>
                             {providerStats.writeRate > 0 && (
                               <span className="value">
@@ -184,28 +186,28 @@ const Dashboard = (props) => {
                         linkType = providerStatus.find(
                           (item) => item.id === providerId
                         ).statusType
-                      } catch (error) { }
+                      } catch (error) {}
                       const inputPulseIconClass =
                         'icon-login' +
                         (providerStats.deltaRate > 50
                           ? ' text-primary fa-pulse-fast'
                           : providerStats.deltaRate > 0
-                            ? ' text-primary fa-pulse'
-                            : '')
+                          ? ' text-primary fa-pulse'
+                          : '')
                       const outputPulseIconClass =
                         'icon-logout' +
                         (providerStats.writeRate > 50
                           ? ' text-primary fa-pulse-fast'
                           : providerStats.writeRate > 0
-                            ? ' text-primary fa-pulse'
-                            : '')
+                          ? ' text-primary fa-pulse'
+                          : '')
                       if (linkType === 'plugin') {
                         return (
                           <li
                             key={providerId}
                             onClick={() =>
                               props.history.push(
-                                `/serverConfiguration/providers/${providerId}`
+                                `/serverConfiguration/connections/${providerId}`
                               )
                             }
                           >
@@ -227,7 +229,9 @@ const Dashboard = (props) => {
                               }}
                             />
                             <span className="title">
-                              {pluginNameLink(providerId)}
+                              {linkType === 'plugin'
+                                ? pluginNameLink(providerId)
+                                : providerIdLink(providerId)}
                             </span>
                             {providerStats.writeRate > 0 && (
                               <span className="value">
@@ -309,8 +313,8 @@ const Dashboard = (props) => {
                         const lastError =
                           status.lastError && status.lastError != status.message
                             ? status.lastErrorTimeStamp +
-                            ': ' +
-                            status.lastError
+                              ': ' +
+                              status.lastError
                             : ''
                         return (
                           <tr
@@ -318,10 +322,10 @@ const Dashboard = (props) => {
                             onClick={() => {
                               props.history.push(
                                 '/serverConfiguration/' +
-                                (status.statusType === 'plugin'
-                                  ? 'plugins/'
-                                  : 'connections/') +
-                                status.id
+                                  (status.statusType === 'plugin'
+                                    ? 'plugins/'
+                                    : 'connections/') +
+                                  status.id
                               )
                             }}
                           >
