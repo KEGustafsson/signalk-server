@@ -18,6 +18,9 @@ const Dashboard = (props) => {
     wsClients,
     providerStatistics,
     uptime,
+    loadAvg1m,
+    loadAvg5m,
+    loadAvg15m,
   } = props.serverStatistics || {
     deltaRate: 0,
     numberOfAvailablePaths: 0,
@@ -71,6 +74,15 @@ const Dashboard = (props) => {
                       {uptimeD} days, {uptimeH} hours, {uptimeM} minutes
                     </strong>
                   </div>
+                  <div className="callout callout-primary">
+                    <small className="text-muted">
+                      Average CPU Load (1/5/15min)
+                    </small>
+                    <br />
+                    <strong className="h5">
+                      {loadAvg1m} {loadAvg5m} {loadAvg15m}
+                    </strong>
+                  </div>
                 </Col>
                 <Col xs="12" md="6">
                   <div className="text-muted">Connection activity</div>
@@ -82,21 +94,21 @@ const Dashboard = (props) => {
                         linkType = providerStatus.find(
                           (item) => item.id === providerId
                         ).statusType
-                      } catch (error) {}
+                      } catch (error) { }
                       const inputPulseIconClass =
                         'icon-login' +
                         (providerStats.deltaRate > 50
                           ? ' text-primary fa-pulse-fast'
                           : providerStats.deltaRate > 0
-                          ? ' text-primary fa-pulse'
-                          : '')
+                            ? ' text-primary fa-pulse'
+                            : '')
                       const outputPulseIconClass =
                         'icon-logout' +
                         (providerStats.writeRate > 50
                           ? ' text-primary fa-pulse-fast'
                           : providerStats.writeRate > 0
-                          ? ' text-primary fa-pulse'
-                          : '')
+                            ? ' text-primary fa-pulse'
+                            : '')
                       return (
                         <li
                           key={providerId}
@@ -162,13 +174,12 @@ const Dashboard = (props) => {
                             </span>
                           )}
                           <div className="bars">
-                            <Progress
-                              className="progress-xs"
-                              color="warning"
-                              value={
-                                (providerStats.deltaRate / deltaRate) * 100
-                              }
-                            />
+                            <div className="progress-xs progress">
+                              <div class="progress-bar bg-warning" role="progressbar" style={{ width: ((providerStats.deltaRate / deltaRate) * 100) + '%' }} aria-valuenow={((providerStats.deltaRate / deltaRate) * 100)} aria-valuemin="0" aria-valuemax="100"></div>
+                              {providerStats.writeRate > 0 && (
+                                <div class="progress-bar bg-info" role="progressbar" style={{ width: (100 - (providerStats.deltaRate / deltaRate) * 100) + '%' }} aria-valuenow={100 - (providerStats.deltaRate / deltaRate) * 100} aria-valuemin="0" aria-valuemax="100"></div>
+                              )}
+                            </div>
                           </div>
                         </li>
                       )
@@ -207,8 +218,8 @@ const Dashboard = (props) => {
                         const lastError =
                           status.lastError && status.lastError != status.message
                             ? status.lastErrorTimeStamp +
-                              ': ' +
-                              status.lastError
+                            ': ' +
+                            status.lastError
                             : ''
                         return (
                           <tr
@@ -216,10 +227,10 @@ const Dashboard = (props) => {
                             onClick={() => {
                               props.history.push(
                                 '/serverConfiguration/' +
-                                  (status.statusType === 'plugin'
-                                    ? 'plugins/'
-                                    : 'connections/') +
-                                  status.id
+                                (status.statusType === 'plugin'
+                                  ? 'plugins/'
+                                  : 'connections/') +
+                                status.id
                               )
                             }}
                           >
