@@ -87,7 +87,7 @@ const Dashboard = (props) => {
                 <Col xs="12" md="6">
                   <div className="text-muted">Connections activity</div>
                   <ul className="horizontal-bars type-2">
-                    {Object.keys(providerStatistics || {}).map((providerId) => {
+                    {Object.keys(providerStatistics || {}).sort().map((providerId) => {
                       const providerStats = providerStatistics[providerId]
                       let linkType = 'provider'
                       try {
@@ -190,7 +190,7 @@ const Dashboard = (props) => {
                   <br></br>
                   <div className="text-muted">Plugins activity</div>
                   <ul className="horizontal-bars type-2">
-                    {Object.keys(providerStatistics || {}).map((providerId) => {
+                    {Object.keys(providerStatistics || {}).sort().map((providerId) => {
                       const providerStats = providerStatistics[providerId]
                       let linkType = 'provider'
                       try {
