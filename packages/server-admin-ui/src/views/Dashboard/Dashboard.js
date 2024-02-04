@@ -86,7 +86,9 @@ const Dashboard = (props) => {
                   </div>
                 </Col>
                 <Col xs="12" md="6">
-                  <div className="text-muted">Connections activity</div>
+                  <div className="text-muted" style={{ fontSize: 17 }}>
+                    Connections activity
+                  </div>
                   <ul className="horizontal-bars type-2">
                     {Object.keys(providerStatistics || {})
                       .sort()
@@ -236,15 +238,14 @@ const Dashboard = (props) => {
                         ).statusType
                       } catch (error) {}
                       if (linkType === 'plugin') {
-                        isPlugins = true 
+                        isPlugins = true
                       }
-                    })
-                  }
-                  {
-                    isPlugins ?
-                    <div className="text-muted">Plugin activity</div>
-                    : null
-                  }
+                    })}
+                  {isPlugins ? (
+                    <div className="text-muted" style={{ fontSize: 17 }}>
+                      Plugin activity
+                    </div>
+                  ) : null}
                   <ul className="horizontal-bars type-2">
                     {Object.keys(providerStatistics || {})
                       .sort()
