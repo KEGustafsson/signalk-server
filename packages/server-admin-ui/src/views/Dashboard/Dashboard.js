@@ -10,6 +10,7 @@ import {
   Table,
 } from 'reactstrap'
 import '../../fa-pulse.css'
+import { get } from 'lodash'
 
 const Dashboard = (props) => {
   const {
@@ -38,6 +39,37 @@ const Dashboard = (props) => {
   if (errorCount > 0) {
     errors = `(${errorCount} errors)`
   }
+
+  const getLinkType = (providerId) => {
+    try {
+      return providerStatus.find(
+        (item) => item.id === providerId
+      ).statusType
+    } catch (err) {
+      return 'provider'
+    }
+  }
+
+  const inputPulseIconClass = (providerStats) => {
+    return ('icon-login' +
+      (providerStats.deltaRate > 50
+        ? ' text-primary fa-pulse-fast'
+        : providerStats.deltaRate > 0
+        ? ' text-primary fa-pulse'
+        : '')
+    )
+  }
+
+  const outputPulseIconClass = (providerStats) => {
+    return ('icon-logout' +
+      (providerStats.writeRate > 50
+        ? ' text-primary fa-pulse-fast'
+        : providerStats.writeRate > 0
+        ? ' text-primary fa-pulse'
+        : '')
+    )
+  }
+
   return (
     <div className="animated fadeIn">
       {props.websocketStatus === 'open' && (
@@ -94,27 +126,7 @@ const Dashboard = (props) => {
                       .sort()
                       .map((providerId) => {
                         const providerStats = providerStatistics[providerId]
-                        let linkType = 'provider'
-                        try {
-                          linkType = providerStatus.find(
-                            (item) => item.id === providerId
-                          ).statusType
-                        } catch (error) {}
-                        const inputPulseIconClass =
-                          'icon-login' +
-                          (providerStats.deltaRate > 50
-                            ? ' text-primary fa-pulse-fast'
-                            : providerStats.deltaRate > 0
-                            ? ' text-primary fa-pulse'
-                            : '')
-                        const outputPulseIconClass =
-                          'icon-logout' +
-                          (providerStats.writeRate > 50
-                            ? ' text-primary fa-pulse-fast'
-                            : providerStats.writeRate > 0
-                            ? ' text-primary fa-pulse'
-                            : '')
-                        if (linkType === 'provider') {
+                        if (getLinkType(providerId) === 'provider') {
                           return (
                             <li
                               key={providerId}
@@ -125,7 +137,7 @@ const Dashboard = (props) => {
                               }
                             >
                               <i
-                                className={inputPulseIconClass}
+                                className={inputPulseIconClass(providerStats)}
                                 style={{
                                   color: providerStats.deltaCount
                                     ? '#039'
@@ -133,7 +145,7 @@ const Dashboard = (props) => {
                                 }}
                               />
                               <i
-                                className={outputPulseIconClass}
+                                className={outputPulseIconClass(providerStats)}
                                 style={{
                                   transform: 'scaleX(-1)',
                                   color: providerStats.writeCount
@@ -142,9 +154,7 @@ const Dashboard = (props) => {
                                 }}
                               />
                               <span className="title">
-                                {linkType === 'plugin'
-                                  ? pluginNameLink(providerId)
-                                  : providerIdLink(providerId)}
+                                {providerIdLink(providerId)}
                               </span>
                               {providerStats.writeRate > 0 && (
                                 <span className="value">
@@ -231,13 +241,7 @@ const Dashboard = (props) => {
                   {Object.keys(providerStatistics || {})
                     .sort()
                     .map((providerId) => {
-                      let linkType = 'provider'
-                      try {
-                        linkType = providerStatus.find(
-                          (item) => item.id === providerId
-                        ).statusType
-                      } catch (error) {}
-                      if (linkType === 'plugin') {
+                      if (getLinkType(providerId) === 'plugin') {
                         isPlugins = true
                       }
                     })}
@@ -251,27 +255,7 @@ const Dashboard = (props) => {
                       .sort()
                       .map((providerId) => {
                         const providerStats = providerStatistics[providerId]
-                        let linkType = 'provider'
-                        try {
-                          linkType = providerStatus.find(
-                            (item) => item.id === providerId
-                          ).statusType
-                        } catch (error) {}
-                        const inputPulseIconClass =
-                          'icon-login' +
-                          (providerStats.deltaRate > 50
-                            ? ' text-primary fa-pulse-fast'
-                            : providerStats.deltaRate > 0
-                            ? ' text-primary fa-pulse'
-                            : '')
-                        const outputPulseIconClass =
-                          'icon-logout' +
-                          (providerStats.writeRate > 50
-                            ? ' text-primary fa-pulse-fast'
-                            : providerStats.writeRate > 0
-                            ? ' text-primary fa-pulse'
-                            : '')
-                        if (linkType === 'plugin') {
+                        if (getLinkType(providerId) === 'plugin') {
                           return (
                             <li
                               key={providerId}
@@ -282,7 +266,7 @@ const Dashboard = (props) => {
                               }
                             >
                               <i
-                                className={inputPulseIconClass}
+                                className={inputPulseIconClass(providerStats)}
                                 style={{
                                   color: providerStats.deltaCount
                                     ? '#039'
@@ -290,7 +274,7 @@ const Dashboard = (props) => {
                                 }}
                               />
                               <i
-                                className={outputPulseIconClass}
+                                className={outputPulseIconClass(providerStats)}
                                 style={{
                                   transform: 'scaleX(-1)',
                                   color: providerStats.writeCount
@@ -299,9 +283,7 @@ const Dashboard = (props) => {
                                 }}
                               />
                               <span className="title">
-                                {linkType === 'plugin'
-                                  ? pluginNameLink(providerId)
-                                  : providerIdLink(providerId)}
+                                {pluginNameLink(providerId)}
                               </span>
                               {providerStats.writeRate > 0 && (
                                 <span className="value">
