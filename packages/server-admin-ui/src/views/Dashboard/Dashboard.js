@@ -42,16 +42,15 @@ const Dashboard = (props) => {
 
   const getLinkType = (providerId) => {
     try {
-      return providerStatus.find(
-        (item) => item.id === providerId
-      ).statusType
+      return providerStatus.find((item) => item.id === providerId).statusType
     } catch (err) {
       return 'provider'
     }
   }
 
   const inputPulseIconClass = (providerStats) => {
-    return ('icon-login' +
+    return (
+      'icon-login' +
       (providerStats.deltaRate > 50
         ? ' text-primary fa-pulse-fast'
         : providerStats.deltaRate > 0
@@ -61,12 +60,121 @@ const Dashboard = (props) => {
   }
 
   const outputPulseIconClass = (providerStats) => {
-    return ('icon-logout' +
+    return (
+      'icon-logout' +
       (providerStats.writeRate > 50
         ? ' text-primary fa-pulse-fast'
         : providerStats.writeRate > 0
         ? ' text-primary fa-pulse'
         : '')
+    )
+  }
+
+  const renderer = (providerId, providerStats, linkType) => {
+    return (
+      <li
+        key={providerId}
+        onClick={() => props.history.push(`/dashboard`)}
+      >
+        <i
+          className={inputPulseIconClass(providerStats)}
+          style={{
+            color: providerStats.deltaCount
+              ? '#039'
+              : 'lightblue',
+          }}
+        />
+        <i
+          className={outputPulseIconClass(providerStats)}
+          style={{
+            transform: 'scaleX(-1)',
+            color: providerStats.writeCount
+              ? '#039'
+              : 'lightblue',
+          }}
+        />
+        <span className="title">
+          {linkType === 'plugin'
+            ? pluginNameLink(providerId)
+            : providerIdLink(providerId)}
+        </span>
+        {providerStats.writeRate > 0 && (
+          <span className="value">
+            {' '}
+            {providerStats.writeRate}{' '}
+            <span className="text-muted small">
+              {'msg/s'}
+            </span>{' '}
+          </span>
+        )}
+        {providerStats.deltaRate > 0 &&
+          providerStats.writeRate > 0 && (
+            <span className="value">
+              <span className="text-muted small">
+                {','}
+              </span>
+              &#160;
+            </span>
+          )}
+        {providerStats.deltaRate > 0 && (
+          <span className="value">
+            {' '}
+            {providerStats.deltaRate}{' '}
+            <span className="text-muted small">
+              (
+              {(
+                (providerStats.deltaRate / deltaRate) *
+                100
+              ).toFixed(0)}
+              %)
+            </span>{' '}
+            <span className="text-muted small">
+              {'deltas/s'}
+            </span>{' '}
+          </span>
+        )}
+        <div className="bars">
+          <div className="progress-xs progress">
+            <div
+              class="progress-bar bg-warning"
+              role="progressbar"
+              style={{
+                width:
+                  (providerStats.deltaRate / deltaRate) *
+                    100 +
+                  '%',
+              }}
+              aria-valuenow={
+                (providerStats.deltaRate / deltaRate) *
+                100
+              }
+              aria-valuemin="0"
+              aria-valuemax="100"
+            ></div>
+            {providerStats.writeRate > 0 && (
+              <div
+                class="progress-bar bg-info"
+                role="progressbar"
+                style={{
+                  width:
+                    100 -
+                    (providerStats.deltaRate /
+                      deltaRate) *
+                      100 +
+                    '%',
+                }}
+                aria-valuenow={
+                  100 -
+                  (providerStats.deltaRate / deltaRate) *
+                    100
+                }
+                aria-valuemin="0"
+                aria-valuemax="100"
+              ></div>
+            )}
+          </div>
+        </div>
+      </li>
     )
   }
 
@@ -127,113 +235,7 @@ const Dashboard = (props) => {
                       .map((providerId) => {
                         const providerStats = providerStatistics[providerId]
                         if (getLinkType(providerId) === 'provider') {
-                          return (
-                            <li
-                              key={providerId}
-                              onClick={() =>
-                                props.history.push(
-                                  `/dashboard`
-                                )
-                              }
-                            >
-                              <i
-                                className={inputPulseIconClass(providerStats)}
-                                style={{
-                                  color: providerStats.deltaCount
-                                    ? '#039'
-                                    : 'lightblue',
-                                }}
-                              />
-                              <i
-                                className={outputPulseIconClass(providerStats)}
-                                style={{
-                                  transform: 'scaleX(-1)',
-                                  color: providerStats.writeCount
-                                    ? '#039'
-                                    : 'lightblue',
-                                }}
-                              />
-                              <span className="title">
-                                {providerIdLink(providerId)}
-                              </span>
-                              {providerStats.writeRate > 0 && (
-                                <span className="value">
-                                  {' '}
-                                  {providerStats.writeRate}{' '}
-                                  <span className="text-muted small">
-                                    {'msg/s'}
-                                  </span>{' '}
-                                </span>
-                              )}
-                              {providerStats.deltaRate > 0 &&
-                                providerStats.writeRate > 0 && (
-                                  <span className="value">
-                                    <span className="text-muted small">
-                                      {','}
-                                    </span>
-                                    &#160;
-                                  </span>
-                                )}
-                              {providerStats.deltaRate > 0 && (
-                                <span className="value">
-                                  {' '}
-                                  {providerStats.deltaRate}{' '}
-                                  <span className="text-muted small">
-                                    (
-                                    {(
-                                      (providerStats.deltaRate / deltaRate) *
-                                      100
-                                    ).toFixed(0)}
-                                    %)
-                                  </span>{' '}
-                                  <span className="text-muted small">
-                                    {'deltas/s'}
-                                  </span>{' '}
-                                </span>
-                              )}
-                              <div className="bars">
-                                <div className="progress-xs progress">
-                                  <div
-                                    class="progress-bar bg-warning"
-                                    role="progressbar"
-                                    style={{
-                                      width:
-                                        (providerStats.deltaRate / deltaRate) *
-                                          100 +
-                                        '%',
-                                    }}
-                                    aria-valuenow={
-                                      (providerStats.deltaRate / deltaRate) *
-                                      100
-                                    }
-                                    aria-valuemin="0"
-                                    aria-valuemax="100"
-                                  ></div>
-                                  {providerStats.writeRate > 0 && (
-                                    <div
-                                      class="progress-bar bg-info"
-                                      role="progressbar"
-                                      style={{
-                                        width:
-                                          100 -
-                                          (providerStats.deltaRate /
-                                            deltaRate) *
-                                            100 +
-                                          '%',
-                                      }}
-                                      aria-valuenow={
-                                        100 -
-                                        (providerStats.deltaRate / deltaRate) *
-                                          100
-                                      }
-                                      aria-valuemin="0"
-                                      aria-valuemax="100"
-                                    ></div>
-                                  )}
-                                </div>
-                              </div>
-                            </li>
-                          )
+                          return renderer(providerId, providerStats, 'provider')
                         }
                       })}
                   </ul>
@@ -256,113 +258,7 @@ const Dashboard = (props) => {
                       .map((providerId) => {
                         const providerStats = providerStatistics[providerId]
                         if (getLinkType(providerId) === 'plugin') {
-                          return (
-                            <li
-                              key={providerId}
-                              onClick={() =>
-                                props.history.push(
-                                  `/dashboard`
-                                )
-                              }
-                            >
-                              <i
-                                className={inputPulseIconClass(providerStats)}
-                                style={{
-                                  color: providerStats.deltaCount
-                                    ? '#039'
-                                    : 'lightblue',
-                                }}
-                              />
-                              <i
-                                className={outputPulseIconClass(providerStats)}
-                                style={{
-                                  transform: 'scaleX(-1)',
-                                  color: providerStats.writeCount
-                                    ? '#039'
-                                    : 'lightblue',
-                                }}
-                              />
-                              <span className="title">
-                                {pluginNameLink(providerId)}
-                              </span>
-                              {providerStats.writeRate > 0 && (
-                                <span className="value">
-                                  {' '}
-                                  {providerStats.writeRate}{' '}
-                                  <span className="text-muted small">
-                                    {'msg/s'}
-                                  </span>{' '}
-                                </span>
-                              )}
-                              {providerStats.deltaRate > 0 &&
-                                providerStats.writeRate > 0 && (
-                                  <span className="value">
-                                    <span className="text-muted small">
-                                      {','}
-                                    </span>
-                                    &#160;
-                                  </span>
-                                )}
-                              {providerStats.deltaRate > 0 && (
-                                <span className="value">
-                                  {' '}
-                                  {providerStats.deltaRate}{' '}
-                                  <span className="text-muted small">
-                                    (
-                                    {(
-                                      (providerStats.deltaRate / deltaRate) *
-                                      100
-                                    ).toFixed(0)}
-                                    %)
-                                  </span>{' '}
-                                  <span className="text-muted small">
-                                    {'deltas/s'}
-                                  </span>{' '}
-                                </span>
-                              )}
-                              <div className="bars">
-                                <div className="progress-xs progress">
-                                  <div
-                                    class="progress-bar bg-warning"
-                                    role="progressbar"
-                                    style={{
-                                      width:
-                                        (providerStats.deltaRate / deltaRate) *
-                                          100 +
-                                        '%',
-                                    }}
-                                    aria-valuenow={
-                                      (providerStats.deltaRate / deltaRate) *
-                                      100
-                                    }
-                                    aria-valuemin="0"
-                                    aria-valuemax="100"
-                                  ></div>
-                                  {providerStats.writeRate > 0 && (
-                                    <div
-                                      class="progress-bar bg-info"
-                                      role="progressbar"
-                                      style={{
-                                        width:
-                                          100 -
-                                          (providerStats.deltaRate /
-                                            deltaRate) *
-                                            100 +
-                                          '%',
-                                      }}
-                                      aria-valuenow={
-                                        100 -
-                                        (providerStats.deltaRate / deltaRate) *
-                                          100
-                                      }
-                                      aria-valuemin="0"
-                                      aria-valuemax="100"
-                                    ></div>
-                                  )}
-                                </div>
-                              </div>
-                            </li>
-                          )
+                          return renderer(providerId, providerStats, 'plugin')
                         }
                       })}
                   </ul>
