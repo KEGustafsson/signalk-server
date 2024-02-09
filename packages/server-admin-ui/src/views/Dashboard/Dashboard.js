@@ -10,7 +10,6 @@ import {
   Table,
 } from 'reactstrap'
 import '../../fa-pulse.css'
-import { get } from 'lodash'
 
 const Dashboard = (props) => {
   const {
@@ -34,7 +33,6 @@ const Dashboard = (props) => {
   const uptimeD = Math.floor(uptime / (60 * 60 * 24))
   const uptimeH = Math.floor((uptime % (60 * 60 * 24)) / (60 * 60))
   const uptimeM = Math.floor((uptime % (60 * 60)) / 60)
-  let isPlugins = false
   let errors = ''
   if (errorCount > 0) {
     errors = `(${errorCount} errors)`
@@ -70,27 +68,20 @@ const Dashboard = (props) => {
     )
   }
 
-  const renderer = (providerId, providerStats, linkType) => {
+  const activityRenderer = (providerId, providerStats, linkType) => {
     return (
-      <li
-        key={providerId}
-        onClick={() => props.history.push(`/dashboard`)}
-      >
+      <li key={providerId} onClick={() => props.history.push(`/dashboard`)}>
         <i
           className={inputPulseIconClass(providerStats)}
           style={{
-            color: providerStats.deltaCount
-              ? '#039'
-              : 'lightblue',
+            color: providerStats.deltaCount ? '#039' : 'lightblue',
           }}
         />
         <i
           className={outputPulseIconClass(providerStats)}
           style={{
             transform: 'scaleX(-1)',
-            color: providerStats.writeCount
-              ? '#039'
-              : 'lightblue',
+            color: providerStats.writeCount ? '#039' : 'lightblue',
           }}
         />
         <span className="title">
@@ -102,35 +93,24 @@ const Dashboard = (props) => {
           <span className="value">
             {' '}
             {providerStats.writeRate}{' '}
-            <span className="text-muted small">
-              {'msg/s'}
-            </span>{' '}
+            <span className="text-muted small">{'msg/s'}</span>{' '}
           </span>
         )}
-        {providerStats.deltaRate > 0 &&
-          providerStats.writeRate > 0 && (
-            <span className="value">
-              <span className="text-muted small">
-                {','}
-              </span>
-              &#160;
-            </span>
-          )}
+        {providerStats.deltaRate > 0 && providerStats.writeRate > 0 && (
+          <span className="value">
+            <span className="text-muted small">{','}</span>
+            &#160;
+          </span>
+        )}
         {providerStats.deltaRate > 0 && (
           <span className="value">
             {' '}
             {providerStats.deltaRate}{' '}
             <span className="text-muted small">
-              (
-              {(
-                (providerStats.deltaRate / deltaRate) *
-                100
-              ).toFixed(0)}
+              ({((providerStats.deltaRate / deltaRate) * 100).toFixed(0)}
               %)
             </span>{' '}
-            <span className="text-muted small">
-              {'deltas/s'}
-            </span>{' '}
+            <span className="text-muted small">{'deltas/s'}</span>{' '}
           </span>
         )}
         <div className="bars">
@@ -139,15 +119,9 @@ const Dashboard = (props) => {
               class="progress-bar bg-warning"
               role="progressbar"
               style={{
-                width:
-                  (providerStats.deltaRate / deltaRate) *
-                    100 +
-                  '%',
+                width: (providerStats.deltaRate / deltaRate) * 100 + '%',
               }}
-              aria-valuenow={
-                (providerStats.deltaRate / deltaRate) *
-                100
-              }
+              aria-valuenow={(providerStats.deltaRate / deltaRate) * 100}
               aria-valuemin="0"
               aria-valuemax="100"
             ></div>
@@ -157,16 +131,10 @@ const Dashboard = (props) => {
                 role="progressbar"
                 style={{
                   width:
-                    100 -
-                    (providerStats.deltaRate /
-                      deltaRate) *
-                      100 +
-                    '%',
+                    100 - (providerStats.deltaRate / deltaRate) * 100 + '%',
                 }}
                 aria-valuenow={
-                  100 -
-                  (providerStats.deltaRate / deltaRate) *
-                    100
+                  100 - (providerStats.deltaRate / deltaRate) * 100
                 }
                 aria-valuemin="0"
                 aria-valuemax="100"
@@ -175,6 +143,36 @@ const Dashboard = (props) => {
           </div>
         </div>
       </li>
+    )
+  }
+
+  const statusRenderer = (status, statusClass, lastError) => {
+    return (
+      <tr
+        key={status.id}
+        onClick={() => {
+          props.history.push(
+            '/serverConfiguration/' +
+              (status.statusType === 'plugin' ? 'plugins/' : 'connections/') +
+              status.id
+          )
+        }}
+      >
+        <td>
+          {status.statusType === 'plugin'
+            ? pluginNameLink(status.id)
+            : providerIdLink(status.id)}
+        </td>
+        <td>
+          <p className="text-danger">{lastError}</p>
+        </td>
+        <td>
+          <p className={statusClass}>
+            {(status.message || '').substring(0, 80)}
+            {status.message.length > 80 ? '...' : ''}
+          </p>
+        </td>
+      </tr>
     )
   }
 
@@ -226,39 +224,40 @@ const Dashboard = (props) => {
                   </div>
                 </Col>
                 <Col xs="12" md="6">
-                  <div className="text-muted" style={{ fontSize: 17 }}>
+                  <div className="text-muted" style={{ fontSize: '1rem' }}>
                     Connections activity
                   </div>
                   <ul className="horizontal-bars type-2">
                     {Object.keys(providerStatistics || {})
                       .sort()
                       .map((providerId) => {
-                        const providerStats = providerStatistics[providerId]
                         if (getLinkType(providerId) === 'provider') {
-                          return renderer(providerId, providerStats, 'provider')
+                          return activityRenderer(
+                            providerId,
+                            providerStatistics[providerId],
+                            'provider'
+                          )
                         }
                       })}
                   </ul>
                   <br></br>
-                  {Object.keys(providerStatistics || {})
-                    .sort()
-                    .map((providerId) => {
-                      if (getLinkType(providerId) === 'plugin') {
-                        isPlugins = true
-                      }
-                    })}
-                  {isPlugins ? (
-                    <div className="text-muted" style={{ fontSize: 17 }}>
-                      Plugin activity
-                    </div>
-                  ) : null}
+                  <div className="text-muted" style={{ fontSize: '1rem' }}>
+                    {Object.keys(providerStatistics || {}).some(
+                      (providerId) => getLinkType(providerId) === 'plugin'
+                    )
+                      ? 'Plugin activity'
+                      : null}
+                  </div>
                   <ul className="horizontal-bars type-2">
                     {Object.keys(providerStatistics || {})
                       .sort()
                       .map((providerId) => {
-                        const providerStats = providerStatistics[providerId]
                         if (getLinkType(providerId) === 'plugin') {
-                          return renderer(providerId, providerStats, 'plugin')
+                          return activityRenderer(
+                            providerId,
+                            providerStatistics[providerId],
+                            'plugin'
+                          )
                         }
                       })}
                   </ul>
@@ -284,49 +283,19 @@ const Dashboard = (props) => {
                     </thead>
                     <tbody>
                       {providerStatus.map((status) => {
-                        let statusClass
-                        if (status.type === 'status') {
-                          statusClass = 'text-success'
-                        } else if (status.type === 'warning') {
-                          statusClass = 'text-warning'
-                        } else {
-                          statusClass = 'text-danger'
+                        const statusClasses = {
+                          status: 'text-success',
+                          warning: 'text-warning',
+                          error: 'text-danger',
                         }
+                        const statusClass = statusClasses[status.type]
                         const lastError =
                           status.lastError && status.lastError != status.message
                             ? status.lastErrorTimeStamp +
                               ': ' +
                               status.lastError
                             : ''
-                        return (
-                          <tr
-                            key={status.id}
-                            onClick={() => {
-                              props.history.push(
-                                '/serverConfiguration/' +
-                                  (status.statusType === 'plugin'
-                                    ? 'plugins/'
-                                    : 'connections/') +
-                                  status.id
-                              )
-                            }}
-                          >
-                            <td>
-                              {status.statusType === 'plugin'
-                                ? pluginNameLink(status.id)
-                                : providerIdLink(status.id)}
-                            </td>
-                            <td>
-                              <p className="text-danger">{lastError}</p>
-                            </td>
-                            <td>
-                              <p className={statusClass}>
-                                {(status.message || '').substring(0, 80)}
-                                {status.message.length > 80 ? '...' : ''}
-                              </p>
-                            </td>
-                          </tr>
-                        )
+                        return statusRenderer(status, statusClass, lastError)
                       })}
                     </tbody>
                   </Table>
