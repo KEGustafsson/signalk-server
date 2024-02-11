@@ -18,6 +18,9 @@ const Dashboard = (props) => {
     wsClients,
     providerStatistics,
     uptime,
+    loadAvg1m,
+    loadAvg5m,
+    loadAvg15m,
   } = props.serverStatistics || {
     deltaRate: 0,
     numberOfAvailablePaths: 0,
@@ -208,6 +211,15 @@ const Dashboard = (props) => {
                     <br />
                     <strong className="h5">
                       {uptimeD} days, {uptimeH} hours, {uptimeM} minutes
+                    </strong>
+                  </div>
+                  <div className="callout callout-primary">
+                    <small className="text-muted">
+                      Average CPU Load (1/5/15min)
+                    </small>
+                    <br />
+                    <strong className="h5">
+                      {loadAvg1m} {loadAvg5m} {loadAvg15m}
                     </strong>
                   </div>
                 </Col>
