@@ -68,7 +68,7 @@ const Dashboard = (props) => {
     )
   }
 
-  const activityRenderer = (providerId, providerStats, linkType) => {
+  const renderActivity = (providerId, providerStats, linkType) => {
     return (
       <li key={providerId} onClick={() => props.history.push(`/dashboard`)}>
         <i
@@ -146,7 +146,7 @@ const Dashboard = (props) => {
     )
   }
 
-  const statusRenderer = (status, statusClass, lastError) => {
+  const renderStatus = (status, statusClass, lastError) => {
     return (
       <tr
         key={status.id}
@@ -232,7 +232,7 @@ const Dashboard = (props) => {
                       .sort()
                       .map((providerId) => {
                         if (getLinkType(providerId) === 'provider') {
-                          return activityRenderer(
+                          return renderActivity(
                             providerId,
                             providerStatistics[providerId],
                             'provider'
@@ -253,7 +253,7 @@ const Dashboard = (props) => {
                       .sort()
                       .map((providerId) => {
                         if (getLinkType(providerId) === 'plugin') {
-                          return activityRenderer(
+                          return renderActivity(
                             providerId,
                             providerStatistics[providerId],
                             'plugin'
@@ -295,7 +295,7 @@ const Dashboard = (props) => {
                               ': ' +
                               status.lastError
                             : ''
-                        return statusRenderer(status, statusClass, lastError)
+                        return renderStatus(status, statusClass, lastError)
                       })}
                     </tbody>
                   </Table>
