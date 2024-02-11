@@ -78,6 +78,71 @@ const Dashboard = (props) => {
           className={outputPulseIconClass(providerStats)}
           style={{
             transform: 'scaleX(-1)',
+            color: providerStats.writeCount ? '#039' : 'lightblue',
+          }}
+        />
+        <span className="title">
+          {linkType === 'plugin'
+            ? pluginNameLink(providerId)
+            : providerIdLink(providerId)}
+        </span>
+        {providerStats.writeRate > 0 && (
+          <span className="value">
+            {' '}
+            {providerStats.writeRate}{' '}
+            <span className="text-muted small">{'msg/s'}</span>{' '}
+          </span>
+        )}
+        {providerStats.deltaRate > 0 && providerStats.writeRate > 0 && (
+          <span className="value">
+            <span className="text-muted small">{','}</span>
+            &#160;
+          </span>
+        )}
+        {providerStats.deltaRate > 0 && (
+          <span className="value">
+            {' '}
+            {providerStats.deltaRate}{' '}
+            <span className="text-muted small">
+              ({((providerStats.deltaRate / deltaRate) * 100).toFixed(0)}
+              %)
+            </span>{' '}
+            <span className="text-muted small">{'deltas/s'}</span>{' '}
+          </span>
+        )}
+        <div className="bars">
+          <div className="progress-xs progress">
+            <div
+              class="progress-bar bg-warning"
+              role="progressbar"
+              style={{
+                width: (providerStats.deltaRate / deltaRate) * 100 + '%',
+              }}
+              aria-valuenow={(providerStats.deltaRate / deltaRate) * 100}
+              aria-valuemin="0"
+              aria-valuemax="100"
+            ></div>
+            {providerStats.writeRate > 0 && (
+              <div
+                class="progress-bar bg-info"
+                role="progressbar"
+                style={{
+                  width:
+                    100 - (providerStats.deltaRate / deltaRate) * 100 + '%',
+                }}
+                aria-valuenow={
+                  100 - (providerStats.deltaRate / deltaRate) * 100
+                }
+                aria-valuemin="0"
+                aria-valuemax="100"
+              ></div>
+            )}
+          </div>
+        </div>
+      </li>
+    )
+  }
+
   const renderStatus = (status, statusClass, lastError) => {
     return (
       <tr
