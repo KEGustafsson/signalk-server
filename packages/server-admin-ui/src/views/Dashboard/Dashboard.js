@@ -245,7 +245,7 @@ const Dashboard = (props) => {
                     {Object.keys(providerStatistics || {}).some(
                       (providerId) => getLinkType(providerId) === 'plugin'
                     )
-                      ? 'Plugin activity'
+                      ? 'Plugins activity'
                       : null}
                   </div>
                   <ul className="horizontal-bars type-2">
