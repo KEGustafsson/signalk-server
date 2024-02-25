@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc --build && npm run build:docs",
     "build:all": "npm run build:workspaces && npm run build && npm run build-declaration && npm run build:docs",
-    "build:docs": "docker run --rm -v ${PWD}/docs:/book peaceiris/mdbook:latest build",
+    "build:docs": "docker run --rm -v /home/kgustafs/github/signalk-server-docker/signalk-server/docs:/book peaceiris/mdbook:latest build",
     "build:workspaces": "npm run build --workspaces --if-present",
     "build-declaration": "tsc --declaration",
     "watch": "npm run build -- -w",
