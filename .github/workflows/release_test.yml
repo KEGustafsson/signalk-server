@@ -1,4 +1,4 @@
-name: Release - build & publish modules and server, build & publish docker containers
+name: Test Release Docker
 
 on:
   push:
