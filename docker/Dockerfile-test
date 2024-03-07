@@ -1,5 +1,6 @@
 #FROM cr.signalk.io/signalk/signalk-server-base:latest AS base
-FROM ghcr.io/kegustafsson/signalk-server-base:22.04 AS base
+#FROM ghcr.io/kegustafsson/signalk-server-base:22.04 AS base
+FROM ghcr.io/kegustafsson/signalk-server-base:22.04_test AS base
 
 USER node
 RUN mkdir -p /home/node/.signalk/ \
