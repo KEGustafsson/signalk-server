@@ -206,10 +206,11 @@ const Dashboard = (props) => {
                               .then((response) => response.json())
                               .then((data) => {
                                 console.log(data)
-                                const providerId = providerId.substring(3);
                                 console.log(providerId)
-                                const description = data.find(obj => obj.clientId === providerId)?.description || "Description not found";
-                                console.log(description)
+                                const providerId = providerId.slice(3)
+                                console.log(providerId)
+                                const foundObject = data.find(obj => obj.clientId === providerId);
+                                console.log(foundObject.description)
                               })
                           } catch (error) {}
                           return renderActivity(
