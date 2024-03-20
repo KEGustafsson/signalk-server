@@ -10,6 +10,7 @@ import {
   Table,
 } from 'reactstrap'
 import '../../fa-pulse.css'
+import Devices from '../security/Devices'
 
 const Dashboard = (props) => {
   const {
@@ -198,8 +199,8 @@ const Dashboard = (props) => {
                       .sort()
                       .map((providerId) => {
                         if (getLinkType(providerId) === 'provider') {
-                          console.log('providerId', JSON.stringify(providerStatistics, null, 2))
-                          console.log('providerId', JSON.stringify(providerStatus, null, 2))
+                          console.log('Devices.state.devices', JSON.stringify(Devices.state.devices, null, 2))
+                          console.log('app.Devices.state.devices', JSON.stringify(app.Devices.state.devices, null, 2))
                           return renderActivity(
                             providerId,
                             providerStatistics[providerId],
