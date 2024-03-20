@@ -35,7 +35,6 @@ const Dashboard = (props) => {
   if (errorCount > 0) {
     errors = `(${errorCount} errors)`
   }
-  let wsData = []
 
   const getLinkType = (providerId) => {
     try {
@@ -196,25 +195,20 @@ const Dashboard = (props) => {
                     Connections activity
                   </div>
                   <ul className="horizontal-bars type-2">
-                    {fetch(`${window.serverRoutesPrefix}/security/devices`, {
-                      credentials: 'include',
-                      })
-                      .then((response) => response.json())
-                      .then((data) => {
-                        console.log(data)
-                        wsData = data
-                    })} 
                     {Object.keys(providerStatistics || {})
                       .sort()
                       .map((providerId) => {
                         if (getLinkType(providerId) === 'provider') {
                           if (providerId.startsWith('ws.')) {
-                            console.log(wsData)
-                            console.log(providerId)
-                            const provId = providerId.slice(3)
-                            console.log(provId)
-                            const foundObject = wsData.find(obj => obj.clientId === provId);
-                            console.log(foundObject.description)  
+                            fetch(`${window.serverRoutesPrefix}/security/devices`, {
+                              credentials: 'include',
+                              })
+                              .then((response) => response.json())
+                              .then((data) => {
+                                const provId = providerId.slice(3)
+                                const foundObject = data.find(obj => obj.clientId === provId);
+                                console.log(foundObject.description)
+                              })
                           }
                           return renderActivity(
                             providerId,
