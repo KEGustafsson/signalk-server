@@ -199,16 +199,18 @@ const Dashboard = (props) => {
                       .sort()
                       .map((providerId) => {
                         if (getLinkType(providerId) === 'provider') {
+                          let wsData = []
                           if (providerId.startsWith('ws.')) {
                             fetch(`${window.serverRoutesPrefix}/security/devices`, {
                               credentials: 'include',
                               })
                               .then((response) => response.json())
                               .then((data) => {
-                                const provId = providerId.slice(3)
-                                const foundObject = data.find(obj => obj.clientId === provId);
-                                console.log(foundObject.description)
+                                wsData = data
                               })
+                            const provId = providerId.slice(3)
+                            const foundObject = wsData.find(obj => obj.clientId === provId);
+                            console.log(foundObject.description)
                           }
                           return renderActivity(
                             providerId,
