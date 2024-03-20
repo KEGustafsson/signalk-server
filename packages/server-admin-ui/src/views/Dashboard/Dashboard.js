@@ -205,8 +205,8 @@ const Dashboard = (props) => {
                             })
                               .then((response) => response.json())
                               .then((data) => {
-                                const foundItem = data.find(item => item.clientId === providerId);
-                                console.log(foundItem)
+                                const foundItem = data.find(item => item.clientId === providerId.substring(3));
+                                console.log(foundItem.description)
                               })
                           } catch (error) {}
                           return renderActivity(
