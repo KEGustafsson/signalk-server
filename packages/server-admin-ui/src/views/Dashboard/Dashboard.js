@@ -203,23 +203,37 @@ const Dashboard = (props) => {
                           if (providerId.startsWith('ws.')) {
                             fetch(`${window.serverRoutesPrefix}/security/devices`, {
                               credentials: 'include',
-                              })
+                            })
                               .then((response) => response.json())
                               .then((data) => {
                                 wsDesc = (data.find(obj => obj.clientId === providerId.slice(3))).description;
                               })
                               .then(() => {
                                 console.log(wsDesc);
-                              })
+                                return renderActivity(
+                                  providerId,
+                                  providerStatistics[providerId],
+                                  'provider',
+                                  wsDesc
+                                );
+                              });
+                            // You need to return a Promise here, or use async/await
+                            // Otherwise, renderActivity may execute before wsDesc is updated
+                            return Promise.resolve();
+                          } else {
+                            // Return renderActivity for non 'ws.' providerId
+                            return renderActivity(
+                              providerId,
+                              providerStatistics[providerId],
+                              'provider',
+                              wsDesc
+                            );
                           }
-                          return renderActivity(
-                            providerId,
-                            providerStatistics[providerId],
-                            'provider',
-                            wsDesc
-                          )
                         }
+                        // Return null for non-providerId
+                        return null;
                       })}
+
                   </ul>
                   <br></br>
                   <div className="text-muted" style={{ fontSize: '1rem' }}>
