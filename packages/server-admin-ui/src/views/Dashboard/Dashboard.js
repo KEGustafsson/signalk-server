@@ -200,14 +200,13 @@ const Dashboard = (props) => {
                       .map((providerId) => {
                         if (getLinkType(providerId) === 'provider') {
                           try {
-                            let linkTest = `${window.serverRoutesPrefix}/security/devices/${providerId.substring(3)}`
-                            console.log(linkTest)
-                            fetch(linkTest, {
+                            fetch(`${window.serverRoutesPrefix}/security/devices`, {
                               credentials: 'include',
                             })
                               .then((response) => response.json())
                               .then((data) => {
-                                console.log(data)
+                                const foundItem = data.find(item => item.clientId === providerId);
+                                console.log(foundItem)
                               })
                           } catch (error) {}
                           return renderActivity(
