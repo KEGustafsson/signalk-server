@@ -66,9 +66,9 @@ const Dashboard = (props) => {
     )
   }
 
-  const renderActivity = (providerId, providerStats, linkType) => {
+  const renderActivity = (providerId, providerStats, linkType, wsDesc) => {
     return (
-      <li key={providerId} onClick={() => props.history.push(`/dashboard`)}>
+      <li key={wsDesc || providerId} onClick={() => props.history.push(`/dashboard`)}>
         <i
           className={inputPulseIconClass(providerStats)}
           style={{
@@ -199,23 +199,24 @@ const Dashboard = (props) => {
                       .sort()
                       .map((providerId) => {
                         if (getLinkType(providerId) === 'provider') {
+                          let wsDesc = undefined;
                           if (providerId.startsWith('ws.')) {
-                            let foundObject
                             fetch(`${window.serverRoutesPrefix}/security/devices`, {
                               credentials: 'include',
                               })
                               .then((response) => response.json())
                               .then((data) => {
-                                foundObject = (data.find(obj => obj.clientId === providerId.slice(3))).description;
+                                wsDesc = (data.find(obj => obj.clientId === providerId.slice(3))).description;
                               })
                               .then(() => {
-                                console.log(foundObject)
+                                console.log(wsDesc);
                               })
                           }
                           return renderActivity(
                             providerId,
                             providerStatistics[providerId],
-                            'provider'
+                            'provider',
+                            wsDesc
                           )
                         }
                       })}
