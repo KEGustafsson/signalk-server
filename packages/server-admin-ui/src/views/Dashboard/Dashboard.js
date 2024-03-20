@@ -199,8 +199,12 @@ const Dashboard = (props) => {
                       .sort()
                       .map((providerId) => {
                         if (getLinkType(providerId) === 'provider') {
-                          console.log('Devices.state.devices', JSON.stringify(Devices.state.devices, null, 2))
-                          console.log('app.Devices.state.devices', JSON.stringify(app.Devices.state.devices, null, 2))
+                          try {
+                            console.log('Devices.state.devices', JSON.stringify(Devices.state.devices, null, 2))                        
+                          } catch (error) {}
+                          try {
+                            console.log('app.Devices.state.devices', JSON.stringify(app.Devices.state.devices, null, 2))                            
+                          } catch (error) {}
                           return renderActivity(
                             providerId,
                             providerStatistics[providerId],
