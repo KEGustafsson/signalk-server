@@ -67,8 +67,11 @@ const Dashboard = (props) => {
   }
 
   const renderActivity = (providerId, providerStats, linkType, wsDesc) => {
+    if (wsDesc !== undefined) {
+      providerId = wsDesc;
+    }
     return (
-      <li key={wsDesc || providerId} onClick={() => props.history.push(`/dashboard`)}>
+      <li key={providerId} onClick={() => props.history.push(`/dashboard`)}>
         <i
           className={inputPulseIconClass(providerStats)}
           style={{
