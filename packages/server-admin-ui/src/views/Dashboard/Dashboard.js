@@ -211,9 +211,9 @@ const Dashboard = (props) => {
                           } catch (error) {}
                           console.log(wsData)
                           console.log(providerId)
-                          const providerId = providerId.slice(3)
-                          console.log(providerId)
-                          const foundObject = wsData.find(obj => obj.clientId === providerId);
+                          const provId = providerId.slice(3)
+                          console.log(provId)
+                          const foundObject = wsData.find(obj => obj.clientId === provId);
                           console.log(foundObject.description)
                           return renderActivity(
                             providerId,
