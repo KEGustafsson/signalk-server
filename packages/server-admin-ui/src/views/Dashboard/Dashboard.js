@@ -74,14 +74,17 @@ const Dashboard = (props) => {
       .then((response) => response.json())
       .then((data) => {
         wsDesc = (data.find(obj => obj.clientId === providerId.slice(3))).description;
+        console.log(wsDesc)
         nextSteps();
       })
     } else {
       wsDesc = providerId;
+      console.log(wsDesc)
       nextSteps();
     }
 
     function nextSteps() {
+      console.log(wsDesc, providerId, providerStats, linkType)
       return (
         <li key={wsDesc} onClick={() => props.history.push(`/dashboard`)}>
           <i
