@@ -10,7 +10,6 @@ import {
   Table,
 } from 'reactstrap'
 import '../../fa-pulse.css'
-import Devices from '../security/Devices'
 
 const Dashboard = (props) => {
   const {
@@ -66,68 +65,79 @@ const Dashboard = (props) => {
     )
   }
 
-  const renderActivity = (providerId, providerStats, linkType, wsDesc) => {
-    console.log(wsDesc)
-    /*
-    if (wsDesc !== undefined) {
-      providerId = wsDesc;
+  const renderActivity = (providerId, providerStats, linkType) => {
+    let wsDesc = undefined;
+    if (providerId.startsWith('ws.')) {
+      fetch(`${window.serverRoutesPrefix}/security/devices`, {
+        credentials: 'include',
+      })
+      .then((response) => response.json())
+      .then((data) => {
+        wsDesc = (data.find(obj => obj.clientId === providerId.slice(3))).description;
+        await nextSteps();
+      })
+    } else {
+      wsDesc = providerId;
+      await nextSteps();
     }
-    */
-    return (
-      <li key={providerId} onClick={() => props.history.push(`/dashboard`)}>
-        <i
-          className={inputPulseIconClass(providerStats)}
-          style={{
-            color: providerStats.deltaCount ? '#039' : 'lightblue',
-          }}
-        />
-        <i
-          className={outputPulseIconClass(providerStats)}
-          style={{
-            transform: 'scaleX(-1)',
-            color: providerStats.writeCount ? '#039' : 'lightblue',
-          }}
-        />
-        <span className="title">
-          {linkType === 'plugin'
-            ? pluginNameLink(providerId)
-            : providerIdLink(providerId)}
-        </span>
-        {providerStats.writeRate > 0 && (
-          <span className="value">
-            {' '}
-            {providerStats.writeRate}{' '}
-            <span className="text-muted small">{'msg/s'}</span>{' '}
-          </span>
-        )}
-        {providerStats.deltaRate > 0 && providerStats.writeRate > 0 && (
-          <span className="value">
-            <span className="text-muted small">{','}</span>
-            &#160;
-          </span>
-        )}
-        {providerStats.deltaRate > 0 && (
-          <span className="value">
-            {' '}
-            {providerStats.deltaRate}{' '}
-            <span className="text-muted small">
-              ({((providerStats.deltaRate / deltaRate) * 100).toFixed(0)}
-              %)
-            </span>{' '}
-            <span className="text-muted small">{'deltas/s'}</span>{' '}
-          </span>
-        )}
-        <div className="bars">
-          <Progress
-            className="progress-xs"
-            color="warning"
-            value={(providerStats.deltaRate / deltaRate) * 100}
-          />
-        </div>
-      </li>
-    )
-  }
 
+    async function nextSteps() {
+      return (
+        <li key={providerId} onClick={() => props.history.push(`/dashboard`)}>
+          <i
+            className={inputPulseIconClass(providerStats)}
+            style={{
+              color: providerStats.deltaCount ? '#039' : 'lightblue',
+            }}
+          />
+          <i
+            className={outputPulseIconClass(providerStats)}
+            style={{
+              transform: 'scaleX(-1)',
+              color: providerStats.writeCount ? '#039' : 'lightblue',
+            }}
+          />
+          <span className="title">
+            {linkType === 'plugin'
+              ? pluginNameLink(providerId)
+              : providerIdLink(providerId)}
+          </span>
+          {providerStats.writeRate > 0 && (
+            <span className="value">
+              {' '}
+              {providerStats.writeRate}{' '}
+              <span className="text-muted small">{'msg/s'}</span>{' '}
+            </span>
+          )}
+          {providerStats.deltaRate > 0 && providerStats.writeRate > 0 && (
+            <span className="value">
+              <span className="text-muted small">{','}</span>
+              &#160;
+            </span>
+          )}
+          {providerStats.deltaRate > 0 && (
+            <span className="value">
+              {' '}
+              {providerStats.deltaRate}{' '}
+              <span className="text-muted small">
+                ({((providerStats.deltaRate / deltaRate) * 100).toFixed(0)}
+                %)
+              </span>{' '}
+              <span className="text-muted small">{'deltas/s'}</span>{' '}
+            </span>
+          )}
+          <div className="bars">
+            <Progress
+              className="progress-xs"
+              color="warning"
+              value={(providerStats.deltaRate / deltaRate) * 100}
+            />
+          </div>
+        </li>
+      )
+    }
+  }
+      
   const renderStatus = (status, statusClass, lastError) => {
     return (
       <tr
@@ -205,32 +215,11 @@ const Dashboard = (props) => {
                       .sort()
                       .map((providerId) => {
                         if (getLinkType(providerId) === 'provider') {
-                          let wsDesc = undefined;
-                          if (providerId.startsWith('ws.')) {
-                            fetch(`${window.serverRoutesPrefix}/security/devices`, {
-                              credentials: 'include',
-                            })
-                              .then((response) => response.json())
-                              .then((data) => {
-                                wsDesc = (data.find(obj => obj.clientId === providerId.slice(3))).description;
-                              })
-                              .then(() => {
-                                //console.log(wsDesc);
-                                return renderActivity(
-                                  providerId,
-                                  providerStatistics[providerId],
-                                  'provider',
-                                  wsDesc
-                                );
-                              });
-                          } else {
-                            return renderActivity(
-                              providerId,
-                              providerStatistics[providerId],
-                              'provider',
-                              wsDesc
-                            );
-                          }
+                          return renderActivity(
+                            providerId,
+                            providerStatistics[providerId],
+                            'provider'
+                          )
                         }
                       })}
                   </ul>
