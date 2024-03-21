@@ -74,14 +74,14 @@ const Dashboard = (props) => {
       .then((response) => response.json())
       .then((data) => {
         wsDesc = (data.find(obj => obj.clientId === providerId.slice(3))).description;
-        await nextSteps();
+        nextSteps();
       })
     } else {
       wsDesc = providerId;
-      await nextSteps();
+      nextSteps();
     }
 
-    async function nextSteps() {
+    function nextSteps() {
       return (
         <li key={wsDesc} onClick={() => props.history.push(`/dashboard`)}>
           <i
