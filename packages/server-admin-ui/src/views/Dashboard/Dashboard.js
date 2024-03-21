@@ -67,9 +67,12 @@ const Dashboard = (props) => {
   }
 
   const renderActivity = (providerId, providerStats, linkType, wsDesc) => {
+    console.log(wsDesc)
+    /*
     if (wsDesc !== undefined) {
       providerId = wsDesc;
     }
+    */
     return (
       <li key={providerId} onClick={() => props.history.push(`/dashboard`)}>
         <i
@@ -212,7 +215,7 @@ const Dashboard = (props) => {
                                 wsDesc = (data.find(obj => obj.clientId === providerId.slice(3))).description;
                               })
                               .then(() => {
-                                console.log(wsDesc);
+                                //console.log(wsDesc);
                                 return renderActivity(
                                   providerId,
                                   providerStatistics[providerId],
