@@ -67,6 +67,7 @@ const Dashboard = (props) => {
 
   const renderActivity = (providerId, providerStats, linkType) => {
     let wsDesc = undefined;
+
     const fetchDescription = async () => {
       if (providerId.startsWith('ws.')) {
         const response = await fetch(`${window.serverRoutesPrefix}/security/devices`, {
@@ -78,7 +79,7 @@ const Dashboard = (props) => {
       } else {
         wsDesc = providerId;
       }
-      nextSteps();
+      return nextSteps(); // Return nextSteps here
     };
 
     const nextSteps = () => {
@@ -136,7 +137,7 @@ const Dashboard = (props) => {
         </li>
       )
     }
-    fetchDescription();
+    return fetchDescription();
   }
       
   const renderStatus = (status, statusClass, lastError) => {
