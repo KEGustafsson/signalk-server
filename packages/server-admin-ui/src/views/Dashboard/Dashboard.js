@@ -67,24 +67,21 @@ const Dashboard = (props) => {
 
   const renderActivity = (providerId, providerStats, linkType) => {
     let wsDesc = undefined;
-    if (providerId.startsWith('ws.')) {
-      fetch(`${window.serverRoutesPrefix}/security/devices`, {
-        credentials: 'include',
-      })
-      .then((response) => response.json())
-      .then((data) => {
+    const fetchDescription = async () => {
+      if (providerId.startsWith('ws.')) {
+        const response = await fetch(`${window.serverRoutesPrefix}/security/devices`, {
+          credentials: 'include',
+        });
+        const data = await response.json();
         wsDesc = (data.find(obj => obj.clientId === providerId.slice(3))).description;
-        console.log(wsDesc)
-        nextSteps();
-      })
-    } else {
-      wsDesc = providerId;
-      console.log(wsDesc)
+        wsDesc = wsDesc.replace(/ /g, "_");
+      } else {
+        wsDesc = providerId;
+      }
       nextSteps();
-    }
+    };
 
-    function nextSteps() {
-      console.log(wsDesc, providerId, providerStats, linkType)
+    const nextSteps = () => {
       return (
         <li key={wsDesc} onClick={() => props.history.push(`/dashboard`)}>
           <i
@@ -139,6 +136,7 @@ const Dashboard = (props) => {
         </li>
       )
     }
+    fetchDescription();
   }
       
   const renderStatus = (status, statusClass, lastError) => {
