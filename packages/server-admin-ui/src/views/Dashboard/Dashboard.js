@@ -83,7 +83,7 @@ const Dashboard = (props) => {
 
     async function nextSteps() {
       return (
-        <li key={providerId} onClick={() => props.history.push(`/dashboard`)}>
+        <li key={wsDesc} onClick={() => props.history.push(`/dashboard`)}>
           <i
             className={inputPulseIconClass(providerStats)}
             style={{
