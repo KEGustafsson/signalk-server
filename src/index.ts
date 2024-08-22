@@ -301,6 +301,10 @@ class Server {
           if (!update.timestamp || app.config.overrideTimestampWithNow) {
             update.timestamp = now.toISOString() as Timestamp
           }
+          if (!(Array.isArray(update.values) && update.values[0] != null && update.values.length > 0) &&
+            !(Array.isArray(update.meta) && update.meta[0] != null && update.meta.length > 0)) {
+            update = {};
+          }
         })
         try {
           const preferredDelta = toPreferredDelta(data, now, app.selfContext)
