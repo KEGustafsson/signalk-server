@@ -303,7 +303,7 @@ class Server {
           }
           if (!(Array.isArray(update.values) && update.values[0] != null && update.values.length > 0) &&
             !(Array.isArray(update.meta) && update.meta[0] != null && update.meta.length > 0)) {
-            update = {};
+              update = {} as Update;
           }
         })
         try {
@@ -358,7 +358,7 @@ class Server {
           app.signalk,
           (app.config.settings.pruneContextsMinutes || 60) * 60
         ),
-        60 * 1000
+        60 * 1000 * 60
       )
     )
     this.app.intervals.push(

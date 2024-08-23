@@ -49,7 +49,8 @@ export interface Update {
   timestamp?: Timestamp
   source?: Source
   $source?: SourceRef
-  values: PathValue[]
+  values?: PathValue[]
+  meta?: Meta[]
 }
 
 // Update delta
