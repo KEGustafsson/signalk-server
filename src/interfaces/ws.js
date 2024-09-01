@@ -504,26 +504,27 @@ function processUpdates(app, pathSources, spark, msg) {
 
       if (source) {
         update.values.forEach((valuePath) => {
-          if (!pathSources[valuePath.path]) {
-            pathSources[valuePath.path] = {}
-          }
-          if (
-            !pathSources[valuePath.path][source] ||
-            pathSources[valuePath.path][source] !== spark
-          ) {
-            if (pathSources[valuePath.path][source]) {
-              console.log(
-                `WARNING: got a new ws client for path ${valuePath.path} source ${source}`
-              )
+          if (valuePath != null) {
+            if (!pathSources[valuePath.path]) {
+              pathSources[valuePath.path] = {}
             }
-            debug(
-              'registered spark for source %s path %s = %s',
-              source,
-              valuePath.path,
-              spark.id
-            )
-
-            pathSources[valuePath.path][source] = spark
+            if (
+              !pathSources[valuePath.path][source] ||
+              pathSources[valuePath.path][source] !== spark
+            ) {
+              if (pathSources[valuePath.path][source]) {
+                console.log(
+                  `WARNING: got a new ws client for path ${valuePath.path} source ${source}`
+                )
+              }
+              debug(
+                'registered spark for source %s path %s = %s',
+                source,
+                valuePath.path,
+                spark.id
+              )
+              pathSources[valuePath.path][source] = spark
+            }
           }
         })
       }
