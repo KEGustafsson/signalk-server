@@ -317,7 +317,8 @@ class Server {
 
     app.streambundle = new StreamBundle(app, app.selfId)
     new Zones(app.streambundle, (delta: Delta) =>
-      app.handleMessage('self.notificationhandler', delta)
+      app.debug('zone', delta)
+      //app.handleMessage('self.notificationhandler', delta)
     )
     app.signalk.on('delta', app.streambundle.pushDelta.bind(app.streambundle))
     app.subscriptionmanager = new SubscriptionManager(app)
