@@ -1,5 +1,5 @@
 import React, { Component } from 'react'
-import { NavLink } from 'react-router'
+import { NavLink } from 'react-router-dom'
 import { Badge, Nav, NavItem, NavLink as RsNavLink } from 'reactstrap'
 import { connect } from 'react-redux'
 import classNames from 'classnames'
