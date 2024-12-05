@@ -339,7 +339,9 @@ function setBaseDeltas(app: ConfigApp) {
     const communication = de.getSelfValue('communication')
     if (communication) {
       if (communication.callsignVhf) {
-        de.setSelfValue('communication.callsignVhf', communication.callsignVhf)
+        de.setSelfValue('communication', {
+          callsignVhf: communication.callsignVhf
+        })
       }
       de.setSelfValue('communication', undefined)
     }
