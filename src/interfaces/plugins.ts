@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /*
@@ -21,9 +22,12 @@ import {
   PropertyValues,
   PropertyValuesCallback,
   ResourceProvider,
+  AutopilotProvider,
   ServerAPI,
   RouteDestination,
-  SignalKApiId
+  Value,
+  SignalKApiId,
+  SourceRef
 } from '@signalk/server-api'
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
@@ -32,6 +36,7 @@ import express, { Request, Response } from 'express'
 import fs from 'fs'
 import _ from 'lodash'
 import path from 'path'
+import { AutopilotApi } from '../api/autopilot'
 import { CourseApi } from '../api/course'
 import { ResourcesApi } from '../api/resources'
 import { SERVERROUTESPREFIX } from '../constants'
@@ -51,7 +56,7 @@ const put = require('../put')
 const _putPath = put.putPath
 const getModulePublic = require('../config/get').getModulePublic
 const queryRequest = require('../requestResponse').queryRequest
-const getMetadata = require('@signalk/signalk-schema').getMetadata
+import { getMetadata } from '@signalk/signalk-schema'
 
 // #521 Returns path to load plugin-config assets.
 const getPluginConfigPublic = getModulePublic('@signalk/plugin-config')
@@ -280,7 +285,7 @@ module.exports = (theApp: any) => {
     let optionsAsString = '{}'
     try {
       optionsAsString = fs.readFileSync(pathForPluginId(id), 'utf8')
-    } catch (e) {
+    } catch (_e) {
       debug(
         'Could not find options for plugin ' +
           id +
@@ -472,9 +477,10 @@ module.exports = (theApp: any) => {
         console.error(`${plugin.id}:no configuration data`)
         safeConfiguration = {}
       }
-      onStopHandlers[plugin.id].push(() =>
+      onStopHandlers[plugin.id].push(() => {
         app.resourcesApi.unRegister(plugin.id)
-      )
+        app.autopilotApi.unRegister(plugin.id)
+      })
       plugin.start(safeConfiguration, restart)
       debug('Started plugin ' + plugin.name)
       setPluginStartedMessage(plugin)
@@ -558,6 +564,21 @@ module.exports = (theApp: any) => {
     _.omit(appCopy, 'resourcesApi') // don't expose the actual resource api manager
     appCopy.registerResourceProvider = (provider: ResourceProvider) => {
       resourcesApi.register(plugin.id, provider)
+    }
+
+    const autopilotApi: AutopilotApi = app.autopilotApi
+    _.omit(appCopy, 'autopilotApi') // don't expose the actual autopilot api manager
+    appCopy.registerAutopilotProvider = (
+      provider: AutopilotProvider,
+      devices: string[]
+    ) => {
+      autopilotApi.register(plugin.id, provider, devices)
+    }
+    appCopy.autopilotUpdate = (
+      deviceId: SourceRef,
+      apInfo: { [k: string]: Value }
+    ) => {
+      autopilotApi.apUpdate(plugin.id, deviceId, apInfo)
     }
 
     _.omit(appCopy, 'apiList') // don't expose the actual apiList
