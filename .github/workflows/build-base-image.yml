@@ -1,4 +1,4 @@
-name: Build Docker base image
+name: Build Docker base images
 
 on:
   schedule:
@@ -8,6 +8,12 @@ on:
 jobs:
   build_docker_base_images:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dockerfile: [Dockerfile_base, Dockerfile_base_test]
+        dockerfiletest: [Dockerfile_rel, Dockerfile_rel_test]
+        tag: [signalk/signalk-server-base, signalk/signalk-server-base-test]
+        ghcr_tag: [ghcr.io/signalk/signalk-server-base, ghcr.io/signalk/signalk-server-base-test]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,7 +29,7 @@ jobs:
         with:
           username: signalkci
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
+        
       - name: Login to ghcr.io
         uses: docker/login-action@v3
         with:
@@ -31,25 +37,42 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }} # Personal access tokens (classic) with a scope of "write:packages" is needed to release ghcr.io package registry. 
 
+      - name: Copy Dockerfile_base and modify Dockerfile_base_test
+        run: |
+          cp ./docker/Dockerfile_base ./docker/Dockerfile_base_test
+          sed -i 's|FROM ubuntu:22.04|FROM ubuntu:24.04|' Dockerfile_base_test
+          sed -i '1a RUN userdel -r ubuntu' Dockerfile_base_test
+          sed -i 's|python2 ||' Dockerfile_base_test
+          sed -i 's|groupadd -r docker -g 998|groupadd -r docker -g 991|' Dockerfile_base_test
+          sed -i 's|groupadd -r i2c -g 997|groupadd -r i2c -g 990|' Dockerfile_base_test
+          sed -i 's|groupadd -r spi -g 999|groupadd -r spi -g 989|' Dockerfile_base_test
+
       - name: Build baseimages and push with test tag
         uses: docker/build-push-action@v5
         with:
-          file: ./docker/Dockerfile_base
+          context: .
+          file: ./docker/${{ matrix.dockerfile }}
           platforms: linux/amd64,linux/arm/v7,linux/arm64
           push: true
           tags: |
-            signalk/signalk-server-base:test
-            ghcr.io/signalk/signalk-server-base:test
+            ${{ matrix.tag }}:test
+            ${{ matrix.ghcr_tag }}:test
 
-      - name: Modify Dockerfile_rel for testing
+      - name: Modify Dockerfile_rel and Dockerfile_rel_test for testing
         run: |
-          sed -i 's/:latest/:test/g' ./docker/Dockerfile_rel
-
-      - name: Build Signal K test dockers
+          cp ./docker/Dockerfile_rel ./docker/Dockerfile_rel_test
+          sed -i \
+          's|FROM cr.signalk.io/signalk/signalk-server-base:latest|FROM cr.signalk.io/signalk/signalk-server-base:test|' \
+          ./docker/Dockerfile_rel
+          sed -i \
+          's|FROM cr.signalk.io/signalk/signalk-server-base:latest|FROM cr.signalk.io/signalk/signalk-server-base-test:test|' \
+          ./docker/Dockerfile_rel_test
+          
+      - name: Build Signal K test images
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./docker/Dockerfile_rel
+          file: ./docker/${{ matrix.dockerfiletest }}
           platforms: linux/amd64,linux/arm/v7,linux/arm64
           build-args: |
             TAG=latest
@@ -58,9 +81,9 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./docker/Dockerfile_base
+          file: ./docker/${{ matrix.dockerfile }}
           platforms: linux/amd64,linux/arm/v7,linux/arm64
           push: true
           tags: |
-            signalk/signalk-server-base:latest
-            ghcr.io/signalk/signalk-server-base:latest
+            ${{ matrix.tag }}:latest
+            ${{ matrix.ghcr_tag }}:latest
