@@ -32,11 +32,33 @@ function StreamBundle(app, selfId) {
   this.selfMetaBus = new Bacon.Bus()
 }
 
+function shouldFilter(pathValue, availablePaths) {
+  const filteredPaths = [
+    '',
+    'name',
+    'mmsi',
+    'design.aisShipType',
+    'design.beam',
+    'design.length',
+    'sensors.gps.fromBow',
+    'sensors.gps.fromCenter'
+  ]
+  if (filteredPaths.includes(pathValue.path) && availablePaths[pathValue.path]) {
+    return true
+  }
+}
+
 StreamBundle.prototype.pushDelta = function (delta) {
   var that = this
   function processIems(update, items, isMeta) {
     if (items) {
       items.forEach((pathValue) => {
+        if (
+          delta.context === that.selfContext &&
+          shouldFilter(pathValue, that.availableSelfPaths)
+        ) {
+          return
+        }
         that.push(pathValue.path, {
           path: pathValue.path,
           value: pathValue.value,
