@@ -273,6 +273,34 @@ class Server {
     }
     app.activateSourcePriorities()
 
+    const pathsToRemove = [
+      '',
+      'name',
+      'mmsi',
+      'design.aisShipType',
+      'design.beam',
+      'design.length',
+      'sensors.gps.fromBow',
+      'sensors.gps.fromCenter'
+    ];
+    
+    function filterUpdate(update: any, pathsToRemove: any) {
+      const filteredValues = update.values.filter((item: { path: string; value: any }) => {
+        if (item.path === '') {
+          if (typeof item.value === 'object' && item.value !== null) {
+            const valueKeys = Object.keys(item.value);
+            return !valueKeys.some(key => pathsToRemove.includes(key));
+          }
+          return true;
+        }
+        return !pathsToRemove.includes(item.path);
+      });
+      return {
+        ...update,
+        values: filteredValues
+      };
+    }
+
     app.handleMessage = (
       providerId: string,
       data: any,
@@ -301,6 +329,9 @@ class Server {
           }
           if (!update.timestamp || app.config.overrideTimestampWithNow) {
             update.timestamp = now.toISOString() as Timestamp
+          }
+          if (data.context === 'vessels.' + app.selfId) {
+            update = filterUpdate(update, pathsToRemove); 
           }
         })
         try {
