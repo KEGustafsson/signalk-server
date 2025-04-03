@@ -284,16 +284,20 @@ class Server {
       'sensors.gps.fromCenter'
     ];
     
-    function filterUpdate(update: any, pathsToRemove: any) {
-      const filteredValues = update.values.filter((item: { path: string; value: any }) => {
+    function filterUpdate(update: any, pathsToRemove: string[]) {
+      if (!update || !update.values || !Array.isArray(update.values)) {
+        return update;
+      }
+      const filteredValues = update.values.filter((item: { path?: string; value?: any }) => {
+        if (!item || typeof item !== 'object') return true;
         if (item.path === '') {
-          if (typeof item.value === 'object' && item.value !== null) {
+          if (item.value && typeof item.value === 'object' && item.value !== null) {
             const valueKeys = Object.keys(item.value);
             return !valueKeys.some(key => pathsToRemove.includes(key));
           }
           return true;
         }
-        return !pathsToRemove.includes(item.path);
+        return item.path ? !pathsToRemove.includes(item.path) : true;
       });
       return {
         ...update,
