@@ -16,6 +16,7 @@
 */
 
 import { isUndefined, values } from 'lodash'
+import os from 'os'
 import { EventEmitter } from 'node:events'
 
 const STATS_UPDATE_INTERVAL_SECONDS = 5
@@ -72,6 +73,7 @@ export function startDeltaStatistics(
 
   return setInterval(() => {
     updateProviderPeriodStats(app)
+    const loadAverage = os.loadavg()
     const anyApp = app as any
     app.emit('serverevent', {
       type: 'SERVERSTATISTICS',
@@ -83,7 +85,8 @@ export function startDeltaStatistics(
         numberOfAvailablePaths: anyApp.streambundle.getAvailablePaths().length,
         wsClients: anyApp.interfaces.ws ? anyApp.interfaces.ws.numClients() : 0,
         providerStatistics: app.providerStatistics,
-        uptime: process.uptime()
+        uptime: process.uptime(),
+        loadAverage: loadAverage
       }
     })
     app.lastIntervalDeltaCount = app.deltaCount
