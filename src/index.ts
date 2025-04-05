@@ -302,6 +302,11 @@ class Server {
           if (!update.timestamp || app.config.overrideTimestampWithNow) {
             update.timestamp = now.toISOString() as Timestamp
           }
+          if (data.context === 'vessels.' + app.selfId) {
+            console.log("Original update:", JSON.stringify(update, null, 2));
+            console.log("Cleaned update:", JSON.stringify(removePaths(update, pathsToRemove), null, 2));
+            update = removePaths(update, pathsToRemove);
+          }
         })
         try {
           const preferredDelta = toPreferredDelta(data, now, app.selfContext)
@@ -662,4 +667,47 @@ async function startInterfaces(
       }
     })
   )
+}
+
+const pathsToRemove = [
+  '',
+  'name',
+  'mmsi',
+  'design.aisShipType',
+  'design.beam',
+  'design.length',
+  'sensors.gps.fromBow',
+  'sensors.gps.fromCenter'
+];
+
+function removePaths(obj: any, paths: string[]): any {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) {
+    return obj
+      .map(item => removePaths(item, paths))
+      .filter(item => item !== undefined);
+  }
+  if ('values' in obj && Array.isArray(obj.values)) {
+    obj.values = obj.values.filter((valueObj: any) => {
+      if (!valueObj || typeof valueObj !== 'object') return true;
+      if (paths.includes(valueObj.path)) return false;
+      if (valueObj.path === "" && valueObj.value && typeof valueObj.value === 'object') {
+        valueObj.value = removePaths(valueObj.value, paths);
+        return Object.keys(valueObj.value).length > 0;
+      }
+      return true;
+    });
+  }
+  const result: any = {};
+  for (const key in obj) {
+    if (!obj.hasOwnProperty(key)) continue;
+    if (paths.includes(key)) continue;
+    const nestedPaths = paths
+      .filter(p => p.startsWith(`${key}.`))
+      .map(p => p.substring(key.length + 1));
+    result[key] = nestedPaths.length > 0 
+      ? removePaths(obj[key], nestedPaths)
+      : obj[key];
+  }
+  return Object.keys(result).length > 0 ? result : undefined;
 }
