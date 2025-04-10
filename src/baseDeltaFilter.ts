@@ -65,19 +65,19 @@ function isNumericalPath(path: string): boolean {
 
 function isMatchingPathValue(updateValue: UpdateValue, removeItem: UpdateValue): boolean {
   if (updateValue.path === removeItem.path) {
-    if (isNumericalPath(updateValue.path)) return true;
+    if (typeof updateValue.value === 'number' || typeof removeItem.value === 'number') {
+      return true;
+    }
     return hasMatchingProperties(updateValue.value, removeItem.value);
   }
   
   if (updateValue.path === '') {
     const nestedValue = getNestedValue(updateValue.value, removeItem.path);
-    if (isNumericalPath(removeItem.path)) return nestedValue !== undefined;
     return nestedValue !== undefined && hasMatchingProperties(nestedValue, removeItem.value);
   }
   
   if (removeItem.path === '') {
     const nestedValue = getNestedValue(removeItem.value, updateValue.path);
-    if (isNumericalPath(updateValue.path)) return nestedValue !== undefined;
     return nestedValue !== undefined && hasMatchingProperties(updateValue.value, nestedValue);
   }
   
