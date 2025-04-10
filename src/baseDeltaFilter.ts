@@ -61,17 +61,17 @@ function deepMerge(target: any, source: any): any {
 
 function isMatchingPathValue(updateValue: UpdateValue, removeItem: UpdateValue): boolean {
   if (updateValue.path === removeItem.path) {
-    return hasMatchingProperties(updateValue.value, removeItem.value);
+    return true;
   }
   
   if (updateValue.path === '') {
-    const nestedValue = getNestedValue(updateValue.value, removeItem.path);
-    return nestedValue !== undefined && hasMatchingProperties(nestedValue, removeItem.value);
+    const nestedPath = getNestedValue(updateValue.value, removeItem.path);
+    return nestedPath !== undefined;
   }
   
   if (removeItem.path === '') {
-    const nestedValue = getNestedValue(removeItem.value, updateValue.path);
-    return nestedValue !== undefined && hasMatchingProperties(updateValue.value, nestedValue);
+    const nestedPath = getNestedValue(removeItem.value, updateValue.path);
+    return nestedPath !== undefined;
   }
   
   return false;
@@ -141,6 +141,8 @@ function deepCloneAndRemove(obj: any, removePatterns: UpdateValue[]): any {
   
   return result;
 }
+
+//----------------------------------------------------------------
 
 interface PathValuePair {
   path: string;
