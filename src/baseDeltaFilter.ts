@@ -59,32 +59,28 @@ function deepMerge(target: any, source: any): any {
   return target;
 }
 
-function isNumericalPath(path: string): boolean {
-  return /^\d+$/.test(path);
-}
-
 function isMatchingPathValue(updateValue: UpdateValue, removeItem: UpdateValue): boolean {
+  // If paths match exactly, return true (remove it) regardless of value
   if (updateValue.path === removeItem.path) {
-    if (typeof updateValue.value === 'number' || typeof removeItem.value === 'number') {
-      return true;
-    }
-    return hasMatchingProperties(updateValue.value, removeItem.value);
+    return true;
   }
   
+  // For root path cases, we still need to check nested values
   if (updateValue.path === '') {
-    const nestedValue = getNestedValue(updateValue.value, removeItem.path);
-    return nestedValue !== undefined && hasMatchingProperties(nestedValue, removeItem.value);
+    const nestedPath = getNestedValue(updateValue.value, removeItem.path);
+    return nestedPath !== undefined;
   }
   
   if (removeItem.path === '') {
-    const nestedValue = getNestedValue(removeItem.value, updateValue.path);
-    return nestedValue !== undefined && hasMatchingProperties(updateValue.value, nestedValue);
+    const nestedPath = getNestedValue(removeItem.value, updateValue.path);
+    return nestedPath !== undefined;
   }
   
   return false;
 }
 
 function hasMatchingProperties(obj: any, pattern: any): boolean {
+  // This is now only used for root path comparisons
   if (typeof pattern !== 'object' || pattern === null) {
     return isValueMatch(obj, pattern);
   }
@@ -149,6 +145,7 @@ function deepCloneAndRemove(obj: any, removePatterns: UpdateValue[]): any {
   return result;
 }
 
+//----------------------------------------------------------------
 interface PathValuePair {
   path: string;
   value: any; // Consider using a more specific type if possible
