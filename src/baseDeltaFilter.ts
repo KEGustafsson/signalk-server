@@ -59,20 +59,21 @@ export function filterUpdates(update: Update | any[], pathToRemove: UpdateValue[
  * @param values - Array of UpdateValue objects
  * @returns Consolidated array of UpdateValue objects
  */
-function consolidateRootPaths(values: UpdateValue[]): UpdateValue[] {
-  const rootValues = values.filter(v => v.path === '');
-  const otherValues = values.filter(v => v.path !== '');
-  
-  if (rootValues.length <= 1) return values;
-  
-  // Merge all root values into a single object
+function consolidateRootPaths(values: UpdateValue[] | null | undefined): UpdateValue[] {
+  if (!values) {
+      return [];
+  }
+  const rootValues = values.filter((v): v is UpdateValue => v !== null && v !== undefined && v.path === '');
+  const otherValues = values.filter((v): v is UpdateValue => v !== null && v !== undefined && v.path !== '');
+  if (rootValues.length <= 1) {
+      return values.filter((v): v is UpdateValue => v !== null && v !== undefined);
+  }
   const mergedRootValue = rootValues.reduce((acc, curr) => {
-    return { path: '', value: deepMerge(acc.value, curr.value) };
+      return { path: '', value: deepMerge(acc.value, curr.value) };
   }, { path: '', value: {} });
-  
+
   return [mergedRootValue, ...otherValues];
 }
-
 /**
  * Deep merges two objects
  * @param target - Target object to merge into
