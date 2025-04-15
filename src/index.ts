@@ -300,9 +300,9 @@ class Server {
                 pathsToRemove = extractPathValuePairs(update)
                 //console.log('Extracted paths:', pathsToRemove);
             } else if (pathsToRemove) {
-                data.updates = data.updates.map((update: any) =>
-                    filterUpdates(update, pathsToRemove)
-                ).filter(Boolean);
+                data.updates = (data.updates ?? [])
+                    .map((update: any) => filterUpdates(update, pathsToRemove))
+                    .filter((update): update is Update => update !== undefined);
                 //console.log(JSON.stringify(data.updates, null, 2));
                 return data.updates;
             }
