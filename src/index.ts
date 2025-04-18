@@ -66,6 +66,7 @@ import { WithProviderStatistics } from './deltastats'
 import { pipedProviders } from './pipedproviders'
 import { EventsActorId, WithWrappedEmitter, wrapEmitter } from './events'
 import { Zones } from './zones'
+import { filterUpdates, extractPathValuePairs } from './baseDeltaFilter'
 const debug = createDebug('signalk-server')
 
 import { StreamBundle } from './streambundle'
@@ -264,6 +265,7 @@ class Server {
     }
     app.activateSourcePriorities()
 
+    let pathsToRemove: any = []
     app.handleMessage = (
       providerId: string,
       data: Partial<Delta>,
@@ -292,6 +294,18 @@ class Server {
           }
           if (!update.timestamp || app.config.overrideTimestampWithNow) {
             update.timestamp = now.toISOString() as Timestamp
+          }
+          if (data.context === `vessels.${app.selfId}` && 'values' in update) {
+            if (pathsToRemove.length === 0 && update.$source === 'defaults') {
+                pathsToRemove = extractPathValuePairs(update)
+                //console.log('Extracted paths:', pathsToRemove);
+            } else if (pathsToRemove) {
+                data.updates = (data.updates ?? []).map((update) =>
+                    filterUpdates(update, pathsToRemove)
+                ).filter(Boolean);
+                //console.log(JSON.stringify(data.updates, null, 2));
+                return data.updates;
+            }
           }
         })
         try {
