@@ -66,6 +66,7 @@ import { WithProviderStatistics } from './deltastats'
 import { pipedProviders } from './pipedproviders'
 import { EventsActorId, WithWrappedEmitter, wrapEmitter } from './events'
 import { Zones } from './zones'
+import { filterUpdates, extractPathValuePairs } from './baseDeltaFilter'
 const debug = createDebug('signalk-server')
 
 import { StreamBundle } from './streambundle'
@@ -264,6 +265,7 @@ class Server {
     }
     app.activateSourcePriorities()
 
+    let pathsToRemove: any = []
     app.handleMessage = (
       providerId: string,
       data: Partial<Delta>,
@@ -303,6 +305,21 @@ class Server {
             if ('meta' in update && !Array.isArray(update.meta)) {
               debug(`handleMessage: ignoring invalid meta`, update.meta)
               delete update.meta
+            }
+
+            if (data.context === `vessels.${app.selfId}` && 'values' in update) {
+              if (pathsToRemove.length === 0 && update.$source === 'defaults') {
+                pathsToRemove = extractPathValuePairs(update)
+                debug('Extracted paths:', pathsToRemove);
+              } else if (pathsToRemove) {
+                const updateMod = filterUpdates(update, pathsToRemove)
+                if (JSON.stringify(updateMod) !== JSON.stringify(update)) {
+                  debug(JSON.stringify(update, null, 2));
+                  debug(JSON.stringify(updateMod, null, 2));
+                  debug("----------------------------------------------");
+                }
+                return updateMod
+              }
             }
 
             if ('values' in update || 'meta' in update) {
