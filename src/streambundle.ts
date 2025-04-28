@@ -63,7 +63,7 @@ export class StreamBundle implements IStreamBundle {
             timestamp: update.timestamp! // TSTODO: make optional/required match
           }
 
-          if ('meta' in update) {
+          if ('meta' in update && Array.isArray(update.meta)) {
             update.meta.forEach((meta) => {
               this.push(meta.path, {
                 ...base,
@@ -74,7 +74,7 @@ export class StreamBundle implements IStreamBundle {
             })
           }
 
-          if ('values' in update) {
+          if ('values' in update && Array.isArray(update.values)) {
             update.values.forEach((pathValue) => {
               this.push(pathValue.path, {
                 ...base,
