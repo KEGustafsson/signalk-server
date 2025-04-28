@@ -3,8 +3,8 @@ name: Build Docker development container
 on:
   push:
     branches:
-    - master
-    - "build-docker"
+      - master
+      - 'build-docker'
     tags:
       - '*'
       - '!v*'
@@ -76,7 +76,7 @@ jobs:
           tags: ghcr.io/signalk/signalk-server:${{ matrix.arch }}-${{ matrix.os }}-${{ github.run_id }}
           build-args: |
             REGISTRY=ghcr.io
-            UBUNTU_VERSION=$${matrix.os}
+            UBUNTU_VERSION=${{ matrix.os }}
   create-and-push-manifest:
     needs: docker_images
     runs-on: ubuntu-latest
@@ -129,7 +129,7 @@ jobs:
     permissions:
       packages: write
     steps:
-      - name: Remove Docker Image from GHCR
+      - name: Remove Temporary & Untagged Docker Images from GHCR
         uses: dataaxiom/ghcr-cleanup-action@v1
         with:
           packages: signalk-server

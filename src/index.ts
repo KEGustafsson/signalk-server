@@ -321,7 +321,7 @@ class Server {
                 return updateMod
               }
             }
-
+          
             if ('values' in update || 'meta' in update) {
               return update as Update
             }
