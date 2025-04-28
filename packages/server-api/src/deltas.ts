@@ -55,7 +55,9 @@ export type Update = {
   timestamp?: Timestamp
   source?: Source
   $source?: SourceRef
-} & ({ values: PathValue[] } | { meta: Meta[] }) // require either values or meta or both
+  values?: PathValue[] | null
+  meta?: Meta[] | null
+}
 
 export function hasValues(u: Update): u is Update & { values: PathValue[] } {
   return 'values' in u && Array.isArray(u.values)
