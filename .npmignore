@@ -76,4 +76,5 @@ fly_io
 .github
 
 /docs/*
+!/docs/redirects.json
 !/docs/dist
