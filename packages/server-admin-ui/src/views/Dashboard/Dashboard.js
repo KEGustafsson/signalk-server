@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { connect } from 'react-redux'
 import {
   Card,
@@ -10,8 +10,6 @@ import {
   Table
 } from 'reactstrap'
 import '../../fa-pulse.css'
-
-let devices = []
 
 const Dashboard = (props) => {
   const {
@@ -36,7 +34,17 @@ const Dashboard = (props) => {
   if (errorCount > 0) {
     errors = `(${errorCount} errors)`
   }
+  const [devices, setDevices] = useState([])
 
+  useEffect(() => {
+    fetch(`${window.serverRoutesPrefix}/security/devices`, {
+      credentials: 'include'
+    })
+      .then(res => res.json())
+      .then(data => setDevices(data))
+      .catch(() => setDevices([]))
+  }, [])
+  
   const getLinkType = (providerId) => {
     try {
       return providerStatus.find((item) => item.id === providerId).statusType
@@ -69,22 +77,13 @@ const Dashboard = (props) => {
 
   const renderActivity = (providerId, providerStats, linkType) => {
     let device = providerId
-    if (devices.length === 0 && providerId.startsWith('ws.')) {
-      devices = fetch(
-        `${window.serverRoutesPrefix}/security/devices`,
-        {
-          credentials: 'include'
-        }
-      ).json()
-    }
     if (providerId.startsWith('ws.')) {
-      device = devices.find(
+      const found = devices.find(
         (d) => d.clientId === providerId.slice(3)
-      ).description
-      if (device.trim() === '') {
-        device = providerId
-      }
+      )
+      device = found && found.description ? found.description : providerId
     }
+
     return (
       <li key={providerId} onClick={() => props.history.push(`/dashboard`)}>
         <i
