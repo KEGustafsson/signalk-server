@@ -11,6 +11,8 @@ import {
 } from 'reactstrap'
 import '../../fa-pulse.css'
 
+let devices = []
+
 const Dashboard = (props) => {
   const {
     deltaRate,
@@ -66,6 +68,23 @@ const Dashboard = (props) => {
   }
 
   const renderActivity = (providerId, providerStats, linkType) => {
+    let device = providerId
+    if (devices.length === 0 && providerId.startsWith('ws.')) {
+      devices = fetch(
+        `${window.serverRoutesPrefix}/security/devices`,
+        {
+          credentials: 'include'
+        }
+      ).json()
+    }
+    if (providerId.startsWith('ws.')) {
+      device = devices.find(
+        (d) => d.clientId === providerId.slice(3)
+      ).description
+      if (device.trim() === '') {
+        device = providerId
+      }
+    }
     return (
       <li key={providerId} onClick={() => props.history.push(`/dashboard`)}>
         <i
@@ -84,7 +103,7 @@ const Dashboard = (props) => {
         <span className="title">
           {linkType === 'plugin'
             ? pluginNameLink(providerId)
-            : providerIdLink(providerId)}
+            : providerIdLink(providerId, device)}
         </span>
         {providerStats.writeRate > 0 && (
           <span className="value">
@@ -285,11 +304,11 @@ function pluginNameLink(id) {
   return <a href={'#/serverConfiguration/plugins/' + id}>{id}</a>
 }
 
-function providerIdLink(id) {
+function providerIdLink(id, name) {
   if (id === 'defaults') {
     return <a href={'#/serverConfiguration/settings'}>{id}</a>
   } else if (id.startsWith('ws.')) {
-    return <a href={'#/security/devices'}>{id}</a>
+    return <a href={'#/security/devices'}>{name}</a>
   } else {
     return <a href={'#/serverConfiguration/connections/' + id}>{id}</a>
   }
