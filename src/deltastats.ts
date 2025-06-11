@@ -74,7 +74,10 @@ export function startDeltaStatistics(
     updateProviderPeriodStats(app)
     const anyApp = app as any
     const config = getSecurityConfig(anyApp)
-    const devices = anyApp.securityStrategy.getDevices(config)
+    let devices = [];
+    if ( anyApp && anyApp.securityStrategy && typeof anyApp.securityStrategy.getDevices === 'function' ) {
+      devices = anyApp.securityStrategy.getDevices(config);
+    }
     app.emit('serverevent', {
       type: 'SERVERSTATISTICS',
       from: 'signalk-server',
