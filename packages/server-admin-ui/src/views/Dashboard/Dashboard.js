@@ -18,7 +18,7 @@ const Dashboard = (props) => {
     wsClients,
     providerStatistics,
     uptime,
-    devices,
+    devices
   } = props.serverStatistics || {
     deltaRate: 0,
     numberOfAvailablePaths: 0,
@@ -70,9 +70,7 @@ const Dashboard = (props) => {
   const renderActivity = (providerId, providerStats, linkType) => {
     let device = providerId
     if (providerId.startsWith('ws.')) {
-      const found = devices.find(
-        (d) => d.clientId === providerId.slice(3)
-      )
+      const found = devices.find((d) => d.clientId === providerId.slice(3))
       device = found && found.description ? found.description : providerId
     }
     return (
