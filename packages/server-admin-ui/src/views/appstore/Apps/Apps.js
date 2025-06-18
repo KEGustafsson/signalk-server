@@ -221,5 +221,15 @@ const updateAvailable = (app, appStore) => {
   )
 }
 
-const mapStateToProps = ({ appStore }) => ({ appStore })
+const mapStateToProps = ({ appStore }) => ({
+  appStore: {
+    available: [],
+    installed: [],
+    installing: [],
+    updates: [],
+    categories: [],
+    storeAvailable: true,
+    ...appStore,
+  }
+})
 export default connect(mapStateToProps)(Apps)
