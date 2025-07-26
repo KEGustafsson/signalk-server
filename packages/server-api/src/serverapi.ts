@@ -1,7 +1,7 @@
 import {
   SKVersion,
   AutopilotProviderRegistry,
-  Features,
+  WithFeatures,
   PropertyValuesEmitter,
   ResourceProviderRegistry,
   Delta
@@ -28,7 +28,7 @@ export interface ServerAPI
   extends PropertyValuesEmitter,
     ResourceProviderRegistry,
     AutopilotProviderRegistry,
-    Features,
+    WithFeatures,
     CourseApi,
     SelfIdentity {
   /**
@@ -130,7 +130,8 @@ export interface ServerAPI
    *
    * @category Status and Debugging
    */
-  debug(msg: string): void
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  debug(msg: any, ...args: any[]): void
 
   /**
    * Register a function to intercept all delta messages _before_ they are processed by the server.
@@ -359,15 +360,15 @@ export interface ServerAPI
   registerPutHandler(
     context: string,
     path: string,
-    callback: () => void,
-    source: string
+    callback: ActionHandler,
+    source?: string
   ): void
 
   registerActionHandler(
     context: string,
     path: string,
-    callback: () => void,
-    source: string
+    callback: ActionHandler,
+    source?: string
   ): void
 
   registerHistoryProvider(provider: {
@@ -443,4 +444,19 @@ export interface SelfIdentity {
 export interface Metadata {
   units?: string
   description?: string
+}
+
+export type ActionHandler = (
+  context: string,
+  path: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  value: any,
+  callback?: (result: ActionResult) => void
+) => ActionResult
+
+export interface ActionResult {
+  state: 'COMPLETED' | 'PENDING' | 'FAILED'
+  statusCode?: number
+  message?: string
+  timestamp: string
 }
