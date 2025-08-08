@@ -12,6 +12,8 @@ export interface SourcePrioritiesData {
   [path: string]: SourcePriority[]
 }
 
+export const SourcePrioritiesData: SourcePrioritiesData = {};
+
 interface PathValue {
   path: string
   value: any
