@@ -362,7 +362,7 @@ class ProvidersConfiguration extends Component {
                         <i className="fa fa-ban" /> Cancel
                       </Button>
                     </Col>
-                    <Col xs="4" md="10" className="text-right">
+                    <Col xs="4" md="10" className="text-end">
                       <Button
                         size="sm"
                         color="danger"
@@ -374,7 +374,7 @@ class ProvidersConfiguration extends Component {
                   </Row>
                 ) : (
                   <Row>
-                    <Col xs="4" md="12" className="text-right">
+                    <Col xs="4" md="12" className="text-end">
                       <Button
                         size="sm"
                         color="danger"

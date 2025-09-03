@@ -1,5 +1,8 @@
 import React from 'react'
-import Form from 'react-jsonschema-form-bs4'
+import { withTheme } from '@rjsf/core'
+import { Theme as Bootstrap4Theme } from '@rjsf/bootstrap-4'
+
+const Form = withTheme(Bootstrap4Theme)
 
 // eslint-disable-next-line react/display-name
 export default ({ plugin, onSubmit }) => {

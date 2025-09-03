@@ -244,7 +244,7 @@ class AccessRequests extends Component {
                         <Button
                           size="md"
                           color="danger"
-                          className="float-right float-sm-left"
+                          className="float-end float-sm-start"
                           onClick={this.handleAccessRequest.bind(
                             this,
                             this.state.selectedRequest.accessIdentifier,

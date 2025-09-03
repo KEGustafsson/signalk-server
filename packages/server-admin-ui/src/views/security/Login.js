@@ -146,7 +146,7 @@ class Login extends Component {
                               Login
                             </Button>
                           </Col>
-                          <Col xs="6" className="text-right">
+                          <Col xs="6" className="text-end">
                             {this.state.loginErrorMessage && (
                               <p className="text-danger">
                                 {this.state.loginErrorMessage}

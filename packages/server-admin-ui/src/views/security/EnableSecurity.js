@@ -124,7 +124,7 @@ class EnableSecurity extends Component {
                                 Enable
                               </Button>
                             </Col>
-                            <Col xs="6" className="text-right">
+                            <Col xs="6" className="text-end">
                               <p className="text-danger">
                                 {this.state.errorMessage}
                               </p>
