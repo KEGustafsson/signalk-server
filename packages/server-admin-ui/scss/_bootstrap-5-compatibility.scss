@@ -1,6 +1,20 @@
 // Bootstrap 5 compatibility layer for @rjsf/bootstrap-4
 // This ensures that Bootstrap 4 classes used by RJSF continue to work with Bootstrap 5
 
+// Bootstrap 5 CSS Custom Properties Override
+// Bootstrap 5 uses --bs-* CSS variables that need to match our custom colors
+:root {
+  --bs-gray-100: #f0f3f5;
+  --bs-gray-200: #c2cfd6;
+  --bs-gray-300: #a4b7c1;
+  --bs-gray-400: #869fac;
+  --bs-gray-500: #678898;
+  --bs-gray-600: #536c79;
+  --bs-gray-700: #3e515b;
+  --bs-gray-800: #29363d;
+  --bs-gray-900: #151b1e;
+}
+
 // Form group compatibility - Bootstrap 5 removed .form-group
 .form-group {
   margin-bottom: 1rem;
@@ -72,6 +86,24 @@
   height: 1rem;
   content: "";
   background: 50% / 50% 50% no-repeat;
+}
+
+// Navbar toggler positioning fix for Bootstrap 5
+.navbar-toggler {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.app-header.navbar {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  
+  .navbar-toggler {
+    margin-left: auto !important;
+    order: 999 !important;
+  }
 }
 
 // Select compatibility
