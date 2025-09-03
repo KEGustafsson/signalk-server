@@ -1,6 +1,7 @@
 import React from 'react'
 import { withTheme } from '@rjsf/core'
 import { Theme as Bootstrap4Theme } from '@rjsf/bootstrap-4'
+import validator from '@rjsf/utils/lib/validator'
 
 const Form = withTheme(Bootstrap4Theme)
 
@@ -35,6 +36,7 @@ export default ({ plugin, onSubmit }) => {
       schema={topSchema}
       uiSchema={uiSchema}
       formData={plugin.data || {}}
+      validator={validator}
       onSubmit={(submitData) => {
         onSubmit({
           ...submitData.formData,
