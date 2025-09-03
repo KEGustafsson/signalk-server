@@ -10,7 +10,6 @@ import {
   Button,
   Input,
   InputGroup,
-  InputGroupAddon,
   InputGroupText
 } from 'reactstrap'
 import { connect } from 'react-redux'
@@ -80,11 +79,9 @@ class EnableSecurity extends Component {
                           <h1>Enable Security</h1>
                           <p className="text-muted">Create an admin account</p>
                           <InputGroup className="mb-3">
-                            <InputGroupAddon addonType="prepend">
-                              <InputGroupText>
-                                <i className="icon-user" />
-                              </InputGroupText>
-                            </InputGroupAddon>
+                            <InputGroupText>
+                              <i className="icon-user" />
+                            </InputGroupText>
                             <Input
                               type="text"
                               name="username"
@@ -94,11 +91,9 @@ class EnableSecurity extends Component {
                             />
                           </InputGroup>
                           <InputGroup className="mb-4">
-                            <InputGroupAddon addonType="prepend">
-                              <InputGroupText>
-                                <i className="icon-lock" />
-                              </InputGroupText>
-                            </InputGroupAddon>
+                            <InputGroupText>
+                              <i className="icon-lock" />
+                            </InputGroupText>
                             <Input
                               type="password"
                               name="password"
