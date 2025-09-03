@@ -130,6 +130,11 @@
   align-items: center !important;
 }
 
+// Remove navbar toggler border
+.navbar-toggler {
+  border: none !important;
+}
+
 // Select compatibility
 .custom-select {
   display: inline-block;

@@ -1,7 +1,7 @@
 import React from 'react'
 import { withTheme } from '@rjsf/core'
 import { Theme as Bootstrap4Theme } from '@rjsf/bootstrap-4'
-import validator from '@rjsf/utils/lib/validator'
+import validator from '@rjsf/validator-ajv8'
 
 const Form = withTheme(Bootstrap4Theme)
 
