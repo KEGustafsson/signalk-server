@@ -16,7 +16,10 @@
   
   // Fix Bootstrap 5 components that incorrectly inherit body-bg instead of white
   --bs-card-bg: #fff;
-  --bs-table-bg: #fff;
+  --bs-table-bg: #fff !important;
+  --bs-table-striped-bg: rgba(255,255,255,0.05);
+  --bs-table-active-bg: rgba(0,0,0,0.1);
+  --bs-table-hover-bg: rgba(0,0,0,0.075);
   --bs-body-bg: #e4e5e6; // Keep body background as intended
 }
 
@@ -26,6 +29,7 @@
 }
 
 .table {
+  --bs-table-bg: #fff !important;
   background-color: #fff !important;
 }
 
@@ -35,6 +39,15 @@
 
 .form-select {
   background-color: #fff !important;
+}
+
+// Fix button text colors for Bootstrap 5
+.btn-primary {
+  color: #fff !important;
+}
+
+.btn-secondary {
+  color: #fff !important;
 }
 
 // Form group compatibility - Bootstrap 5 removed .form-group
@@ -110,29 +123,11 @@
   background: 50% / 50% 50% no-repeat;
 }
 
-// Navbar positioning fix for Bootstrap 5 - restore original layout
+// Navbar positioning fix for Bootstrap 5 - minimal intervention
 .app-header.navbar {
   display: flex !important;
   flex-wrap: nowrap !important;
   align-items: center !important;
-  
-  // Sidebar toggle should be on the left after brand
-  .navbar-toggler {
-    order: 1 !important;
-    margin-left: 0 !important;
-    margin-right: auto !important;
-  }
-  
-  // Brand should be first (order 0 by default)
-  .navbar-brand {
-    order: 0 !important;
-  }
-  
-  // User menu (restart/logout) should be on the right
-  .navbar-nav {
-    order: 999 !important;
-    margin-left: auto !important;
-  }
 }
 
 // Select compatibility
@@ -158,4 +153,15 @@
   border-color: #80bdff;
   outline: 0;
   box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+// Force table background override - must be at end for specificity
+.table, 
+.table > :not(caption) > * > *,
+table,
+table > tbody > tr > td,
+table > thead > tr > th,
+table > tfoot > tr > td {
+  --bs-table-bg: #fff !important;
+  background-color: #fff !important;
 }
