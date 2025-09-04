@@ -19,49 +19,105 @@ form.rjsf div.row.array-item {
   margin-bottom: 3px;
 }
 
-// Restore original react-jsonschema-form-bs4 v1.7.1 button styling for @rjsf v5.18.4
-// This ensures plugin configuration buttons match the original appearance
-form.rjsf button,
-.rjsf button,
-form button.btn,
-.form-group button.btn {
-  // Original button sizing - smaller, more compact
-  &.btn-sm, 
+// AGGRESSIVE RJSF Button Fixes - Fix sizing and positioning
+// Make buttons larger (standard Bootstrap size) and position them correctly
+button,
+.btn {
   &.btn-danger,
-  &.btn-info {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.875rem;
-    line-height: 1.5;
-    border-radius: 0.2rem;
-    margin: 0.125rem 0.25rem;
+  &.btn-info,
+  &.btn-sm {
+    padding: 0.375rem 0.75rem !important;  // Standard Bootstrap size, not small
+    font-size: 1rem !important;            // Standard font size
+    line-height: 1.5 !important;
+    border-radius: 0.25rem !important;
+    margin: 0.25rem 0.5rem !important;     // More spacing
+    min-width: auto !important;
+    display: inline-block !important;
+    visibility: visible !important;
+    float: none !important;                // Prevent left float
+    position: relative !important;         // Ensure proper positioning
   }
 }
 
-// Array item controls - ensure proper button positioning
-form.rjsf .array-item-toolbox,
-form.rjsf .btn-toolbar,
-.array-item .btn-group,
-.btn-toolbar .btn-group {
-  display: inline-flex;
-  margin-left: 0.5rem;
+// Target any button in forms specifically - fix positioning  
+form button,
+.form-group button,
+.card-body button,
+div[class*="rjsf"] button,
+.rjsf button,
+form.rjsf button {
+  &.btn-danger,
+  &.btn-info {
+    padding: 0.375rem 0.75rem !important;    // Standard size
+    font-size: 1rem !important;              // Standard font
+    line-height: 1.5 !important;
+    border-radius: 0.25rem !important;
+    margin: 0.25rem 0.5rem !important;
+    min-width: auto !important;
+    display: inline-block !important;
+    visibility: visible !important;
+    float: none !important;                  // Fix left positioning
+    position: relative !important;
+  }
+}
+
+// Array and toolbar containers - force proper layout and positioning
+.array-item-toolbox,
+.btn-toolbar,
+.btn-group,
+div[class*="array"] .btn-group,
+div[class*="toolbar"],
+.form-group .btn-group {
+  display: inline-flex !important;
+  justify-content: flex-end !important;        // Align to right side
+  margin-left: auto !important;                // Push to right
+  float: right !important;                     // Force right positioning
+  width: auto !important;
   
   button {
-    margin: 0 1px;
+    margin: 0 2px !important;
+    display: inline-block !important;
+    visibility: visible !important;
+    float: none !important;
     
     &.btn-danger,
-    &.btn-info {
-      padding: 0.25rem 0.5rem;
-      font-size: 0.875rem;
-      min-width: auto;
+    &.btn-info,
+    &.btn-sm {
+      padding: 0.375rem 0.75rem !important;    // Standard size
+      font-size: 1rem !important;              // Standard font
+      min-width: auto !important;
     }
   }
 }
 
-// Ensure buttons are visible and properly spaced
-.btn-group .btn,
-.form-group .btn-group .btn {
-  display: inline-block !important;
-  visibility: visible !important;
+// Fix RJSF array item layout - ensure buttons are positioned correctly
+form.rjsf .row.array-item {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  
+  // Button container should be on the right
+  .col:last-child,
+  div:last-child {
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    margin-left: auto !important;
+    
+    button {
+      &.btn-danger,
+      &.btn-info {
+        padding: 0.375rem 0.75rem !important;
+        font-size: 1rem !important;
+        line-height: 1.5 !important;
+        border-radius: 0.25rem !important;
+        margin: 0.25rem 0.25rem !important;
+        display: inline-block !important;
+        visibility: visible !important;
+        float: none !important;
+      }
+    }
+  }
 }
 
 @media (max-width: 767px) {
