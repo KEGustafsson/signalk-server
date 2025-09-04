@@ -19,105 +19,25 @@ form.rjsf div.row.array-item {
   margin-bottom: 3px;
 }
 
-// AGGRESSIVE RJSF Button Fixes - Fix sizing and positioning
-// Make buttons larger (standard Bootstrap size) and position them correctly
-button,
-.btn {
-  &.btn-danger,
-  &.btn-info,
-  &.btn-sm {
-    padding: 0.375rem 0.75rem !important;  // Standard Bootstrap size, not small
-    font-size: 1rem !important;            // Standard font size
-    line-height: 1.5 !important;
-    border-radius: 0.25rem !important;
-    margin: 0.25rem 0.5rem !important;     // More spacing
-    min-width: auto !important;
-    display: inline-block !important;
-    visibility: visible !important;
-    float: none !important;                // Prevent left float
-    position: relative !important;         // Ensure proper positioning
-  }
-}
-
-// Target any button in forms specifically - fix positioning  
-form button,
-.form-group button,
-.card-body button,
-div[class*="rjsf"] button,
-.rjsf button,
-form.rjsf button {
-  &.btn-danger,
-  &.btn-info {
-    padding: 0.375rem 0.75rem !important;    // Standard size
-    font-size: 1rem !important;              // Standard font
-    line-height: 1.5 !important;
-    border-radius: 0.25rem !important;
-    margin: 0.25rem 0.5rem !important;
-    min-width: auto !important;
-    display: inline-block !important;
-    visibility: visible !important;
-    float: none !important;                  // Fix left positioning
-    position: relative !important;
-  }
-}
-
-// Array and toolbar containers - force proper layout and positioning
-.array-item-toolbox,
-.btn-toolbar,
-.btn-group,
-div[class*="array"] .btn-group,
-div[class*="toolbar"],
-.form-group .btn-group {
-  display: inline-flex !important;
-  justify-content: flex-end !important;        // Align to right side
-  margin-left: auto !important;                // Push to right
-  float: right !important;                     // Force right positioning
-  width: auto !important;
+// SIMPLE RJSF Button Fix - Make buttons bigger and keep them inline
+// Target ALL buttons and make them normal size, no positioning changes
+* button.btn-danger,
+* button.btn-info,
+* .btn-danger,
+* .btn-info {
+  padding: 0.5rem 1rem !important;        // Bigger buttons
+  font-size: 1.125rem !important;         // Bigger font
+  line-height: 1.5 !important;
+  border-radius: 0.25rem !important;
+  min-width: auto !important;
+  display: inline-block !important;
+  visibility: visible !important;
+  margin: 0.25rem !important;
   
-  button {
-    margin: 0 2px !important;
-    display: inline-block !important;
-    visibility: visible !important;
-    float: none !important;
-    
-    &.btn-danger,
-    &.btn-info,
-    &.btn-sm {
-      padding: 0.375rem 0.75rem !important;    // Standard size
-      font-size: 1rem !important;              // Standard font
-      min-width: auto !important;
-    }
-  }
-}
-
-// Fix RJSF array item layout - ensure buttons are positioned correctly
-form.rjsf .row.array-item {
-  position: relative !important;
-  display: flex !important;
-  align-items: center !important;
-  
-  // Button container should be on the right
-  .col:last-child,
-  div:last-child {
-    display: flex !important;
-    justify-content: flex-end !important;
-    align-items: center !important;
-    margin-left: auto !important;
-    
-    button {
-      &.btn-danger,
-      &.btn-info {
-        padding: 0.375rem 0.75rem !important;
-        font-size: 1rem !important;
-        line-height: 1.5 !important;
-        border-radius: 0.25rem !important;
-        margin: 0.25rem 0.25rem !important;
-        display: inline-block !important;
-        visibility: visible !important;
-        float: none !important;
-      }
-    }
-  }
+  // Don't override positioning - let RJSF handle it
+  float: initial !important;
+  position: static !important;
+  clear: none !important;
 }
 
 @media (max-width: 767px) {
