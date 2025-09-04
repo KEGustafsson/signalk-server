@@ -14,7 +14,7 @@ import {
 
 import BasicProvider from './BasicProvider'
 import SourcePriorities from './SourcePriorities'
-import set from 'lodash.set'
+// Native replacement for deprecated lodash functions
 
 function fetchProviders() {
   fetch(`${window.serverRoutesPrefix}/providers`, {
@@ -86,7 +86,14 @@ class ProvidersConfiguration extends Component {
     if (type === 'number') {
       value = Number(value)
     }
-    set(this.state.selectedProvider, event.target.name, value)
+    // Native object property setting
+    const keys = event.target.name.split('.')
+    let obj = this.state.selectedProvider
+    for (let i = 0; i < keys.length - 1; i++) {
+      if (!obj[keys[i]]) obj[keys[i]] = {}
+      obj = obj[keys[i]]
+    }
+    obj[keys[keys.length - 1]] = value
     this.setState({
       selectedProvider: this.state.selectedProvider
     })

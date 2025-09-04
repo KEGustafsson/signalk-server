@@ -14,7 +14,7 @@ import {
 } from 'reactstrap'
 import LogFiles from './Logging'
 import Creatable from 'react-select/creatable'
-import remove from 'lodash.remove'
+// Native replacement for deprecated lodash functions
 
 class ServerLogs extends Component {
   constructor(props) {
@@ -89,7 +89,8 @@ class ServerLogs extends Component {
     if (enabled) {
       keysToSend.push(value)
     } else {
-      remove(keysToSend, (v) => v === value)
+      const index = keysToSend.indexOf(value)
+      if (index > -1) keysToSend.splice(index, 1)
     }
     this.doHandleDebug(keysToSend.toString())
   }

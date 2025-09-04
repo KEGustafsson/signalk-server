@@ -13,8 +13,7 @@ import {
   Table
 } from 'reactstrap'
 import Creatable from 'react-select/creatable'
-import remove from 'lodash.remove'
-import uniq from 'lodash.uniq'
+// Native replacements for deprecated lodash functions
 
 export const SOURCEPRIOS_PRIO_CHANGED = 'SOURCEPRIOS_PPRIO_CHANGED'
 export const SOURCEPRIOS_PRIO_DELETED = 'SOURCEPRIOS_PRIO_DELETED'
@@ -68,7 +67,7 @@ export const reduceSourcePriorities = (state, action) => {
       break
 
     case SOURCEPRIOS_PATH_DELETED:
-      remove(sourcePriorities, (_, i) => i === index)
+      sourcePriorities.splice(index, 1)
       saveState.dirty = true
       break
 
@@ -85,7 +84,7 @@ export const reduceSourcePriorities = (state, action) => {
       break
 
     case SOURCEPRIOS_PRIO_DELETED:
-      remove(prios, (_, i) => i === index)
+      prios.splice(index, 1)
       saveState.dirty = true
       break
 
@@ -147,7 +146,7 @@ function fetchSourceRefs(path, cb) {
       if (pathResponse.values) {
         sourceRefs = sourceRefs.concat(Object.keys(pathResponse.values))
       }
-      return uniq(sourceRefs)
+      return [...new Set(sourceRefs)]
     })
     .then(cb)
 }
