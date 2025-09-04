@@ -68,13 +68,13 @@ class Header extends Component {
         </NavbarToggler>
         <NavbarBrand href="#" />
         <NavbarToggler
-          className="d-md-down-none mr-auto"
+          className="d-none d-md-block me-auto"
           onClick={this.sidebarToggle}
         >
           <span className="navbar-toggler-icon" />
         </NavbarToggler>
-        <Nav className="ml-auto" navbar>
-          <NavItem className="d-md-down-none px-3">
+        <Nav className="ms-auto" navbar>
+          <NavItem className="d-none d-md-block px-3">
             {this.props.loginStatus.status === 'loggedIn' &&
               this.props.loginStatus.userLevel == 'admin' && (
                 <NavLink href="#/" onClick={this.props.restart}>
@@ -88,7 +88,7 @@ class Header extends Component {
               )}
           </NavItem>
           {this.props.loginStatus.status === 'loggedIn' && (
-            <NavItem className="d-md-down-none px-3">
+            <NavItem className="d-none d-md-block px-3">
               <NavLink href="#/" onClick={this.props.logout}>
                 <i className="fa fa-lock" /> Logout
               </NavLink>
@@ -96,7 +96,7 @@ class Header extends Component {
           )}
           {this.props.loginStatus.status !== 'loggedIn' &&
             this.props.loginStatus.authenticationRequired && (
-              <NavItem className="d-md-down-none px-3">
+              <NavItem className="d-none d-md-block px-3">
                 <NavLink href="#/login">
                   <i className="fa fa-lock" /> Login
                 </NavLink>

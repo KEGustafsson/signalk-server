@@ -248,7 +248,7 @@ class PluginCard extends Component {
                       />
                       <span className="switch-handle" />
                     </Label>
-                    <span className="ml-1">Enabled</span>
+                    <span className="ms-1">Enabled</span>
                   </Col>
                   <Col lg={2} className={'mt-2 mt-lg-0'}>
                     <Label
@@ -274,7 +274,7 @@ class PluginCard extends Component {
                       />
                       <span className="switch-handle" />
                     </Label>
-                    <span className="ml-1">Data logging</span>
+                    <span className="ms-1">Data logging</span>
                   </Col>
                   <Col lg={2} className={'mt-2 mt-lg-0'}>
                     <Label
@@ -300,7 +300,7 @@ class PluginCard extends Component {
                       />
                       <span className="switch-handle" />
                     </Label>
-                    <span className="ml-1">Enable debug log</span>
+                    <span className="ms-1">Enable debug log</span>
                   </Col>
                 </Fragment>
               )}
