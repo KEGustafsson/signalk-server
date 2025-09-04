@@ -19,6 +19,51 @@ form.rjsf div.row.array-item {
   margin-bottom: 3px;
 }
 
+// Restore original react-jsonschema-form-bs4 v1.7.1 button styling for @rjsf v5.18.4
+// This ensures plugin configuration buttons match the original appearance
+form.rjsf button,
+.rjsf button,
+form button.btn,
+.form-group button.btn {
+  // Original button sizing - smaller, more compact
+  &.btn-sm, 
+  &.btn-danger,
+  &.btn-info {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    border-radius: 0.2rem;
+    margin: 0.125rem 0.25rem;
+  }
+}
+
+// Array item controls - ensure proper button positioning
+form.rjsf .array-item-toolbox,
+form.rjsf .btn-toolbar,
+.array-item .btn-group,
+.btn-toolbar .btn-group {
+  display: inline-flex;
+  margin-left: 0.5rem;
+  
+  button {
+    margin: 0 1px;
+    
+    &.btn-danger,
+    &.btn-info {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.875rem;
+      min-width: auto;
+    }
+  }
+}
+
+// Ensure buttons are visible and properly spaced
+.btn-group .btn,
+.form-group .btn-group .btn {
+  display: inline-block !important;
+  visibility: visible !important;
+}
+
 @media (max-width: 767px) {
   .container-fluid,
   .row {
