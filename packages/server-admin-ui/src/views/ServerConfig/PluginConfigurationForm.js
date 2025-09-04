@@ -1,5 +1,7 @@
 import React from 'react'
-import Form from 'react-jsonschema-form-bs4'
+import Form from '@rjsf/core'
+import { Theme as Bootstrap4Theme } from '@rjsf/bootstrap-4'
+import validator from '@rjsf/validator-ajv8'
 
 // eslint-disable-next-line react/display-name
 export default ({ plugin, onSubmit }) => {
@@ -32,6 +34,8 @@ export default ({ plugin, onSubmit }) => {
       schema={topSchema}
       uiSchema={uiSchema}
       formData={plugin.data || {}}
+      validator={validator}
+      theme={Bootstrap4Theme}
       onSubmit={(submitData) => {
         onSubmit({
           ...submitData.formData,
