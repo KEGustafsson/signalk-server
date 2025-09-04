@@ -1,10 +1,6 @@
-// Temp fix for reactstrap - updated for Bootstrap 5
+// Temp fix for reactstrap
 .app-header {
   .navbar-nav {
-    .dropdown-menu-end {
-      right: auto;
-    }
-    // Backwards compatibility for old class
     .dropdown-menu-right {
       right: auto;
     }

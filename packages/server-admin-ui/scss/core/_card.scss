@@ -42,7 +42,7 @@
     }
 
     .nav-link {
-      padding: $card-spacer-y calc($card-spacer-x / 2);
+      padding: $card-spacer-y $card-spacer-x / 2;
       color: $text-muted;
       border-top: 0;
 
@@ -107,7 +107,7 @@
 // Card Actions
 .card-header {
   > i {
-    margin-right: calc($spacer / 2);
+    margin-right: $spacer / 2;
   }
   .card-actions {
     position: absolute;
@@ -166,8 +166,8 @@
 
 .card-full {
   margin-top: -$spacer;
-  margin-right: calc(-1 * $grid-gutter-width / 2);
-  margin-left: calc(-1 * $grid-gutter-width / 2);
+  margin-right: -$grid-gutter-width / 2;
+  margin-left: -$grid-gutter-width / 2;
   border: 0;
   border-bottom: $card-border-width solid $border-color;
 }
