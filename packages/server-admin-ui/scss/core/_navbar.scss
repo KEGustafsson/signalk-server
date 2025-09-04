@@ -84,7 +84,8 @@
 .navbar-brand {
   color: $navbar-active-color;
 
-  @include hover-focus {
+  &:hover,
+  &:focus {
     color: $navbar-active-color;
   }
 }
@@ -93,7 +94,8 @@
   .nav-link {
     color: $navbar-color;
 
-    @include hover-focus {
+    &:hover,
+    &:focus {
       color: $navbar-hover-color;
     }
   }
@@ -102,7 +104,9 @@
   .active > .nav-link,
   .nav-link.open,
   .nav-link.active {
-    @include plain-hover-focus {
+    &:hover,
+    &:focus,
+    & {
       color: $navbar-active-color;
     }
   }
