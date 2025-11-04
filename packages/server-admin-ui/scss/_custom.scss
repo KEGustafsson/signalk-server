@@ -20,37 +20,33 @@ form.rjsf div.row.array-item {
 }
 
 // Custom styling for RJSF buttons to match original appearance
-// Target the array field wrapper's button toolbar
-form.rjsf .array-item-toolbox {
-  display: flex;
-  flex-direction: column;
-}
 
 // Add button styling - cyan color, positioned at bottom-right
-form.rjsf button.btn-add {
+form.rjsf button.btn-add,
+form.rjsf button.array-item-add {
   background-color: #20a8d8 !important;
   border-color: #20a8d8 !important;
   color: white !important;
   padding: 6px 16px;
   font-size: 14px;
-  min-width: 120px;
-  margin-left: auto;
-  display: block;
+  margin-top: 10px;
 }
 
-form.rjsf button.btn-add:hover {
+form.rjsf button.btn-add:hover,
+form.rjsf button.array-item-add:hover {
   background-color: #1985ac !important;
   border-color: #1985ac !important;
 }
 
-form.rjsf button.btn-add:focus {
+form.rjsf button.btn-add:focus,
+form.rjsf button.array-item-add:focus {
   background-color: #1985ac !important;
   border-color: #1985ac !important;
   box-shadow: 0 0 0 0.2rem rgba(32, 168, 216, 0.5) !important;
 }
 
-// Remove button styling - full-width red bar at the top
-form.rjsf button.btn-danger.array-item-remove {
+// Remove button styling - full-width red bar
+form.rjsf button.array-item-remove {
   background-color: #f86c6b !important;
   border-color: #f86c6b !important;
   color: white !important;
@@ -61,12 +57,12 @@ form.rjsf button.btn-danger.array-item-remove {
   display: block;
 }
 
-form.rjsf button.btn-danger.array-item-remove:hover {
+form.rjsf button.array-item-remove:hover {
   background-color: #f63c3a !important;
   border-color: #f63c3a !important;
 }
 
-form.rjsf button.btn-danger.array-item-remove:focus {
+form.rjsf button.array-item-remove:focus {
   background-color: #f63c3a !important;
   border-color: #f63c3a !important;
   box-shadow: 0 0 0 0.2rem rgba(248, 108, 107, 0.5) !important;
@@ -82,8 +78,9 @@ form.rjsf .glyphicon {
 
 form.rjsf .glyphicon-plus:before {
   content: '+';
-  font-size: 18px;
+  font-size: 16px;
   font-weight: bold;
+  margin-right: 4px;
 }
 
 form.rjsf .glyphicon-remove:before {
@@ -93,21 +90,9 @@ form.rjsf .glyphicon-remove:before {
   line-height: 1;
 }
 
-// Fix @rjsf/bootstrap-4 default layout to match old library
+// Array item styling
 form.rjsf .array-item {
   margin-bottom: 10px;
-}
-
-// Move add button to end of array, not within items
-form.rjsf .field-array .col-12 > .row > .col-12 {
-  display: flex;
-  flex-direction: column;
-}
-
-form.rjsf .field-array .col-12 > .row > .col-12 > button.btn-add {
-  order: 999;
-  align-self: flex-end;
-  margin-top: 10px;
 }
 
 @media (max-width: 767px) {
