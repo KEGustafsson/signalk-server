@@ -19,6 +19,53 @@ form.rjsf div.row.array-item {
   margin-bottom: 3px;
 }
 
+// Custom styling for RJSF buttons to match original appearance
+form.rjsf button.btn-add {
+  background-color: #20a8d8;
+  border-color: #20a8d8;
+  color: white;
+  float: right;
+  margin-bottom: 10px;
+}
+
+form.rjsf button.btn-add:hover {
+  background-color: #1985ac;
+  border-color: #1985ac;
+}
+
+form.rjsf button.btn-danger.array-item-remove {
+  background-color: #f86c6b;
+  border-color: #f86c6b;
+  color: white;
+  padding: 6px 12px;
+}
+
+form.rjsf button.btn-danger.array-item-remove:hover {
+  background-color: #f63c3a;
+  border-color: #f63c3a;
+}
+
+// Ensure glyphicon icons display properly
+form.rjsf .glyphicon {
+  display: inline-block;
+  font-family: 'Glyphicons Halflings';
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1;
+}
+
+form.rjsf .glyphicon-plus:before {
+  content: '+';
+  font-size: 16px;
+  font-weight: bold;
+}
+
+form.rjsf .glyphicon-remove:before {
+  content: '\00d7';
+  font-size: 20px;
+  font-weight: bold;
+}
+
 @media (max-width: 767px) {
   .container-fluid,
   .row {
