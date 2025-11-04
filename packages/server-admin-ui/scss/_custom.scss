@@ -26,6 +26,8 @@ form.rjsf button.btn-add {
   color: white;
   float: right;
   margin-bottom: 10px;
+  padding: 6px 12px;
+  font-size: 14px;
 }
 
 form.rjsf button.btn-add:hover {
@@ -33,16 +35,36 @@ form.rjsf button.btn-add:hover {
   border-color: #1985ac;
 }
 
+form.rjsf button.btn-add:focus {
+  background-color: #1985ac;
+  border-color: #1985ac;
+  outline: none;
+  box-shadow: 0 0 0 0.2rem rgba(32, 168, 216, 0.5);
+}
+
+// Remove button should be a full-width red bar
 form.rjsf button.btn-danger.array-item-remove {
   background-color: #f86c6b;
   border-color: #f86c6b;
   color: white;
-  padding: 6px 12px;
+  padding: 8px 12px;
+  width: 100%;
+  text-align: right;
+  margin-top: 5px;
+  margin-bottom: 10px;
+  display: block;
 }
 
 form.rjsf button.btn-danger.array-item-remove:hover {
   background-color: #f63c3a;
   border-color: #f63c3a;
+}
+
+form.rjsf button.btn-danger.array-item-remove:focus {
+  background-color: #f63c3a;
+  border-color: #f63c3a;
+  outline: none;
+  box-shadow: 0 0 0 0.2rem rgba(248, 108, 107, 0.5);
 }
 
 // Ensure glyphicon icons display properly
@@ -56,14 +78,15 @@ form.rjsf .glyphicon {
 
 form.rjsf .glyphicon-plus:before {
   content: '+';
-  font-size: 16px;
+  font-size: 18px;
   font-weight: bold;
 }
 
 form.rjsf .glyphicon-remove:before {
   content: '\00d7';
-  font-size: 20px;
+  font-size: 24px;
   font-weight: bold;
+  line-height: 1;
 }
 
 @media (max-width: 767px) {
