@@ -44,6 +44,44 @@ const ArrayFieldItemTemplate = (props) => {
   )
 }
 
+// Custom FieldTemplate matching old react-jsonschema-form-bs4 layout
+const FieldTemplate = (props) => {
+  const {
+    id,
+    classNames,
+    style,
+    label,
+    help,
+    required,
+    description,
+    errors,
+    children,
+    displayLabel,
+    schema
+  } = props
+
+  const isCheckbox = schema.type === 'boolean'
+
+  return (
+    <div className={classNames} style={style}>
+      {displayLabel && label && !isCheckbox && (
+        <label htmlFor={id}>
+          {label}
+          {required && <span className="required">*</span>}
+        </label>
+      )}
+      {description && (
+        <p id={`${id}__description`} className="field-description">
+          {description}
+        </p>
+      )}
+      {children}
+      {errors}
+      {help}
+    </div>
+  )
+}
+
 // Custom ObjectFieldTemplate matching old react-jsonschema-form-bs4 layout
 const ObjectFieldTemplate = (props) => {
   const { properties, idSchema } = props
@@ -110,6 +148,7 @@ const ArrayFieldTemplate = (props) => {
 
 // Custom button templates to match the original styling
 const customTemplates = {
+  FieldTemplate,
   ObjectFieldTemplate,
   ArrayFieldTemplate,
   ArrayFieldItemTemplate,
