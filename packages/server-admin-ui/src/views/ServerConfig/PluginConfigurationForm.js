@@ -148,6 +148,17 @@ const customTemplates = {
           <i className="fas fa-times" />
         </button>
       )
+    },
+    SubmitButton: (props) => {
+      const { uiSchema } = props
+      const { submitText } = uiSchema?.['ui:submitButtonOptions'] || {}
+      return (
+        <div>
+          <button type="submit" className="btn btn-info">
+            {submitText || 'Submit'}
+          </button>
+        </div>
+      )
     }
   }
 }
