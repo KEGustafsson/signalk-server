@@ -128,10 +128,18 @@ const FieldTemplate = (props) => {
 
 // Custom ObjectFieldTemplate matching old react-jsonschema-form-bs4 layout
 const ObjectFieldTemplate = (props) => {
-  const { properties, idSchema } = props
+  const { title, description, properties, idSchema } = props
 
   return (
     <fieldset id={idSchema.$id}>
+      {title && (
+        <legend id={`${idSchema.$id}__title`}>{title}</legend>
+      )}
+      {description && (
+        <p id={`${idSchema.$id}__description`} className="field-description">
+          {description}
+        </p>
+      )}
       {properties.map((prop) => prop.content)}
     </fieldset>
   )
