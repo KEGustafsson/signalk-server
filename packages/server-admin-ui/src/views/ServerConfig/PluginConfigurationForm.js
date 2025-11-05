@@ -44,6 +44,17 @@ const ArrayFieldItemTemplate = (props) => {
   )
 }
 
+// Custom ObjectFieldTemplate matching old react-jsonschema-form-bs4 layout
+const ObjectFieldTemplate = (props) => {
+  const { properties, idSchema } = props
+
+  return (
+    <fieldset id={idSchema.$id}>
+      {properties.map((prop) => prop.content)}
+    </fieldset>
+  )
+}
+
 // Custom ArrayFieldTemplate matching old react-jsonschema-form-bs4 layout
 const ArrayFieldTemplate = (props) => {
   const {
@@ -99,6 +110,7 @@ const ArrayFieldTemplate = (props) => {
 
 // Custom button templates to match the original styling
 const customTemplates = {
+  ObjectFieldTemplate,
   ArrayFieldTemplate,
   ArrayFieldItemTemplate,
   ButtonTemplates: {
