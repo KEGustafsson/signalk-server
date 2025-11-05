@@ -62,6 +62,24 @@ const FieldTemplate = (props) => {
 
   const isCheckbox = schema.type === 'boolean'
 
+  // Extract text from description if it's wrapped in JSX
+  let descriptionText = description
+  if (description && typeof description === 'object' && description.props) {
+    // Description is JSX, try to extract text content
+    const extractText = (node) => {
+      if (typeof node === 'string') return node
+      if (typeof node === 'number') return String(node)
+      if (!node) return ''
+      if (Array.isArray(node)) return node.map(extractText).join('')
+      if (node.props && node.props.children) return extractText(node.props.children)
+      return ''
+    }
+    descriptionText = extractText(description).trim()
+  }
+
+  // Only show description if it has actual content
+  const hasDescription = descriptionText && descriptionText.length > 0
+
   return (
     <div className={classNames} style={style}>
       {displayLabel && label && !isCheckbox && (
@@ -70,9 +88,9 @@ const FieldTemplate = (props) => {
           {required && <span className="required">*</span>}
         </label>
       )}
-      {description && (
+      {hasDescription && (
         <p id={`${id}__description`} className="field-description">
-          {description}
+          {descriptionText}
         </p>
       )}
       {children}
@@ -144,6 +162,93 @@ const ArrayFieldTemplate = (props) => {
       )}
     </fieldset>
   )
+}
+
+// Custom widgets to match old react-jsonschema-form-bs4 output
+const CheckboxWidget = (props) => {
+  const { id, value, disabled, readonly, label, onChange } = props
+  return (
+    <div className="checkbox ">
+      <div className="form-check">
+        <input
+          type="checkbox"
+          id={id}
+          className="form-check-input"
+          checked={typeof value === 'undefined' ? false : value}
+          disabled={disabled || readonly}
+          onChange={(event) => onChange(event.target.checked)}
+        />
+        <label className="form-check-label" htmlFor="defaultCheck1">
+          {label}
+        </label>
+      </div>
+    </div>
+  )
+}
+
+const TextWidget = (props) => {
+  const { id, placeholder, value, disabled, readonly, onChange, label } = props
+  return (
+    <input
+      className="form-control"
+      id={id}
+      label={label}
+      placeholder={placeholder || ''}
+      type="text"
+      value={value || ''}
+      disabled={disabled || readonly}
+      onChange={(event) => onChange(event.target.value === '' ? undefined : event.target.value)}
+    />
+  )
+}
+
+const NumberWidget = (props) => {
+  const { id, placeholder, value, disabled, readonly, onChange, label } = props
+  return (
+    <input
+      className="form-control"
+      id={id}
+      label={label}
+      placeholder={placeholder || ''}
+      type="number"
+      step="any"
+      value={value === null || value === undefined ? '' : value}
+      disabled={disabled || readonly}
+      onChange={(event) => {
+        const newValue = event.target.value
+        onChange(newValue === '' ? undefined : parseFloat(newValue))
+      }}
+    />
+  )
+}
+
+const SelectWidget = (props) => {
+  const { id, value, disabled, readonly, onChange, options } = props
+  const { enumOptions } = options
+  return (
+    <select
+      id={id}
+      className="form-control"
+      value={value || ''}
+      disabled={disabled || readonly}
+      onChange={(event) => onChange(event.target.value === '' ? undefined : event.target.value)}
+    >
+      {enumOptions && enumOptions.map(({ value: optionValue, label }) => (
+        <option key={optionValue} value={optionValue}>
+          {label}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+// Custom widgets to match old react-jsonschema-form-bs4 output
+const customWidgets = {
+  CheckboxWidget,
+  TextWidget,
+  TextareaWidget: TextWidget, // Use same as text for now
+  NumberWidget,
+  SelectWidget
 }
 
 // Custom button templates to match the original styling
@@ -235,6 +340,7 @@ export default ({ plugin, onSubmit }) => {
       uiSchema={uiSchema}
       formData={plugin.data || {}}
       templates={customTemplates}
+      widgets={customWidgets}
       onSubmit={(submitData) => {
         onSubmit({
           ...submitData.formData,
