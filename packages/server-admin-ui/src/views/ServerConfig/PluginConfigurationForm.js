@@ -12,15 +12,18 @@ const ArrayFieldItemTemplate = (props) => {
     children,
     disabled,
     hasToolbar,
+    hasMoveUp,
+    hasMoveDown,
     hasRemove,
     index,
     onDropIndexClick,
+    onReorderClick,
     readonly,
     registry,
     uiSchema
   } = props
 
-  const { RemoveButton } = registry.templates.ButtonTemplates
+  const { MoveUpButton, MoveDownButton, RemoveButton } = registry.templates.ButtonTemplates
 
   return (
     <div className="row array-item">
@@ -28,15 +31,38 @@ const ArrayFieldItemTemplate = (props) => {
         {children}
       </div>
       <div className="col-3 array-item-toolbox">
-        {hasToolbar && hasRemove && (
+        {hasToolbar && (
           <div className="btn-group" style={{ display: 'flex', justifyContent: 'space-around' }}>
-            <RemoveButton
-              className="array-item-remove"
-              disabled={disabled || readonly}
-              onClick={onDropIndexClick(index)}
-              uiSchema={uiSchema}
-              registry={registry}
-            />
+            {(hasMoveUp || hasMoveDown) && (
+              <MoveUpButton
+                className="array-item-move-up"
+                style={{ flex: '1 1 0%', paddingLeft: 6, paddingRight: 6, fontWeight: 'bold' }}
+                disabled={disabled || readonly || !hasMoveUp}
+                onClick={onReorderClick(index, index - 1)}
+                uiSchema={uiSchema}
+                registry={registry}
+              />
+            )}
+            {(hasMoveUp || hasMoveDown) && (
+              <MoveDownButton
+                className="array-item-move-down"
+                style={{ flex: '1 1 0%', paddingLeft: 6, paddingRight: 6, fontWeight: 'bold' }}
+                disabled={disabled || readonly || !hasMoveDown}
+                onClick={onReorderClick(index, index + 1)}
+                uiSchema={uiSchema}
+                registry={registry}
+              />
+            )}
+            {hasRemove && (
+              <RemoveButton
+                className="array-item-remove"
+                style={{ flex: '1 1 0%', paddingLeft: 6, paddingRight: 6, fontWeight: 'bold' }}
+                disabled={disabled || readonly}
+                onClick={onDropIndexClick(index)}
+                uiSchema={uiSchema}
+                registry={registry}
+              />
+            )}
           </div>
         )}
       </div>
@@ -272,14 +298,38 @@ const customTemplates = {
         </button>
       )
     },
+    MoveUpButton: (props) => {
+      const { onClick, disabled, className, style } = props
+      return (
+        <button
+          type="button"
+          className={`btn btn-outline-dark ${className || ''}`}
+          onClick={onClick}
+          disabled={disabled}
+          tabIndex={-1}
+          style={style}
+        >
+          <i className="fas fa-arrow-up" />
+        </button>
+      )
+    },
+    MoveDownButton: (props) => {
+      const { onClick, disabled, className, style } = props
+      return (
+        <button
+          type="button"
+          className={`btn btn-outline-dark ${className || ''}`}
+          onClick={onClick}
+          disabled={disabled}
+          tabIndex={-1}
+          style={style}
+        >
+          <i className="fas fa-arrow-down" />
+        </button>
+      )
+    },
     RemoveButton: (props) => {
-      const { onClick, disabled, className } = props
-      const btnStyle = {
-        flex: 1,
-        paddingLeft: 6,
-        paddingRight: 6,
-        fontWeight: 'bold'
-      }
+      const { onClick, disabled, className, style } = props
       return (
         <button
           type="button"
@@ -287,7 +337,7 @@ const customTemplates = {
           onClick={onClick}
           disabled={disabled}
           tabIndex={-1}
-          style={btnStyle}
+          style={style}
         >
           <i className="fas fa-times" />
         </button>
