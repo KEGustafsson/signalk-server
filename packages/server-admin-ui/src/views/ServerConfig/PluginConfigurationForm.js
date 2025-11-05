@@ -23,10 +23,13 @@ const ArrayFieldItemTemplate = (props) => {
   const { RemoveButton } = registry.templates.ButtonTemplates
 
   return (
-    <div>
-      {hasToolbar && hasRemove && (
-        <div className="row">
-          <div className="col-12">
+    <div className="row array-item">
+      <div className="col-9">
+        {children}
+      </div>
+      <div className="col-3 array-item-toolbox">
+        {hasToolbar && hasRemove && (
+          <div className="btn-group" style={{ display: 'flex', justifyContent: 'space-around' }}>
             <RemoveButton
               className="array-item-remove"
               disabled={disabled || readonly}
@@ -35,12 +38,7 @@ const ArrayFieldItemTemplate = (props) => {
               registry={registry}
             />
           </div>
-        </div>
-      )}
-      <div className="row array-item">
-        <div className="col-12">
-          {children}
-        </div>
+        )}
       </div>
     </div>
   )
@@ -57,34 +55,26 @@ const ArrayFieldTemplate = (props) => {
     onAddClick,
     readonly,
     registry,
-    required,
     schema,
     title
   } = props
 
   const uiOptions = getUiOptions(uiSchema)
-  const ArrayFieldTitleTemplate = getTemplate('ArrayFieldTitleTemplate', registry, uiOptions)
-  const ArrayFieldDescriptionTemplate = getTemplate('ArrayFieldDescriptionTemplate', registry, uiOptions)
   const ArrayFieldItemTemplate = getTemplate('ArrayFieldItemTemplate', registry, uiOptions)
   const { ButtonTemplates: { AddButton } } = registry.templates
 
   return (
-    <fieldset className="field-array">
-      <ArrayFieldTitleTemplate
-        idSchema={idSchema}
-        title={uiOptions.title || title}
-        schema={schema}
-        uiSchema={uiSchema}
-        required={required}
-        registry={registry}
-      />
-      <ArrayFieldDescriptionTemplate
-        idSchema={idSchema}
-        description={uiOptions.description || schema.description}
-        schema={schema}
-        uiSchema={uiSchema}
-        registry={registry}
-      />
+    <fieldset className="field field-array field-array-of-object" id={idSchema.$id}>
+      {(uiOptions.title || title) && (
+        <legend id={`${idSchema.$id}__title`}>
+          {uiOptions.title || title}
+        </legend>
+      )}
+      {(uiOptions.description || schema.description) && (
+        <div className="field-description">
+          {uiOptions.description || schema.description}
+        </div>
+      )}
       <div className="array-item-list">
         {items && items.map(({ key, ...itemProps }) => (
           <ArrayFieldItemTemplate key={key} {...itemProps} />
@@ -92,15 +82,15 @@ const ArrayFieldTemplate = (props) => {
       </div>
       {canAdd && (
         <div className="row">
-          <div className="col-12 text-right">
+          <p className="col-3 offset-9 text-right array-item-add">
             <AddButton
-              className="array-item-add btn-add"
+              className="btn-add col-12"
               onClick={onAddClick}
               disabled={disabled || readonly}
               uiSchema={uiSchema}
               registry={registry}
             />
-          </div>
+          </p>
         </div>
       )}
     </fieldset>
@@ -113,28 +103,37 @@ const customTemplates = {
   ArrayFieldItemTemplate,
   ButtonTemplates: {
     AddButton: (props) => {
-      const { onClick, disabled, className, ...otherProps } = props
+      const { onClick, disabled, className } = props
       return (
         <button
           type="button"
           className={`btn btn-info ${className || ''}`}
           onClick={onClick}
           disabled={disabled}
+          tabIndex={0}
         >
-          <i className="glyphicon glyphicon-plus" />
+          <i className="fas fa-plus" />
         </button>
       )
     },
     RemoveButton: (props) => {
-      const { onClick, disabled, className, ...otherProps } = props
+      const { onClick, disabled, className } = props
+      const btnStyle = {
+        flex: 1,
+        paddingLeft: 6,
+        paddingRight: 6,
+        fontWeight: 'bold'
+      }
       return (
         <button
           type="button"
           className={`btn btn-danger ${className || ''}`}
           onClick={onClick}
           disabled={disabled}
+          tabIndex={-1}
+          style={btnStyle}
         >
-          <i className="glyphicon glyphicon-remove" />
+          <i className="fas fa-times" />
         </button>
       )
     }

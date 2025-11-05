@@ -21,40 +21,32 @@ form.rjsf div.row.array-item {
 
 // Custom styling for RJSF buttons to match original appearance
 
-// Add button styling - cyan color, positioned at bottom-right
+// Add button styling - cyan color
 form.rjsf button.btn-add,
-form.rjsf button.array-item-add {
+form.rjsf button.array-item-add button {
   background-color: #20a8d8 !important;
   border-color: #20a8d8 !important;
   color: white !important;
-  padding: 6px 16px;
-  font-size: 14px;
-  margin-top: 10px;
 }
 
 form.rjsf button.btn-add:hover,
-form.rjsf button.array-item-add:hover {
+form.rjsf button.array-item-add button:hover {
   background-color: #1985ac !important;
   border-color: #1985ac !important;
 }
 
 form.rjsf button.btn-add:focus,
-form.rjsf button.array-item-add:focus {
+form.rjsf button.array-item-add button:focus {
   background-color: #1985ac !important;
   border-color: #1985ac !important;
   box-shadow: 0 0 0 0.2rem rgba(32, 168, 216, 0.5) !important;
 }
 
-// Remove button styling - full-width red bar
+// Remove button styling
 form.rjsf button.array-item-remove {
   background-color: #f86c6b !important;
   border-color: #f86c6b !important;
   color: white !important;
-  padding: 8px 12px;
-  width: 100%;
-  text-align: right;
-  margin-bottom: 10px;
-  display: block;
 }
 
 form.rjsf button.array-item-remove:hover {
@@ -66,33 +58,6 @@ form.rjsf button.array-item-remove:focus {
   background-color: #f63c3a !important;
   border-color: #f63c3a !important;
   box-shadow: 0 0 0 0.2rem rgba(248, 108, 107, 0.5) !important;
-}
-
-// Ensure glyphicon icons display properly
-form.rjsf .glyphicon {
-  display: inline-block;
-  font-style: normal;
-  font-weight: 400;
-  line-height: 1;
-}
-
-form.rjsf .glyphicon-plus:before {
-  content: '+';
-  font-size: 16px;
-  font-weight: bold;
-  margin-right: 4px;
-}
-
-form.rjsf .glyphicon-remove:before {
-  content: '\00d7';
-  font-size: 24px;
-  font-weight: bold;
-  line-height: 1;
-}
-
-// Array item styling
-form.rjsf .array-item {
-  margin-bottom: 10px;
 }
 
 @media (max-width: 767px) {
