@@ -402,12 +402,23 @@ const customTemplates = {
 
 // eslint-disable-next-line react/display-name
 export default ({ plugin, onSubmit }) => {
+  console.log('[PluginConfigurationForm] Rendering for plugin:', plugin.id || plugin.packageName)
+  console.log('[PluginConfigurationForm] Plugin has schema:', !!plugin.schema)
+  console.log('[PluginConfigurationForm] Plugin has uiSchema:', !!plugin.uiSchema)
+  console.log('[PluginConfigurationForm] uiSchema type:', typeof plugin.uiSchema)
+
   const schema = JSON.parse(JSON.stringify(plugin.schema))
   var uiSchema = {}
 
   if (typeof plugin.uiSchema !== 'undefined') {
+    console.log('[PluginConfigurationForm] Using plugin-provided uiSchema')
+    console.log('[PluginConfigurationForm] uiSchema content:', plugin.uiSchema)
     uiSchema['configuration'] = JSON.parse(JSON.stringify(plugin.uiSchema))
+  } else {
+    console.warn('[PluginConfigurationForm] No uiSchema provided by plugin, using empty uiSchema')
   }
+
+  console.log('[PluginConfigurationForm] Final uiSchema:', uiSchema)
 
   const topSchema = {
     type: 'object',

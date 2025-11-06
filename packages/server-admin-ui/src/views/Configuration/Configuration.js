@@ -65,10 +65,12 @@ export default class PluginConfigurationList extends Component {
   }
 
   componentDidMount() {
+    console.log('[Configuration] Fetching plugins from server...')
     fetch(`${window.serverRoutesPrefix}/plugins`, {
       credentials: 'same-origin'
     })
       .then((response) => {
+        console.log('[Configuration] Plugins fetch response status:', response.status)
         if (response.status == 200) {
           return response.json()
         } else {
@@ -76,6 +78,24 @@ export default class PluginConfigurationList extends Component {
         }
       })
       .then((plugins) => {
+        console.log('[Configuration] Received plugins data:', plugins)
+        console.log('[Configuration] Number of plugins:', plugins.length)
+
+        // Debug: Log which plugins have uiSchema
+        plugins.forEach((plugin) => {
+          console.log(`[Configuration] Plugin ${plugin.id}:`, {
+            packageName: plugin.packageName,
+            hasSchema: !!plugin.schema,
+            hasUiSchema: !!plugin.uiSchema,
+            uiSchemaType: typeof plugin.uiSchema,
+            keywords: plugin.keywords,
+            isConfigurator: plugin.keywords?.includes('signalk-plugin-configurator')
+          })
+          if (plugin.uiSchema) {
+            console.log(`[Configuration] Plugin ${plugin.id} uiSchema:`, plugin.uiSchema)
+          }
+        })
+
         let searchResults
         if (this.state.search.length > 0) {
           searchResults = this.searchPlugins(plugins, this.state.search)
@@ -83,7 +103,7 @@ export default class PluginConfigurationList extends Component {
         this.setState({ plugins, searchResults })
       })
       .catch((error) => {
-        console.error(error)
+        console.error('[Configuration] Error fetching plugins:', error)
         alert('Could not fetch plugins list')
       })
   }
