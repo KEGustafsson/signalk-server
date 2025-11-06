@@ -82,7 +82,11 @@ module.exports = {
       remotes: {},
       shared: {
         react: { requiredVersion: devDeps.react, singleton: true },
-        'react-dom': { requiredVersion: devDeps['react-dom'] }
+        'react-dom': { requiredVersion: devDeps['react-dom'], singleton: true },
+        '@rjsf/core': { singleton: true },
+        '@rjsf/bootstrap-4': { singleton: true },
+        '@rjsf/utils': { singleton: true },
+        '@rjsf/validator-ajv8': { singleton: true }
       }
     })
   ],
