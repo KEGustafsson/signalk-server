@@ -153,7 +153,16 @@ module.exports = function (
             .concat(app.addons)
             .concat(app.pluginconfigurators)
             .concat(app.embeddablewebapps)
-        )
+        ).filter((moduleInfo) => {
+          // Only include modules that actually have a remoteEntry.js file
+          const remoteEntryPath = path.join(
+            __dirname,
+            '../node_modules',
+            moduleInfo.name,
+            'remoteEntry.js'
+          )
+          return fs.existsSync(remoteEntryPath)
+        })
         setNoCache(res)
         res.send(
           indexContent.toString().replace(
