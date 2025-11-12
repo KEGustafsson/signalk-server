@@ -31,28 +31,6 @@ const CSS_CLASSES = {
 }
 
 // Helper functions
-const extractTextFromJSX = (node) => {
-  if (typeof node === 'string') return node
-  if (typeof node === 'number') return String(node)
-  if (!node) return ''
-  if (Array.isArray(node)) return node.map(extractTextFromJSX).join('')
-  if (node.props?.children) return extractTextFromJSX(node.props.children)
-  return ''
-}
-
-const getDescriptionText = (rawDescription, schema, description) => {
-  let descriptionText = rawDescription || schema.description || description
-
-  // If description is JSX, extract text content
-  if (descriptionText && typeof descriptionText === 'object' && descriptionText.props) {
-    descriptionText = extractTextFromJSX(descriptionText).trim()
-  }
-
-  return descriptionText && String(descriptionText).trim().length > 0
-    ? descriptionText
-    : ''
-}
-
 const isArrayItemId = (id) => {
   if (!id || typeof id !== 'string') return false
   const parts = id.split('_')
@@ -143,7 +121,6 @@ const FieldTemplate = (props) => {
     help,
     required,
     description,
-    rawDescription,
     errors,
     children,
     displayLabel,
@@ -152,7 +129,6 @@ const FieldTemplate = (props) => {
 
   const isCheckbox = schema.type === 'boolean'
   const isObject = schema.type === 'object'
-  const descriptionText = getDescriptionText(rawDescription, schema, description)
 
   return (
     <div className={classNames} style={style}>
@@ -162,9 +138,9 @@ const FieldTemplate = (props) => {
           {required && <span className="required">*</span>}
         </label>
       )}
-      {descriptionText && !isObject && (
+      {description && !isObject && (
         <p id={`${id}__description`} className={CSS_CLASSES.FIELD_DESCRIPTION}>
-          {descriptionText}
+          {description}
         </p>
       )}
       {children}
