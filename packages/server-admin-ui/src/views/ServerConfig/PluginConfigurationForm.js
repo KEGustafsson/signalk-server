@@ -3,17 +3,11 @@ import { withTheme } from '@rjsf/core'
 import { Theme as Bootstrap4Theme } from '@rjsf/bootstrap-4'
 import validator from '@rjsf/validator-ajv8'
 import { getTemplate, getUiOptions } from '@rjsf/utils'
+import './_custom.css'
 
 const Form = withTheme(Bootstrap4Theme)
 
 // Constants
-const ARRAY_BUTTON_STYLE = {
-  flex: '1 1 0%',
-  paddingLeft: 6,
-  paddingRight: 6,
-  fontWeight: 'bold'
-}
-
 const GRID_COLUMNS = {
   CONTENT: 'col-9',
   TOOLBAR: 'col-3',
@@ -105,14 +99,10 @@ const ArrayFieldItemTemplate = (props) => {
         className={`${GRID_COLUMNS.TOOLBAR} ${CSS_CLASSES.ARRAY_ITEM_TOOLBOX}`}
       >
         {hasToolbar && (
-          <div
-            className="btn-group"
-            style={{ display: 'flex', justifyContent: 'space-around' }}
-          >
+          <div className="btn-group btn-group-flex">
             {(hasMoveUp || hasMoveDown) && (
               <MoveUpButton
-                className="array-item-move-up"
-                style={ARRAY_BUTTON_STYLE}
+                className="array-item-move-up array-button-style"
                 disabled={disabled || readonly || !hasMoveUp}
                 onClick={onReorderClick(index, index - 1)}
                 uiSchema={uiSchema}
@@ -121,8 +111,7 @@ const ArrayFieldItemTemplate = (props) => {
             )}
             {(hasMoveUp || hasMoveDown) && (
               <MoveDownButton
-                className="array-item-move-down"
-                style={ARRAY_BUTTON_STYLE}
+                className="array-item-move-down array-button-style"
                 disabled={disabled || readonly || !hasMoveDown}
                 onClick={onReorderClick(index, index + 1)}
                 uiSchema={uiSchema}
@@ -131,8 +120,7 @@ const ArrayFieldItemTemplate = (props) => {
             )}
             {hasRemove && (
               <RemoveButton
-                className="array-item-remove"
-                style={ARRAY_BUTTON_STYLE}
+                className="array-item-remove array-button-style"
                 disabled={disabled || readonly}
                 onClick={onDropIndexClick(index)}
                 uiSchema={uiSchema}
@@ -393,7 +381,7 @@ const customTemplates = {
       `${CSS_CLASSES.BTN_OUTLINE_DARK} ${props.className || ''}`,
       props.onClick,
       props.disabled,
-      props.style,
+      undefined,
       <i className="fas fa-arrow-up" />,
       -1
     ),
@@ -401,7 +389,7 @@ const customTemplates = {
       `${CSS_CLASSES.BTN_OUTLINE_DARK} ${props.className || ''}`,
       props.onClick,
       props.disabled,
-      props.style,
+      undefined,
       <i className="fas fa-arrow-down" />,
       -1
     ),
@@ -409,7 +397,7 @@ const customTemplates = {
       `${CSS_CLASSES.BTN_DANGER} ${props.className || ''}`,
       props.onClick,
       props.disabled,
-      props.style,
+      undefined,
       <i className="fas fa-times" />,
       -1
     ),
