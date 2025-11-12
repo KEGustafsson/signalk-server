@@ -3,7 +3,6 @@ import { withTheme } from '@rjsf/core'
 import { Theme as Bootstrap4Theme } from '@rjsf/bootstrap-4'
 import validator from '@rjsf/validator-ajv8'
 import { getTemplate, getUiOptions } from '@rjsf/utils'
-import './_custom.css'
 
 const Form = withTheme(Bootstrap4Theme)
 
