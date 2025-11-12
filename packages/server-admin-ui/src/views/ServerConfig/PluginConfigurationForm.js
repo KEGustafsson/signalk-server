@@ -298,9 +298,9 @@ const TextWidget = (props) => {
       onChange={(event) => {
         const newValue = event.target.value
         if (inputType === 'number') {
-          onChange(newValue === '' ? undefined : (schema.type === 'integer' ? parseInt(newValue, 10) : parseFloat(newValue)))
+          onChange(schema.type === 'integer' ? parseInt(newValue, 10) : parseFloat(newValue))
         } else {
-          onChange(newValue === '' ? undefined : newValue)
+          onChange(newValue)
         }
       }}
     />
@@ -322,7 +322,7 @@ const TextareaWidget = (props) => {
       required={required}
       aria-required={required}
       rows={rows}
-      onChange={(event) => onChange(event.target.value === '' ? undefined : event.target.value)}
+      onChange={(event) => onChange(event.target.value)}
     />
   )
 }
@@ -340,7 +340,7 @@ const SelectWidget = (props) => {
       disabled={disabled || readonly}
       required={required}
       aria-required={required}
-      onChange={(event) => onChange(event.target.value === '' ? undefined : event.target.value)}
+      onChange={(event) => onChange(event.target.value)}
     >
       {!value && (
         <option value="" disabled>
