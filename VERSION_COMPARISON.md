@@ -12,10 +12,10 @@
 | **Custom Templates** | 4 | 1 | 0 |
 | **Helper Functions** | 2 | 0 | 0 |
 | **Constants** | 2 objects | 0 | 0 |
-| **CSS File Required** | No | No | Yes (~100 lines) |
-| **Maintenance Burden** | High | Low | Very Low (JS), Medium (CSS) |
+| **CSS File Required** | No | No | Styles in scss/_custom.scss |
+| **Maintenance Burden** | High | Low | Very Low (JS), Medium (SCSS) |
 | **RJSF Dependency** | Uses built-ins | Mostly built-ins | Almost all built-ins |
-| **Customization** | All in JS | Minimal JS | Buttons in JS, Layout in CSS |
+| **Customization** | All in JS | Minimal JS | Buttons in JS, Layout in SCSS |
 
 ---
 
@@ -288,7 +288,7 @@ Do you want to reduce code complexity?
     │                 (Best balance: 65% reduction, all-in-JS)
     │
     └─ Yes, minimize JS → Use Ultra-Minimal Version
-                           (83% JS reduction, requires CSS file)
+                           (83% JS reduction, styles in SCSS)
 ```
 
 ---
@@ -378,8 +378,8 @@ PluginConfigurationForm_SIMPLIFIED.js
 ### Ultra-Minimal Version
 ```
 PluginConfigurationForm_ULTRA_MINIMAL.js (80 lines)
-PluginConfigurationForm_ULTRA_MINIMAL.css (100 lines)
-(83% JS reduction, requires CSS)
+packages/server-admin-ui/scss/_custom.scss (styles integrated)
+(83% JS reduction, styles in SCSS)
 ```
 
 ---

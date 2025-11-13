@@ -402,7 +402,7 @@ PluginConfigurationForm_ULTRA_MINIMAL.js (80 lines)
 ├── Template Registration (3 lines)
 └── Main Component (30 lines)
 
-PluginConfigurationForm_ULTRA_MINIMAL.css (100 lines)
+packages/server-admin-ui/scss/_custom.scss (styles integrated)
 ├── Array item layout (15 lines)
 ├── Button positioning (10 lines)
 ├── Fieldset styling (15 lines)

@@ -8,7 +8,7 @@ const Form = withTheme(Bootstrap4Theme)
 // ULTRA MINIMAL VERSION
 // - Uses RJSF built-ins for everything possible
 // - Only customizes buttons for FontAwesome icons
-// - Relies on external CSS for layout customization
+// - Relies on scss/_custom.scss for layout customization
 // - 80 lines total (83% reduction from original 460 lines)
 
 const customTemplates = {

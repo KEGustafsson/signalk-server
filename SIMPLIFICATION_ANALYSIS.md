@@ -6,7 +6,7 @@
 |---------|---------------|-----------|
 | **Original (jsonschema-dev)** | ~460 lines | - |
 | **Simplified** | ~160 lines | **65% reduction** |
-| **Ultra-minimal (CSS approach)** | ~80 lines | **83% reduction** |
+| **Ultra-minimal (SCSS approach)** | ~80 lines | **83% reduction** |
 
 ---
 
@@ -128,16 +128,16 @@ Both versions provide **identical functionality and look**:
 
 ---
 
-## Even More Minimal: CSS Approach
+## Even More Minimal: SCSS Approach
 
-If you're willing to use CSS for styling, you can reduce to ~80 lines:
+If you're willing to use SCSS for styling, you can reduce to ~80 lines:
 
 ```javascript
 // Only override buttons for FontAwesome icons
-// Use CSS file for layout customization
+// Use scss/_custom.scss for layout customization
 ```
 
-**CSS file approach:**
+**SCSS approach (integrated in packages/server-admin-ui/scss/_custom.scss):**
 ```css
 /* Custom array item layout */
 .array-item {
@@ -161,13 +161,14 @@ If you're willing to use CSS for styling, you can reduce to ~80 lines:
 
 **Pros:**
 - Minimal JS code
-- Easy to theme (just change CSS)
+- Easy to theme (just change SCSS)
 - No template overrides needed
+- Integrated with existing SCSS system
 
 **Cons:**
-- Icon approach with CSS pseudo-elements is less flexible
-- Requires coordinating CSS file
-- Some customization harder via CSS alone
+- Icon approach with SCSS pseudo-elements is less flexible
+- Layout logic split between JS and SCSS
+- Some customization harder via SCSS alone
 
 ---
 
@@ -181,10 +182,11 @@ If you're willing to use CSS for styling, you can reduce to ~80 lines:
 4. ✅ **Clear and readable** - obvious what's custom vs built-in
 5. ✅ **Best balance** between simplicity and maintainability
 
-**When to use Ultra-minimal (CSS approach):**
-- If you have a dedicated CSS theming system
+**When to use Ultra-minimal (SCSS approach):**
+- If you have a dedicated SCSS theming system
 - If icons can be standardized across the app
 - If you prefer separation of styling from logic
+- If you're already using the scss/_custom.scss file
 
 ---
 

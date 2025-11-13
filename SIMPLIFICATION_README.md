@@ -13,7 +13,7 @@ This analysis demonstrates how to reduce the PluginConfigurationForm.js code fro
 ### Results:
 - **Original (jsonschema-dev):** 460 lines
 - **Simplified (Recommended):** 160 lines ⭐ **65% reduction**
-- **Ultra-Minimal:** 80 lines JS + 100 lines CSS → **83% JS reduction**
+- **Ultra-Minimal:** 80 lines JS (styles in scss/_custom.scss) → **83% JS reduction**
 
 ---
 
@@ -28,7 +28,7 @@ This analysis demonstrates how to reduce the PluginConfigurationForm.js code fro
 ### Code Files
 5. **`PluginConfigurationForm_SIMPLIFIED.js`** - Recommended version (160 lines)
 6. **`PluginConfigurationForm_ULTRA_MINIMAL.js`** - Maximum reduction (80 lines)
-7. **`PluginConfigurationForm_ULTRA_MINIMAL.css`** - Companion CSS (100 lines)
+7. **`packages/server-admin-ui/scss/_custom.scss`** - Integrated SCSS styles
 
 ---
 
@@ -293,7 +293,7 @@ Verify simplified version works identically:
 
 ### If You Want Even More Reduction
 
-Consider Ultra-Minimal version (80 lines JS + 100 lines CSS):
+Consider Ultra-Minimal version (80 lines JS, styles in scss/_custom.scss):
 
 **Pros:**
 - 83% less JavaScript
