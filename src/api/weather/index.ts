@@ -22,9 +22,7 @@ import {
 const WEATHER_API_PATH = `/signalk/v2/api/weather`
 
 interface WeatherApplication
-  extends WithSecurityStrategy,
-    SignalKMessageHub,
-    IRouter {}
+  extends WithSecurityStrategy, SignalKMessageHub, IRouter {}
 
 export class WeatherApi {
   private weatherProviders: Map<string, WeatherProvider> = new Map()
@@ -74,7 +72,7 @@ export class WeatherApi {
       return
     }
 
-    debug(`** Un-registering autopilot provider....${pluginId}`)
+    debug(`** Un-registering weather provider....${pluginId}`)
     this.weatherProviders.delete(pluginId)
     if (pluginId === this.defaultProviderId) {
       this.defaultProviderId = undefined
