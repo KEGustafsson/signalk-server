@@ -5,62 +5,79 @@
  * may have dots replaced with underscores. These IDs are not
  * user-friendly, so we provide utilities to resolve them to
  * human-readable device descriptions when available.
+ *
+ * Note: Delta $source can be composite like "ws.device_id.nmea0183.GGA"
+ * where the device part is followed by additional source path info.
  */
 
 /**
- * Converts a WebSocket provider/source ID to the original client ID
- * by removing the "ws." prefix and converting underscores back to dots.
+ * Converts a device clientId to the format used in WS source IDs
+ * by replacing dots with underscores.
  *
- * The WS source is created in ws.js as: 'ws.' + identifier.replace(/\./g, '_')
- * So we need to reverse this: remove 'ws.' prefix and convert '_' back to '.'
- *
- * @param {string} wsId - The WebSocket ID (e.g., "ws.my_device_id")
- * @returns {string|null} The client ID (e.g., "my.device.id") or null if not a WS ID
+ * @param {string} clientId - The device clientId (e.g., "my.device.id")
+ * @returns {string} The WS format (e.g., "my_device_id")
  */
-export function extractClientId(wsId) {
-  if (!wsId || !wsId.startsWith('ws.')) {
-    return null
-  }
-  // Remove 'ws.' prefix and convert underscores back to dots
-  return wsId.slice(3).replace(/_/g, '.')
+export function clientIdToWsFormat(clientId) {
+  if (!clientId) return ''
+  return clientId.replace(/\./g, '_')
 }
 
 /**
- * Finds a device by its client ID from a list of devices
+ * Finds a device that matches the given WS source ID.
+ * The source ID may be composite (e.g., "ws.device_id.nmea0183.GGA")
+ * so we check if any device's clientId matches as a prefix.
  *
+ * @param {string} wsSourceId - The WS source ID (e.g., "ws.device_id" or "ws.device_id.path.info")
  * @param {Array} devices - Array of device objects with clientId property
- * @param {string} clientId - The client ID to search for
- * @returns {Object|null} The device object or null if not found
+ * @returns {Object|null} The matching device or null
  */
-export function findDeviceByClientId(devices, clientId) {
-  if (!devices || !Array.isArray(devices) || !clientId) {
+export function findDeviceByWsSource(wsSourceId, devices) {
+  if (!wsSourceId || !wsSourceId.startsWith('ws.') || !devices || !Array.isArray(devices)) {
     return null
   }
-  return devices.find((d) => d.clientId === clientId) || null
+
+  // Get the part after "ws."
+  const sourceWithoutPrefix = wsSourceId.slice(3)
+
+  // Find a device whose clientId (in ws format) matches the start of the source
+  for (const device of devices) {
+    if (device && device.clientId) {
+      const wsFormatClientId = clientIdToWsFormat(device.clientId)
+      // Check if source starts with this device's ID
+      // Must be exact match or followed by a dot (to avoid partial matches)
+      if (
+        sourceWithoutPrefix === wsFormatClientId ||
+        sourceWithoutPrefix.startsWith(wsFormatClientId + '.')
+      ) {
+        return device
+      }
+    }
+  }
+
+  return null
 }
 
 /**
- * Gets the display name for a WebSocket device ID.
+ * Gets the display name for a WebSocket source ID.
  * Returns the device description if available, otherwise the original ID.
  *
- * @param {string} wsId - The WebSocket ID (e.g., "ws.client_id_123")
+ * @param {string} wsSourceId - The WebSocket source ID (e.g., "ws.device_id" or "ws.device_id.path")
  * @param {Array} devices - Array of device objects with clientId and description
  * @returns {string} The display name (description or original ID)
  */
-export function getWsDeviceDisplayName(wsId, devices) {
-  if (!wsId || !wsId.startsWith('ws.')) {
-    return wsId
+export function getWsDeviceDisplayName(wsSourceId, devices) {
+  if (!wsSourceId || !wsSourceId.startsWith('ws.')) {
+    return wsSourceId
   }
 
-  const clientId = extractClientId(wsId)
-  const device = findDeviceByClientId(devices, clientId)
+  const device = findDeviceByWsSource(wsSourceId, devices)
 
   // Return description if it exists and is not empty
   if (device && device.description && device.description.trim() !== '') {
     return device.description
   }
 
-  return wsId
+  return wsSourceId
 }
 
 /**
