@@ -4,9 +4,11 @@ import {
   WithFeatures,
   PropertyValuesEmitter,
   ResourceProviderRegistry,
+  WeatherProviderRegistry,
   Delta
 } from '.'
 import { CourseApi } from './course'
+import { HistoryApiRegistry, WithHistoryApi } from './history'
 import { StreamBundle } from './streambundle'
 import { SubscriptionManager } from './subscriptionmanager'
 
@@ -23,11 +25,16 @@ import { SubscriptionManager } from './subscriptionmanager'
  *
  * > [!WARNING]
  * > Typing is incomplete. If you find a missing or inaccurate type, please [report it](https://github.com/SignalK/signalk-server/issues/1917).
+ * @category Server API
  */
 export interface ServerAPI
-  extends PropertyValuesEmitter,
+  extends
+    PropertyValuesEmitter,
     ResourceProviderRegistry,
     AutopilotProviderRegistry,
+    WeatherProviderRegistry,
+    WithHistoryApi,
+    HistoryApiRegistry,
     WithFeatures,
     CourseApi,
     SelfIdentity {
@@ -419,14 +426,17 @@ export interface ServerAPI
 
 /**
  * @deprecated Use {@link ServerAPI} instead.
+ * @category Server API
  */
 export type PluginServerApp = ServerAPI
 
+/** @category Server API */
 export type DeltaInputHandler = (
   delta: Delta,
   next: (delta: Delta) => void
 ) => void
 
+/** @category Server API */
 export interface Ports {
   byId: string[]
   byPath: string[]
@@ -435,28 +445,32 @@ export interface Ports {
   serialports: any
 }
 
+/** @category Server API */
 export interface SelfIdentity {
   selfType: string
   selfId: string
   selfContext: string
 }
 
+/** @category Server API */
 export interface Metadata {
   units?: string
   description?: string
 }
 
+/** @category Server API */
 export type ActionHandler = (
   context: string,
   path: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   value: any,
-  callback?: (result: ActionResult) => void
+  callback: (result: ActionResult) => void
 ) => ActionResult
 
+/** @category Server API */
 export interface ActionResult {
   state: 'COMPLETED' | 'PENDING' | 'FAILED'
   statusCode?: number
   message?: string
-  timestamp: string
+  timestamp?: string
 }

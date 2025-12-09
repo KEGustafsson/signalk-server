@@ -24,6 +24,8 @@ import {
   AutopilotProvider,
   ServerAPI,
   RouteDestination,
+  WeatherProvider,
+  WeatherApi,
   Value,
   SignalKApiId,
   SourceRef,
@@ -59,6 +61,8 @@ const _putPath = put.putPath
 const getModulePublic = require('../config/get').getModulePublic
 const queryRequest = require('../requestResponse').queryRequest
 import { getMetadata } from '@signalk/signalk-schema'
+import { HistoryApi } from '@signalk/server-api/history'
+import { HistoryApiHttpRegistry } from '../api/history'
 
 // #521 Returns path to load plugin-config assets.
 const getPluginConfigPublic = getModulePublic('@signalk/plugin-config')
@@ -460,6 +464,7 @@ module.exports = (theApp: any) => {
       onStopHandlers[plugin.id].push(() => {
         app.resourcesApi.unRegister(plugin.id)
         app.autopilotApi.unRegister(plugin.id)
+        app.weatherApi.unRegister(plugin.id)
       })
       plugin.start(safeConfiguration, restart)
       debug('Started plugin ' + plugin.name)
@@ -528,6 +533,22 @@ module.exports = (theApp: any) => {
       }
     })
     appCopy.putPath = putPath
+
+    const weatherApi: WeatherApi = app.weatherApi
+    _.omit(appCopy, 'weatherApi') // don't expose the actual weather api manager
+    appCopy.registerWeatherProvider = (provider: WeatherProvider) => {
+      weatherApi.register(plugin.id, provider)
+    }
+
+    const historyApiRegistry: HistoryApiHttpRegistry =
+      app.historyApiHttpRegistry
+    delete (appCopy as any).historyApiHttpRegistry // expose only the plugin-specific proxy
+    appCopy.registerHistoryApiProvider = (provider: HistoryApi) => {
+      historyApiRegistry.registerHistoryApiProvider(plugin.id, provider)
+      onStopHandlers[plugin.id].push(() => {
+        historyApiRegistry.unregisterHistoryApiProvider(plugin.id)
+      })
+    }
 
     const resourcesApi: ResourcesApi = app.resourcesApi
     _.omit(appCopy, 'resourcesApi') // don't expose the actual resource api manager

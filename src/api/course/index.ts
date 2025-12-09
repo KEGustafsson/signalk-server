@@ -58,7 +58,8 @@ export const COURSE_API_INITIAL_DELTA_COUNT =
   COURSE_API_V1_DELTA_COUNT * 2 + COURSE_API_V2_DELTA_COUNT
 
 export interface CourseApplication
-  extends IRouter,
+  extends
+    IRouter,
     ConfigApp,
     WithConfig,
     WithSecurityStrategy,
@@ -196,6 +197,19 @@ export class CourseApi {
                   this.courseInfo.activeRoute.name = rte.name as string
                   this.courseInfo.activeRoute.pointTotal =
                     rte.feature.geometry.coordinates.length
+
+                  const pointIndex = this.parsePointIndex(
+                    this.courseInfo.activeRoute.pointIndex as number,
+                    rte
+                  )
+                  this.courseInfo.nextPoint = {
+                    type: RoutePoint,
+                    position: this.getRoutePoint(
+                      rte,
+                      pointIndex,
+                      !!this.courseInfo.activeRoute.reverse
+                    )
+                  }
                   this.emitCourseInfo()
                 }
               }

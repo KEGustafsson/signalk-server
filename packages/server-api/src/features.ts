@@ -52,6 +52,7 @@ export interface WithFeatures {
 
 /**
  * Information about the available APIs and Plugins.
+ * @category Server API
  */
 export interface FeatureInfo {
   apis: SignalKApiId[]
@@ -63,9 +64,11 @@ export interface FeatureInfo {
   }>
 }
 
+/** @category Server API  */
 export type SignalKApiId =
-  | 'resources'
+  | 'weather'
   | 'course'
+  | 'resources'
   | 'history'
   | 'autopilot'
   | 'anchor'

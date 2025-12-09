@@ -16,6 +16,7 @@ import {
 import moment from 'moment'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
 import Meta from './Meta'
+import { getValueRenderer, DefaultValueRenderer } from './ValueRenderers'
 
 const TIMESTAMP_FORMAT = 'MM/DD HH:mm:ss'
 const TIME_ONLY_FORMAT = 'HH:mm:ss'
@@ -24,6 +25,8 @@ const metaStorageKey = 'admin.v1.dataBrowser.meta'
 const pauseStorageKey = 'admin.v1.dataBrowser.v1.pause'
 const contextStorageKey = 'admin.v1.dataBrowser.context'
 const searchStorageKey = 'admin.v1.dataBrowser.search'
+const selectedSourcesStorageKey = 'admin.v1.dataBrowser.selectedSources'
+const sourceFilterActiveStorageKey = 'admin.v1.dataBrowser.sourceFilterActive'
 
 function fetchSources() {
   fetch(`/signalk/v1/api/sources`, {
@@ -62,7 +65,12 @@ class DataBrowser extends Component {
       data: {},
       meta: {},
       context: localStorage.getItem(contextStorageKey) || 'self',
-      search: localStorage.getItem(searchStorageKey) || ''
+      search: localStorage.getItem(searchStorageKey) || '',
+      selectedSources: new Set(
+        JSON.parse(localStorage.getItem(selectedSourcesStorageKey) || '[]')
+      ),
+      sourceFilterActive:
+        localStorage.getItem(sourceFilterActiveStorageKey) === 'true'
     }
 
     this.fetchSources = fetchSources.bind(this)
@@ -71,6 +79,8 @@ class DataBrowser extends Component {
     this.handleContextChange = this.handleContextChange.bind(this)
     this.handleSearch = this.handleSearch.bind(this)
     this.toggleMeta = this.toggleMeta.bind(this)
+    this.toggleSourceSelection = this.toggleSourceSelection.bind(this)
+    this.toggleSourceFilter = this.toggleSourceFilter.bind(this)
   }
 
   handleMessage(msg) {
@@ -206,7 +216,16 @@ class DataBrowser extends Component {
 
   handleContextChange(selectedOption) {
     const value = selectedOption ? selectedOption.value : 'none'
-    this.setState({ ...this.state, context: value })
+
+    localStorage.setItem(selectedSourcesStorageKey, JSON.stringify([]))
+    localStorage.setItem(sourceFilterActiveStorageKey, false)
+
+    this.setState({
+      ...this.state,
+      context: value,
+      selectedSources: new Set(),
+      sourceFilterActive: false
+    })
     localStorage.setItem(contextStorageKey, value)
   }
 
@@ -269,6 +288,49 @@ class DataBrowser extends Component {
       this.fetchSources()
       this.subscribeToDataIfNeeded()
     }
+  }
+
+  toggleSourceSelection(source) {
+    const newSelectedSources = new Set(this.state.selectedSources)
+    const wasEmpty = newSelectedSources.size === 0
+
+    if (newSelectedSources.has(source)) {
+      newSelectedSources.delete(source)
+    } else {
+      newSelectedSources.add(source)
+    }
+
+    // Auto-activate filtering when first source is selected, deactivate when none selected
+    const shouldActivateFilter = wasEmpty && newSelectedSources.size === 1
+    const shouldDeactivateFilter = newSelectedSources.size === 0
+
+    const newSourceFilterActive = shouldActivateFilter
+      ? true
+      : shouldDeactivateFilter
+        ? false
+        : this.state.sourceFilterActive
+
+    localStorage.setItem(
+      selectedSourcesStorageKey,
+      JSON.stringify([...newSelectedSources])
+    )
+    localStorage.setItem(sourceFilterActiveStorageKey, newSourceFilterActive)
+
+    this.setState({
+      ...this.state,
+      selectedSources: newSelectedSources,
+      sourceFilterActive: newSourceFilterActive
+    })
+  }
+
+  toggleSourceFilter(event) {
+    const newSourceFilterActive = event.target.checked
+    localStorage.setItem(sourceFilterActiveStorageKey, newSourceFilterActive)
+
+    this.setState({
+      ...this.state,
+      sourceFilterActive: newSourceFilterActive
+    })
   }
 
   render() {
@@ -337,8 +399,8 @@ class DataBrowser extends Component {
             }
 
             .responsive-table .source-cell {
-              min-width: 100px;
-              max-width: 150px;
+              min-width: 120px;
+              max-width: 170px;
             }
 
             .responsive-table pre {
@@ -375,7 +437,7 @@ class DataBrowser extends Component {
               }
               
               .responsive-table .source-cell {
-                max-width: 120px;
+                max-width: 140px;
               }
             }
 
@@ -402,7 +464,7 @@ class DataBrowser extends Component {
               }
               
               .responsive-table .source-cell {
-                max-width: 100px;
+                max-width: 120px;
               }
               
               .responsive-table pre {
@@ -524,19 +586,52 @@ class DataBrowser extends Component {
                         <th className="path-cell">Path</th>
                         <th className="value-cell">Value</th>
                         <th className="timestamp-cell">Timestamp</th>
-                        <th className="source-cell">Source</th>
+                        <th className="source-cell">
+                          <input
+                            type="checkbox"
+                            onChange={this.toggleSourceFilter}
+                            checked={this.state.sourceFilterActive}
+                            disabled={this.state.selectedSources.size === 0}
+                            title={
+                              this.state.selectedSources.size === 0
+                                ? 'Check a source in the list to filter by source'
+                                : this.state.sourceFilterActive
+                                  ? 'Uncheck to deactivate source filtering'
+                                  : 'Check to activate source filtering'
+                            }
+                            style={{
+                              marginRight: '5px',
+                              verticalAlign: 'middle'
+                            }}
+                          />
+                          Source
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {Object.keys(this.state.data[this.state.context] || {})
                         .filter((key) => {
-                          return (
+                          const data = this.state.data[this.state.context][key]
+
+                          const pathMatches =
                             !this.state.search ||
                             this.state.search.length === 0 ||
                             key
                               .toLowerCase()
                               .indexOf(this.state.search.toLowerCase()) !== -1
-                          )
+                          if (!pathMatches) {
+                            return false
+                          }
+
+                          // If source filter is active, also check source selection
+                          if (
+                            this.state.sourceFilterActive &&
+                            this.state.selectedSources.size > 0
+                          ) {
+                            return this.state.selectedSources.has(data.$source)
+                          }
+
+                          return true
                         })
                         .sort()
                         .map((key) => {
@@ -544,19 +639,6 @@ class DataBrowser extends Component {
                           const meta =
                             this.state.meta[this.state.context][data.path]
                           const units = meta && meta.units ? meta.units : ''
-
-                          let formattedValue = JSON.stringify(
-                            data.value,
-                            null,
-                            typeof data.value === 'object' &&
-                              Object.keys(data.value || {}).length > 1
-                              ? 2
-                              : 0
-                          )
-
-                          if (typeof data.value === 'number' && units) {
-                            formattedValue = `${data.value} `
-                          }
 
                           return (
                             <tr key={key}>
@@ -568,17 +650,25 @@ class DataBrowser extends Component {
                                 </CopyToClipboardWithFade>
                               </td>
                               <td className="value-cell">
-                                {typeof data.value === 'object' ? (
-                                  <pre className="text-primary">
-                                    {formattedValue}
-                                  </pre>
-                                ) : (
-                                  <span className="text-primary">
-                                    {formattedValue}
-                                    {typeof data.value === 'number' &&
-                                      units && <strong>{units}</strong>}
-                                  </span>
-                                )}
+                                {(() => {
+                                  const CustomRenderer = getValueRenderer(
+                                    data.path
+                                  )
+                                  if (CustomRenderer) {
+                                    return (
+                                      <CustomRenderer
+                                        value={data.value}
+                                        units={units}
+                                      />
+                                    )
+                                  }
+                                  return (
+                                    <DefaultValueRenderer
+                                      value={data.value}
+                                      units={units}
+                                    />
+                                  )
+                                })()}
                               </td>
                               <TimestampCell
                                 timestamp={data.timestamp}
@@ -586,6 +676,19 @@ class DataBrowser extends Component {
                                 className="timestamp-cell"
                               />
                               <td className="source-cell">
+                                <input
+                                  type="checkbox"
+                                  onChange={() =>
+                                    this.toggleSourceSelection(data.$source)
+                                  }
+                                  checked={this.state.selectedSources.has(
+                                    data.$source
+                                  )}
+                                  style={{
+                                    marginRight: '5px',
+                                    verticalAlign: 'middle'
+                                  }}
+                                />
                                 <CopyToClipboardWithFade text={data.$source}>
                                   {data.$source} <i className="far fa-copy"></i>
                                 </CopyToClipboardWithFade>{' '}
@@ -624,7 +727,6 @@ class DataBrowser extends Component {
                           (key) => this.state.data[this.state.context][key].path
                         )
                         .filter((path, index, array) => {
-                          //filter dups
                           return array.indexOf(path) === index
                         })
                         .sort()
@@ -690,7 +792,6 @@ class TimestampCell extends Component {
 
       this.timeoutId = setTimeout(() => {
         if (!this.props.isPaused) {
-          // Only clear if not paused
           this.setState({ isUpdated: false })
         }
       }, 15000)
