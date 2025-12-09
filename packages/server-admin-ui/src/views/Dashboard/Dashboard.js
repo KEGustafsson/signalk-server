@@ -149,7 +149,7 @@ const Dashboard = (props) => {
         <td>
           <p className={statusClass}>
             {(status.message || '').substring(0, 80)}
-            {status.message.length > 80 ? '...' : ''}
+            {(status.message || '').length > 80 ? '...' : ''}
           </p>
         </td>
       </tr>

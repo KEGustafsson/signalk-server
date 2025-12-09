@@ -11,15 +11,18 @@
  * Converts a WebSocket provider/source ID to the original client ID
  * by removing the "ws." prefix and converting underscores back to dots.
  *
- * @param {string} wsId - The WebSocket ID (e.g., "ws.client_id_123")
- * @returns {string|null} The client ID or null if not a WS ID
+ * The WS source is created in ws.js as: 'ws.' + identifier.replace(/\./g, '_')
+ * So we need to reverse this: remove 'ws.' prefix and convert '_' back to '.'
+ *
+ * @param {string} wsId - The WebSocket ID (e.g., "ws.my_device_id")
+ * @returns {string|null} The client ID (e.g., "my.device.id") or null if not a WS ID
  */
 export function extractClientId(wsId) {
   if (!wsId || !wsId.startsWith('ws.')) {
     return null
   }
-  // Remove 'ws.' prefix - the clientId in devices doesn't have underscores converted
-  return wsId.slice(3)
+  // Remove 'ws.' prefix and convert underscores back to dots
+  return wsId.slice(3).replace(/_/g, '.')
 }
 
 /**
