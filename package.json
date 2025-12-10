@@ -112,7 +112,7 @@
     "ms": "^2.1.2",
     "ncp": "^2.0.0",
     "primus": "^7.0.0",
-    "selfsigned": "^2.4.1",
+    "selfsigned": "^5.2.0",
     "semver": "^7.5.4",
     "split": "^1.0.0",
     "stat-mode": "^1.0.0",
