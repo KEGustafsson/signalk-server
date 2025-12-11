@@ -10,6 +10,7 @@ import {
   Table
 } from 'reactstrap'
 import '../../fa-pulse.css'
+import { getWsDeviceDisplayName } from '../../utils/wsDeviceUtils'
 
 const Dashboard = (props) => {
   const {
@@ -68,11 +69,7 @@ const Dashboard = (props) => {
   }
 
   const renderActivity = (providerId, providerStats, linkType) => {
-    let device = providerId
-    if (providerId.startsWith('ws.')) {
-      const found = devices.find((d) => d.clientId === providerId.slice(3))
-      device = found && found.description ? found.description : providerId
-    }
+    const displayName = getWsDeviceDisplayName(providerId, devices)
     return (
       <li key={providerId} onClick={() => props.history.push(`/dashboard`)}>
         <i
@@ -91,7 +88,7 @@ const Dashboard = (props) => {
         <span className="title">
           {linkType === 'plugin'
             ? pluginNameLink(providerId)
-            : providerIdLink(providerId, device)}
+            : providerIdLink(providerId, displayName)}
         </span>
         {providerStats.writeRate > 0 && (
           <span className="value">
@@ -129,6 +126,7 @@ const Dashboard = (props) => {
   }
 
   const renderStatus = (status, statusClass, lastError) => {
+    const displayName = getWsDeviceDisplayName(status.id, devices)
     return (
       <tr
         key={status.id}
@@ -143,7 +141,7 @@ const Dashboard = (props) => {
         <td>
           {status.statusType === 'plugin'
             ? pluginNameLink(status.id)
-            : providerIdLink(status.id)}
+            : providerIdLink(status.id, displayName)}
         </td>
         <td>
           <p className="text-danger">{lastError}</p>
@@ -151,7 +149,7 @@ const Dashboard = (props) => {
         <td>
           <p className={statusClass}>
             {(status.message || '').substring(0, 80)}
-            {status.message.length > 80 ? '...' : ''}
+            {(status.message || '').length > 80 ? '...' : ''}
           </p>
         </td>
       </tr>

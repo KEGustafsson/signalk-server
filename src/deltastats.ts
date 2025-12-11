@@ -74,13 +74,22 @@ export function startDeltaStatistics(
     updateProviderPeriodStats(app)
     const anyApp = app as any
     const config = getSecurityConfig(anyApp)
-    let devices = []
+    // Only include clientId and description for display purposes
+    // Do NOT include permissions or other sensitive device info
+    // as this is broadcast to all connected clients including readonly users
+    let devices: Array<{ clientId: string; description: string }> = []
     if (
       anyApp &&
       anyApp.securityStrategy &&
       typeof anyApp.securityStrategy.getDevices === 'function'
     ) {
-      devices = anyApp.securityStrategy.getDevices(config)
+      const allDevices = anyApp.securityStrategy.getDevices(config) || []
+      devices = allDevices.map(
+        (d: { clientId: string; description?: string }) => ({
+          clientId: d.clientId,
+          description: d.description || ''
+        })
+      )
     }
     app.emit('serverevent', {
       type: 'SERVERSTATISTICS',
