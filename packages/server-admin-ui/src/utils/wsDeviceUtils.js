@@ -32,7 +32,12 @@ export function clientIdToWsFormat(clientId) {
  * @returns {Object|null} The matching device or null
  */
 export function findDeviceByWsSource(wsSourceId, devices) {
-  if (!wsSourceId || !wsSourceId.startsWith('ws.') || !devices || !Array.isArray(devices)) {
+  if (
+    !wsSourceId ||
+    !wsSourceId.startsWith('ws.') ||
+    !devices ||
+    !Array.isArray(devices)
+  ) {
     return null
   }
 
