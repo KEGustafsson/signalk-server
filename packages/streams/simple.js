@@ -93,6 +93,26 @@ function Simple(options) {
     getLogger(options.app, options.logging, discriminatorByDataType[dataType]),
     dataTypeMapping[mappingType](options)
   )
+
+  const dataReceivedEventName = `${options.subOptions.providerId}-received`
+
+  const spy = new Transform({
+    objectMode: true,
+    transform(chunk, encoding, callback) {
+      options.app.emit(dataReceivedEventName, chunk)
+      callback(null, chunk)
+    }
+  })
+  pipeline.splice(pipeline.length - 1, 0, spy)
+
+  options.subOptions.app.emitPropertyValue('pipedprovider', {
+    id: options.subOptions.providerId,
+    type: mappingType,
+    eventNames: {
+      received: dataReceivedEventName
+    }
+  })
+
   if (options.subOptions.overrideTimestamp) {
     pipeline.push(
       new Transform({
@@ -162,7 +182,8 @@ const dataTypeMapping = {
     if (options.type === 'FileStream') {
       result.unshift(
         new Throttle({
-          rate: options.subOptions.throttleRate || 1000
+          rate: options.subOptions.throttleRate || 1000,
+          chunksize: options.subOptions.throttleRate || 1000
         })
       )
     }

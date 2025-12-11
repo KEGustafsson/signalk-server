@@ -68,7 +68,8 @@ interface ScriptsApp {
 }
 
 interface App
-  extends ScriptsApp,
+  extends
+    ScriptsApp,
     WithSecurityStrategy,
     ConfigApp,
     IRouter,
@@ -190,7 +191,7 @@ module.exports = function (
     const targetWebapp = app.webapps.find(
       (webapp) =>
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (webapp as any).signalk?.displayName.toLowerCase() === firstHostName
+        (webapp as any).signalk?.displayName?.toLowerCase() === firstHostName
     )
     if (targetWebapp) {
       landingPage = `/${targetWebapp.name}/`
