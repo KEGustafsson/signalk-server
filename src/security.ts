@@ -27,7 +27,7 @@ import {
 } from 'fs'
 import _ from 'lodash'
 import path from 'path'
-import { generate } from 'selfsigned'
+import selfsigned from 'selfsigned'
 import { Mode } from 'stat-mode'
 import { WithConfig } from './app'
 import { createDebug } from './debug'
@@ -293,6 +293,7 @@ export function getCertificateOptions(app: WithConfig, cb: any) {
   const certFile = path.join(certLocation, 'ssl-cert.pem')
   const keyFile = path.join(certLocation, 'ssl-key.pem')
   const chainFile = path.join(certLocation, 'ssl-chain.pem')
+  const caCertFile = path.join(certLocation, 'ssl-ca-cert.pem')
 
   if (existsSync(certFile) && existsSync(keyFile)) {
     if (!hasStrictPermissions(statSync(keyFile))) {
@@ -312,10 +313,15 @@ export function getCertificateOptions(app: WithConfig, cb: any) {
       return
     }
     let ca
+    // Check for explicit chain file first (for externally provided certificates)
     if (existsSync(chainFile)) {
       debug('Found ssl-chain.pem')
       ca = getCAChainArray(chainFile)
       debug(JSON.stringify(ca, null, 2))
+    } else if (existsSync(caCertFile)) {
+      // Use Signal K CA certificate if available
+      debug('Found ssl-ca-cert.pem')
+      ca = [readFileSync(caCertFile, 'utf8')]
     }
     debug(`Using certificate ssl-key.pem and ssl-cert.pem in ${certLocation}`)
     cb(null, {
@@ -350,7 +356,62 @@ export function getCAChainArray(filename: string) {
     }, new Array<string>())
 }
 
-export function createCertificateOptions(
+export interface CAOptions {
+  key: string
+  cert: string
+}
+
+export async function getOrCreateCA(
+  location: string
+): Promise<CAOptions> {
+  const caKeyFile = path.join(location, 'ssl-ca-key.pem')
+  const caCertFile = path.join(location, 'ssl-ca-cert.pem')
+
+  if (existsSync(caKeyFile) && existsSync(caCertFile)) {
+    debug(`Using existing CA certificate from ${location}`)
+    return {
+      key: readFileSync(caKeyFile, 'utf8'),
+      cert: readFileSync(caCertFile, 'utf8')
+    }
+  }
+
+  debug(`Creating new CA certificate in ${location}`)
+  const caPems = await selfsigned.generate(
+    [
+      { name: 'commonName', value: 'Signal K CA' },
+      { name: 'organizationName', value: 'Signal K' }
+    ],
+    {
+      algorithm: 'sha256',
+      keySize: 2048,
+      extensions: [
+        {
+          name: 'basicConstraints',
+          cA: true,
+          critical: true
+        },
+        {
+          name: 'keyUsage',
+          keyCertSign: true,
+          cRLSign: true,
+          critical: true
+        }
+      ]
+    }
+  )
+
+  writeFileSync(caKeyFile, caPems.private)
+  chmodSync(caKeyFile, '600')
+  writeFileSync(caCertFile, caPems.cert)
+  chmodSync(caCertFile, '600')
+
+  return {
+    key: caPems.private,
+    cert: caPems.cert
+  }
+}
+
+export async function createCertificateOptions(
   app: WithConfig,
   certFile: string,
   keyFile: string,
@@ -358,20 +419,60 @@ export function createCertificateOptions(
 ) {
   const location = app.config.configPath ? app.config.configPath : './settings'
   debug(`Creating certificate files in ${location}`)
-  generate(
-    [{ name: 'commonName', value: 'localhost' }],
-    { days: 3650 },
-    function (err, pems) {
-      writeFileSync(keyFile, pems.private)
-      chmodSync(keyFile, '600')
-      writeFileSync(certFile, pems.cert)
-      chmodSync(certFile, '600')
-      cb(null, {
-        key: pems.private,
-        cert: pems.cert
-      })
-    }
-  )
+
+  try {
+    // Get or create CA
+    const ca = await getOrCreateCA(location)
+
+    // Generate server certificate signed by CA
+    const serverPems = await selfsigned.generate(
+      [{ name: 'commonName', value: 'localhost' }],
+      {
+        algorithm: 'sha256',
+        keySize: 2048,
+        ca: {
+          key: ca.key,
+          cert: ca.cert
+        },
+        extensions: [
+          {
+            name: 'basicConstraints',
+            cA: false
+          },
+          {
+            name: 'keyUsage',
+            digitalSignature: true,
+            keyEncipherment: true
+          },
+          {
+            name: 'extKeyUsage',
+            serverAuth: true,
+            clientAuth: true
+          },
+          {
+            name: 'subjectAltName',
+            altNames: [
+              { type: 2, value: 'localhost' },
+              { type: 7, ip: '127.0.0.1' }
+            ]
+          }
+        ]
+      }
+    )
+
+    writeFileSync(keyFile, serverPems.private)
+    chmodSync(keyFile, '600')
+    writeFileSync(certFile, serverPems.cert)
+    chmodSync(certFile, '600')
+
+    cb(null, {
+      key: serverPems.private,
+      cert: serverPems.cert,
+      ca: [ca.cert]
+    })
+  } catch (err) {
+    cb(err)
+  }
 }
 
 export function requestAccess(
