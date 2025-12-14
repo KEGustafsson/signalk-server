@@ -178,6 +178,7 @@ module.exports = function (app) {
           const parts = sourceId.split('.')
           if (parts.length >= 2) {
             const sourceDelta = {
+              context: 'vessels.' + app.selfId,
               updates: [
                 {
                   source: {
@@ -439,6 +440,7 @@ module.exports = function (app) {
                 // Set source delta so labelName appears in /signalk/v1/api/sources/
                 const sourceId = spark.request.source
                 const sourceDelta = {
+                  context: 'vessels.' + app.selfId,
                   updates: [
                     {
                       source: {
