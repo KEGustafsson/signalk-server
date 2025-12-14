@@ -342,11 +342,9 @@ class DataBrowser extends Component {
 
   getSourceDisplayName(source) {
     const { serverStatistics } = this.props
-    const showDeviceLabelNames =
-      serverStatistics?.showDeviceLabelNames !== false
     const devices = serverStatistics?.devices || []
 
-    if (showDeviceLabelNames && source && source.startsWith('ws.')) {
+    if (source && source.startsWith('ws.')) {
       // Extract clientId from source (format: ws.<clientId>.<something>)
       const parts = source.split('.')
       if (parts.length >= 2) {

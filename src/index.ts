@@ -285,7 +285,12 @@ class Server {
         const now = new Date()
         data.updates = data.updates
           .map((update: Partial<Update>) => {
-            const labelName = app.providerDisplayNames[providerId]
+            const securityConfig = getSecurityConfig(app)
+            const showDeviceLabelNames =
+              securityConfig?.showDeviceLabelNames !== false
+            const labelName = showDeviceLabelNames
+              ? app.providerDisplayNames[providerId]
+              : undefined
             if (typeof update.source !== 'undefined') {
               update.source.label = providerId
               if (labelName) {

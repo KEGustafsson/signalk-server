@@ -18,16 +18,14 @@ const Dashboard = (props) => {
     wsClients,
     providerStatistics,
     uptime,
-    devices,
-    showDeviceLabelNames
+    devices
   } = props.serverStatistics || {
     deltaRate: 0,
     numberOfAvailablePaths: 0,
     wsClients: 0,
     providerStatistics: {},
     uptime: '',
-    devices: [],
-    showDeviceLabelNames: true
+    devices: []
   }
   const providerStatus = props.providerStatus || []
   const errorCount = providerStatus.filter((s) => s.type === 'error').length
@@ -71,7 +69,7 @@ const Dashboard = (props) => {
 
   const renderActivity = (providerId, providerStats, linkType) => {
     let device = providerId
-    if (showDeviceLabelNames && providerId.startsWith('ws.')) {
+    if (providerId.startsWith('ws.')) {
       const found = devices.find((d) => d.clientId === providerId.slice(3))
       device = found && found.description ? found.description : providerId
     }

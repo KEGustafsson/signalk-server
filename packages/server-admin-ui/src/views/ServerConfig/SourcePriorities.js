@@ -371,11 +371,9 @@ class SourcePriorities extends Component {
 
   getSourceDisplayLabel(sourceRef) {
     const { serverStatistics } = this.props
-    const showDeviceLabelNames =
-      serverStatistics?.showDeviceLabelNames !== false
     const devices = serverStatistics?.devices || []
 
-    if (showDeviceLabelNames && sourceRef && sourceRef.startsWith('ws.')) {
+    if (sourceRef && sourceRef.startsWith('ws.')) {
       // Extract clientId from sourceRef (format: ws.<clientId> or ws.<clientId>.<something>)
       const parts = sourceRef.split('.')
       if (parts.length >= 2) {
