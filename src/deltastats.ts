@@ -93,7 +93,8 @@ export function startDeltaStatistics(
         wsClients: anyApp.interfaces.ws ? anyApp.interfaces.ws.numClients() : 0,
         providerStatistics: app.providerStatistics,
         uptime: process.uptime(),
-        devices: devices
+        devices: devices,
+        showDeviceLabelNames: config?.showDeviceLabelNames !== false
       }
     })
     app.lastIntervalDeltaCount = app.deltaCount
