@@ -1,0 +1,11 @@
+{
+  "name": "test-ws-labelname",
+  "version": "1.0.0",
+  "description": "Test plugin to verify WS device labelName in deltas",
+  "main": "index.js",
+  "keywords": [
+    "signalk-node-server-plugin"
+  ],
+  "author": "Test",
+  "license": "MIT"
+}
