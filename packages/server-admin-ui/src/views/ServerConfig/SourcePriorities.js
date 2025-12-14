@@ -374,16 +374,14 @@ class SourcePriorities extends Component {
     const devices = serverStatistics?.devices || []
 
     if (sourceRef && sourceRef.startsWith('ws.')) {
-      // Extract clientId from sourceRef (format: ws.<clientId> or ws.<clientId>.<something>)
-      const parts = sourceRef.split('.')
-      if (parts.length >= 2) {
-        const clientId = parts.slice(1).join('.')
-        const device = devices.find(
-          (d) => d.clientId === clientId || sourceRef === `ws.${d.clientId}`
-        )
-        if (device && device.description) {
-          return device.description
-        }
+      // Find device where sourceRef matches ws.<clientId> or starts with ws.<clientId>.
+      const device = devices.find(
+        (d) =>
+          sourceRef === `ws.${d.clientId}` ||
+          sourceRef.startsWith(`ws.${d.clientId}.`)
+      )
+      if (device && device.description) {
+        return device.description
       }
     }
     return sourceRef

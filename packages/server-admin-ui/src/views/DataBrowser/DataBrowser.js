@@ -345,16 +345,14 @@ class DataBrowser extends Component {
     const devices = serverStatistics?.devices || []
 
     if (source && source.startsWith('ws.')) {
-      // Extract clientId from source (format: ws.<clientId>.<something>)
-      const parts = source.split('.')
-      if (parts.length >= 2) {
-        const clientId = parts.slice(1).join('.')
-        const device = devices.find(
-          (d) => d.clientId === clientId || source === `ws.${d.clientId}`
-        )
-        if (device && device.description) {
-          return device.description
-        }
+      // Find device where source matches ws.<clientId> or starts with ws.<clientId>.
+      const device = devices.find(
+        (d) =>
+          source === `ws.${d.clientId}` ||
+          source.startsWith(`ws.${d.clientId}.`)
+      )
+      if (device && device.description) {
+        return device.description
       }
     }
     return source
