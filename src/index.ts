@@ -124,6 +124,7 @@ class Server {
     }
 
     app.providerStatus = {}
+    app.providerDisplayNames = {}
 
     // feature detection
     app.getFeatures = async (enabled?: boolean) => {
@@ -284,14 +285,21 @@ class Server {
         const now = new Date()
         data.updates = data.updates
           .map((update: Partial<Update>) => {
+            const displayName = app.providerDisplayNames[providerId]
             if (typeof update.source !== 'undefined') {
               update.source.label = providerId
+              if (displayName) {
+                update.source.displayName = displayName
+              }
               if (!update.$source) {
                 update.$source = getSourceId(update.source)
               }
             } else {
               if (typeof update.$source === 'undefined') {
                 update.$source = providerId as SourceRef
+              }
+              if (displayName) {
+                update.source = { label: providerId, displayName }
               }
             }
             if (!update.timestamp || app.config.overrideTimestampWithNow) {

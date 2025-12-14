@@ -17,6 +17,7 @@ export interface ServerApp extends ServerAPI {
   getProviderStatus: () => any
   lastServerEvents: { [key: string]: any }
   clients: number
+  providerDisplayNames: { [providerId: string]: string }
 }
 
 export interface SignalKMessageHub extends EventEmitter {

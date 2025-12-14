@@ -168,6 +168,12 @@ module.exports = function (app) {
           principalId = spark.request.skPrincipal.identifier
         }
 
+        // Store displayName mapping for ws sources
+        if (spark.request.source && spark.request.sourceDisplayName) {
+          app.providerDisplayNames[spark.request.source] =
+            spark.request.sourceDisplayName
+        }
+
         debugConnection(
           `${spark.id} connected ${JSON.stringify(spark.query)} ${
             spark.request.connection.remoteAddress
@@ -265,6 +271,11 @@ module.exports = function (app) {
               }
             })
           })
+
+          // Clean up displayName mapping
+          if (spark.request.source) {
+            delete app.providerDisplayNames[spark.request.source]
+          }
         })
 
         if (isSelfSubscription(spark.query)) {
@@ -397,6 +408,15 @@ module.exports = function (app) {
               app.securityStrategy.authorizeWS(spark.request)
               spark.request.source =
                 'ws.' + spark.request.skPrincipal.identifier.replace(/\./g, '_')
+              spark.request.sourceDisplayName = _.get(
+                spark.request,
+                'skPrincipal.displayName'
+              )
+              // Store displayName mapping for ws sources
+              if (spark.request.source && spark.request.sourceDisplayName) {
+                app.providerDisplayNames[spark.request.source] =
+                  spark.request.sourceDisplayName
+              }
             }
           }
           spark.write(res)
@@ -466,6 +486,7 @@ function createPrimusAuthorize(authorizeWS) {
       if (identifier) {
         debug(`authorized username: ${identifier}`)
         req.source = 'ws.' + identifier.replace(/\./g, '_')
+        req.sourceDisplayName = _.get(req, 'skPrincipal.displayName')
       }
     } catch (error) {
       // To be able to login or request access via WS with security in place
