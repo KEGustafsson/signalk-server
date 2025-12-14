@@ -870,7 +870,7 @@ module.exports = function (app, config) {
         principal = {
           identifier: device.clientId,
           permissions: device.permissions,
-          displayName: device.description || undefined
+          labelName: device.description || undefined
         }
       }
     }

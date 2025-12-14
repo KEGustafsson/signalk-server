@@ -168,10 +168,10 @@ module.exports = function (app) {
           principalId = spark.request.skPrincipal.identifier
         }
 
-        // Store displayName mapping for ws sources
-        if (spark.request.source && spark.request.sourceDisplayName) {
+        // Store labelName mapping for ws sources
+        if (spark.request.source && spark.request.sourceLabelName) {
           app.providerDisplayNames[spark.request.source] =
-            spark.request.sourceDisplayName
+            spark.request.sourceLabelName
         }
 
         debugConnection(
@@ -272,7 +272,7 @@ module.exports = function (app) {
             })
           })
 
-          // Clean up displayName mapping
+          // Clean up labelName mapping
           if (spark.request.source) {
             delete app.providerDisplayNames[spark.request.source]
           }
@@ -408,14 +408,14 @@ module.exports = function (app) {
               app.securityStrategy.authorizeWS(spark.request)
               spark.request.source =
                 'ws.' + spark.request.skPrincipal.identifier.replace(/\./g, '_')
-              spark.request.sourceDisplayName = _.get(
+              spark.request.sourceLabelName = _.get(
                 spark.request,
-                'skPrincipal.displayName'
+                'skPrincipal.labelName'
               )
-              // Store displayName mapping for ws sources
-              if (spark.request.source && spark.request.sourceDisplayName) {
+              // Store labelName mapping for ws sources
+              if (spark.request.source && spark.request.sourceLabelName) {
                 app.providerDisplayNames[spark.request.source] =
-                  spark.request.sourceDisplayName
+                  spark.request.sourceLabelName
               }
             }
           }
@@ -486,7 +486,7 @@ function createPrimusAuthorize(authorizeWS) {
       if (identifier) {
         debug(`authorized username: ${identifier}`)
         req.source = 'ws.' + identifier.replace(/\./g, '_')
-        req.sourceDisplayName = _.get(req, 'skPrincipal.displayName')
+        req.sourceLabelName = _.get(req, 'skPrincipal.labelName')
       }
     } catch (error) {
       // To be able to login or request access via WS with security in place

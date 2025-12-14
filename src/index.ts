@@ -285,11 +285,11 @@ class Server {
         const now = new Date()
         data.updates = data.updates
           .map((update: Partial<Update>) => {
-            const displayName = app.providerDisplayNames[providerId]
+            const labelName = app.providerDisplayNames[providerId]
             if (typeof update.source !== 'undefined') {
               update.source.label = providerId
-              if (displayName) {
-                update.source.displayName = displayName
+              if (labelName) {
+                update.source.labelName = labelName
               }
               if (!update.$source) {
                 update.$source = getSourceId(update.source)
@@ -298,8 +298,8 @@ class Server {
               if (typeof update.$source === 'undefined') {
                 update.$source = providerId as SourceRef
               }
-              if (displayName) {
-                update.source = { label: providerId, displayName }
+              if (labelName) {
+                update.source = { label: providerId, labelName }
               }
             }
             if (!update.timestamp || app.config.overrideTimestampWithNow) {
