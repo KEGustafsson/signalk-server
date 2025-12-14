@@ -172,6 +172,25 @@ module.exports = function (app) {
         if (spark.request.source && spark.request.sourceLabelName) {
           app.providerDisplayNames[spark.request.source] =
             spark.request.sourceLabelName
+
+          // Set source delta so labelName appears in /signalk/v1/api/sources/
+          const sourceId = spark.request.source
+          const parts = sourceId.split('.')
+          if (parts.length >= 2) {
+            const sourceDelta = {
+              updates: [
+                {
+                  source: {
+                    label: sourceId,
+                    labelName: spark.request.sourceLabelName
+                  },
+                  timestamp: new Date().toISOString(),
+                  values: []
+                }
+              ]
+            }
+            app.deltaCache.setSourceDelta(sourceId, sourceDelta)
+          }
         }
 
         debugConnection(
@@ -416,6 +435,22 @@ module.exports = function (app) {
               if (spark.request.source && spark.request.sourceLabelName) {
                 app.providerDisplayNames[spark.request.source] =
                   spark.request.sourceLabelName
+
+                // Set source delta so labelName appears in /signalk/v1/api/sources/
+                const sourceId = spark.request.source
+                const sourceDelta = {
+                  updates: [
+                    {
+                      source: {
+                        label: sourceId,
+                        labelName: spark.request.sourceLabelName
+                      },
+                      timestamp: new Date().toISOString(),
+                      values: []
+                    }
+                  ]
+                }
+                app.deltaCache.setSourceDelta(sourceId, sourceDelta)
               }
             }
           }
