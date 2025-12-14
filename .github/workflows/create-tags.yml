@@ -1,0 +1,33 @@
+name: Test TAGS
+
+on:
+  workflow_dispatch:
+
+jobs:
+  createTags:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [24.04]
+        node: [22.x, 24.x]
+        include:
+          - os: 24.04
+            node: 22.x
+            suffix: -22.x
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Docker meta
+        id: docker_meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            signalk/signalk-server
+            ghcr.io/signalk/signalk-server
+          tags: |
+            type=ref,event=branch
+            type=sha
+          flavor: |
+            suffix=${{ matrix.suffix }}
+      - name: Save docker tags to artifact
+        run: echo ${{ steps.docker_meta.outputs.tags }} > docker_tags_${{ matrix.os }}_${{ matrix.node }}.txt
