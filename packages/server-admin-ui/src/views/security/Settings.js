@@ -199,7 +199,9 @@ class Settings extends Component {
                                 name="showDeviceLabelNames"
                                 className="switch-input"
                                 onChange={this.handleChange}
-                                checked={this.state.showDeviceLabelNames !== false}
+                                checked={
+                                  this.state.showDeviceLabelNames !== false
+                                }
                               />
                               <span
                                 className="switch-label"
@@ -211,7 +213,8 @@ class Settings extends Component {
                           </div>
                         </FormGroup>
                         <FormText color="muted">
-                          Show device descriptions instead of IDs in Dashboard, Data Browser, and Source Priorities
+                          Show device descriptions instead of IDs in Dashboard,
+                          Data Browser, and Source Priorities
                         </FormText>
                       </Col>
                     </FormGroup>
