@@ -340,6 +340,24 @@ class DataBrowser extends Component {
     })
   }
 
+  getSourceDisplayName(source) {
+    const { serverStatistics } = this.props
+    const devices = serverStatistics?.devices || []
+
+    if (source && source.startsWith('ws.')) {
+      // Find device where source matches ws.<clientId> or starts with ws.<clientId>.
+      const device = devices.find(
+        (d) =>
+          source === `ws.${d.clientId}` ||
+          source.startsWith(`ws.${d.clientId}.`)
+      )
+      if (device && device.description) {
+        return device.description
+      }
+    }
+    return source
+  }
+
   render() {
     const contextOptions = this.getContextOptions()
     const currentContext = this.getCurrentContextValue()
@@ -736,7 +754,8 @@ class DataBrowser extends Component {
                                   }}
                                 />
                                 <CopyToClipboardWithFade text={data.$source}>
-                                  {data.$source} <i className="far fa-copy"></i>
+                                  {this.getSourceDisplayName(data.$source)}{' '}
+                                  <i className="far fa-copy"></i>
                                 </CopyToClipboardWithFade>{' '}
                                 {data.pgn || ''}
                                 {data.sentence || ''}
@@ -896,4 +915,7 @@ class CopyToClipboardWithFade extends Component {
   }
 }
 
-export default connect(({ webSocket }) => ({ webSocket }))(DataBrowser)
+export default connect(({ webSocket, serverStatistics }) => ({
+  webSocket,
+  serverStatistics
+}))(DataBrowser)
