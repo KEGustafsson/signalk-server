@@ -869,8 +869,7 @@ module.exports = function (app, config) {
       if (device) {
         principal = {
           identifier: device.clientId,
-          permissions: device.permissions,
-          labelName: device.description || undefined
+          permissions: device.permissions
         }
       }
     }

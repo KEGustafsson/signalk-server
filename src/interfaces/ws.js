@@ -168,32 +168,6 @@ module.exports = function (app) {
           principalId = spark.request.skPrincipal.identifier
         }
 
-        // Store labelName mapping for ws sources
-        if (spark.request.source && spark.request.sourceLabelName) {
-          app.providerDisplayNames[spark.request.source] =
-            spark.request.sourceLabelName
-
-          // Set source delta so labelName appears in /signalk/v1/api/sources/
-          const sourceId = spark.request.source
-          const parts = sourceId.split('.')
-          if (parts.length >= 2) {
-            const sourceDelta = {
-              context: 'vessels.' + app.selfId,
-              updates: [
-                {
-                  source: {
-                    label: sourceId,
-                    labelName: spark.request.sourceLabelName
-                  },
-                  timestamp: new Date().toISOString(),
-                  values: []
-                }
-              ]
-            }
-            app.deltaCache.setSourceDelta(sourceId, sourceDelta)
-          }
-        }
-
         debugConnection(
           `${spark.id} connected ${JSON.stringify(spark.query)} ${
             spark.request.connection.remoteAddress
@@ -291,11 +265,6 @@ module.exports = function (app) {
               }
             })
           })
-
-          // Clean up labelName mapping
-          if (spark.request.source) {
-            delete app.providerDisplayNames[spark.request.source]
-          }
         })
 
         if (isSelfSubscription(spark.query)) {
@@ -428,32 +397,6 @@ module.exports = function (app) {
               app.securityStrategy.authorizeWS(spark.request)
               spark.request.source =
                 'ws.' + spark.request.skPrincipal.identifier.replace(/\./g, '_')
-              spark.request.sourceLabelName = _.get(
-                spark.request,
-                'skPrincipal.labelName'
-              )
-              // Store labelName mapping for ws sources
-              if (spark.request.source && spark.request.sourceLabelName) {
-                app.providerDisplayNames[spark.request.source] =
-                  spark.request.sourceLabelName
-
-                // Set source delta so labelName appears in /signalk/v1/api/sources/
-                const sourceId = spark.request.source
-                const sourceDelta = {
-                  context: 'vessels.' + app.selfId,
-                  updates: [
-                    {
-                      source: {
-                        label: sourceId,
-                        labelName: spark.request.sourceLabelName
-                      },
-                      timestamp: new Date().toISOString(),
-                      values: []
-                    }
-                  ]
-                }
-                app.deltaCache.setSourceDelta(sourceId, sourceDelta)
-              }
             }
           }
           spark.write(res)
@@ -523,7 +466,6 @@ function createPrimusAuthorize(authorizeWS) {
       if (identifier) {
         debug(`authorized username: ${identifier}`)
         req.source = 'ws.' + identifier.replace(/\./g, '_')
-        req.sourceLabelName = _.get(req, 'skPrincipal.labelName')
       }
     } catch (error) {
       // To be able to login or request access via WS with security in place

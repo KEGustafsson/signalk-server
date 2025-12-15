@@ -1,25 +1,11 @@
 # Device Label Names Feature
 
 ## Overview
-Adds human-readable device names (descriptions) to WebSocket device sources throughout the system.
+Adds human-readable device names (descriptions) to WebSocket device sources in the UI.
 
 ## Changes
 
 ### Server-side
-
-**`src/tokensecurity.js`**
-- Added `labelName` property to device principal (uses device description)
-
-**`src/app.ts`**
-- Added `providerDisplayNames` mapping to ServerApp interface
-
-**`src/index.ts`**
-- Initialize `providerDisplayNames` mapping
-- Add `labelName` to delta `source` object when available
-
-**`src/interfaces/ws.js`**
-- Store device `labelName` in `providerDisplayNames` on WS connection
-- Clean up mapping on disconnect
 
 **`src/security.ts`**
 - Added `showDeviceLabelNames?: boolean` to SecurityConfig interface
@@ -48,11 +34,18 @@ Adds human-readable device names (descriptions) to WebSocket device sources thro
 
 | Location | Toggle ON | Toggle OFF |
 |----------|-----------|------------|
-| Delta `source.labelName` | Always included | Always included |
-| `/signalk/v1/api/sources/ws.*` | Shows `labelName` | Shows `labelName` |
 | Dashboard | Device name | Device ID |
 | Data Browser | Device name | Device ID |
 | Source Priorities | Device name | Device ID |
 
-## Test Coverage
-- Added test case `'Device delta includes labelName in source'` in `test/security.js`
+## Notes
+
+- Device names are resolved via the `devices` array in SERVERSTATISTICS events
+- The `devices` array contains device descriptions from `securityStrategy.getDevices()`
+- When toggle is OFF, descriptions are stripped from the array so UI shows IDs
+- WS source matching uses prefix matching (`ws.<clientId>.`) to handle sources with suffixes
+
+## Future Work
+
+- Add `labelName` to delta `source` object for WS devices
+- Add `labelName` to `/signalk/v1/api/sources/ws.*` REST API responses
