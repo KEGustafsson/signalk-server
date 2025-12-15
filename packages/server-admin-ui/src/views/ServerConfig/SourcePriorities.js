@@ -15,7 +15,6 @@ import {
 import Creatable from 'react-select/creatable'
 import remove from 'lodash.remove'
 import uniq from 'lodash.uniq'
-import { getSourceDisplayName } from '../../utils/wsDeviceUtils'
 
 export const SOURCEPRIOS_PRIO_CHANGED = 'SOURCEPRIOS_PPRIO_CHANGED'
 export const SOURCEPRIOS_PRIO_DELETED = 'SOURCEPRIOS_PRIO_DELETED'
@@ -190,14 +189,13 @@ class PrefsEditor extends Component {
             <tbody>
               {[...this.props.priorities, { sourceRef: '', timeout: '' }].map(
                 ({ sourceRef, timeout }, index) => {
-                  const options = this.state.sourceRefs.map((ref) => ({
-                    label: getSourceDisplayName(ref, this.props.devices),
-                    value: ref
+                  const { getSourceDisplayLabel } = this.props
+                  const options = this.state.sourceRefs.map((sourceRef) => ({
+                    label: getSourceDisplayLabel
+                      ? getSourceDisplayLabel(sourceRef)
+                      : sourceRef,
+                    value: sourceRef
                   }))
-                  const selectedLabel = getSourceDisplayName(
-                    sourceRef,
-                    this.props.devices
-                  )
                   return (
                     <tr key={index}>
                       <td>{index + 1}.</td>
@@ -205,7 +203,12 @@ class PrefsEditor extends Component {
                         <Creatable
                           menuPortalTarget={document.body}
                           options={options}
-                          value={{ value: sourceRef, label: selectedLabel }}
+                          value={{
+                            value: sourceRef,
+                            label: getSourceDisplayLabel
+                              ? getSourceDisplayLabel(sourceRef)
+                              : sourceRef
+                          }}
                           onChange={(e) => {
                             this.props.dispatch({
                               type: SOURCEPRIOS_PRIO_CHANGED,
@@ -363,6 +366,25 @@ class SourcePriorities extends Component {
         }))
       })
     })
+    this.getSourceDisplayLabel = this.getSourceDisplayLabel.bind(this)
+  }
+
+  getSourceDisplayLabel(sourceRef) {
+    const { serverStatistics } = this.props
+    const devices = serverStatistics?.devices || []
+
+    if (sourceRef && sourceRef.startsWith('ws.')) {
+      // Find device where sourceRef matches ws.<clientId> or starts with ws.<clientId>.
+      const device = devices.find(
+        (d) =>
+          sourceRef === `ws.${d.clientId}` ||
+          sourceRef.startsWith(`ws.${d.clientId}.`)
+      )
+      if (device && device.description) {
+        return device.description
+      }
+    }
+    return sourceRef
   }
 
   render() {
@@ -426,7 +448,7 @@ class SourcePriorities extends Component {
                         dispatch={this.props.dispatch}
                         isSaving={this.props.saveState.isSaving}
                         pathIndex={index}
-                        devices={this.props.devices}
+                        getSourceDisplayLabel={this.getSourceDisplayLabel}
                       />
                     </td>
                     <td style={{ border: 'none' }}>
@@ -487,7 +509,7 @@ class SourcePriorities extends Component {
 const mapStateToProps = ({ sourcePrioritiesData, serverStatistics }) => ({
   sourcePriorities: sourcePrioritiesData.sourcePriorities,
   saveState: sourcePrioritiesData.saveState,
-  devices: serverStatistics?.devices || []
+  serverStatistics
 })
 
 export default connect(mapStateToProps)(SourcePriorities)

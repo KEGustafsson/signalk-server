@@ -74,22 +74,18 @@ export function startDeltaStatistics(
     updateProviderPeriodStats(app)
     const anyApp = app as any
     const config = getSecurityConfig(anyApp)
-    // Only include clientId and description for display purposes
-    // Do NOT include permissions or other sensitive device info
-    // as this is broadcast to all connected clients including readonly users
-    let devices: Array<{ clientId: string; description: string }> = []
+    const showDeviceLabelNames = config?.showDeviceLabelNames !== false
+    let devices: any[] = []
     if (
       anyApp &&
       anyApp.securityStrategy &&
       typeof anyApp.securityStrategy.getDevices === 'function'
     ) {
-      const allDevices = anyApp.securityStrategy.getDevices(config) || []
-      devices = allDevices.map(
-        (d: { clientId: string; description?: string }) => ({
-          clientId: d.clientId,
-          description: d.description || ''
-        })
-      )
+      devices = anyApp.securityStrategy.getDevices(config)
+      // Strip descriptions when toggle is OFF so UI shows IDs
+      if (!showDeviceLabelNames) {
+        devices = devices.map((d: any) => ({ ...d, description: undefined }))
+      }
     }
     app.emit('serverevent', {
       type: 'SERVERSTATISTICS',
@@ -102,7 +98,8 @@ export function startDeltaStatistics(
         wsClients: anyApp.interfaces.ws ? anyApp.interfaces.ws.numClients() : 0,
         providerStatistics: app.providerStatistics,
         uptime: process.uptime(),
-        devices: devices
+        devices: devices,
+        showDeviceLabelNames
       }
     })
     app.lastIntervalDeltaCount = app.deltaCount
