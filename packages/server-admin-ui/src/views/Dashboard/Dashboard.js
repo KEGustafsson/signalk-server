@@ -10,6 +10,7 @@ import {
   Table
 } from 'reactstrap'
 import '../../fa-pulse.css'
+import { getDeviceDisplayLabel } from '../../util/deviceUtils'
 
 const Dashboard = (props) => {
   const {
@@ -68,11 +69,7 @@ const Dashboard = (props) => {
   }
 
   const renderActivity = (providerId, providerStats, linkType) => {
-    let device = providerId
-    if (providerId.startsWith('ws.')) {
-      const found = devices.find((d) => d.clientId === providerId.slice(3))
-      device = found && found.description ? found.description : providerId
-    }
+    const device = getDeviceDisplayLabel(providerId, devices)
     return (
       <li key={providerId} onClick={() => props.history.push(`/dashboard`)}>
         <i
