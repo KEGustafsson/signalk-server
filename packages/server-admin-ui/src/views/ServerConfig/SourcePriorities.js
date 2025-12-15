@@ -15,6 +15,7 @@ import {
 import Creatable from 'react-select/creatable'
 import remove from 'lodash.remove'
 import uniq from 'lodash.uniq'
+import { getDeviceDisplayLabel } from '../../util/deviceUtils'
 
 export const SOURCEPRIOS_PRIO_CHANGED = 'SOURCEPRIOS_PPRIO_CHANGED'
 export const SOURCEPRIOS_PRIO_DELETED = 'SOURCEPRIOS_PRIO_DELETED'
@@ -372,19 +373,7 @@ class SourcePriorities extends Component {
   getSourceDisplayLabel(sourceRef) {
     const { serverStatistics } = this.props
     const devices = serverStatistics?.devices || []
-
-    if (sourceRef && sourceRef.startsWith('ws.')) {
-      // Find device where sourceRef matches ws.<clientId> or starts with ws.<clientId>.
-      const device = devices.find(
-        (d) =>
-          sourceRef === `ws.${d.clientId}` ||
-          sourceRef.startsWith(`ws.${d.clientId}.`)
-      )
-      if (device && device.description) {
-        return device.description
-      }
-    }
-    return sourceRef
+    return getDeviceDisplayLabel(sourceRef, devices)
   }
 
   render() {

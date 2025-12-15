@@ -17,6 +17,7 @@ import moment from 'moment'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
 import Meta from './Meta'
 import { getValueRenderer, DefaultValueRenderer } from './ValueRenderers'
+import { getDeviceDisplayLabel } from '../../util/deviceUtils'
 
 const TIMESTAMP_FORMAT = 'MM/DD HH:mm:ss'
 const TIME_ONLY_FORMAT = 'HH:mm:ss'
@@ -343,19 +344,7 @@ class DataBrowser extends Component {
   getSourceDisplayName(source) {
     const { serverStatistics } = this.props
     const devices = serverStatistics?.devices || []
-
-    if (source && source.startsWith('ws.')) {
-      // Find device where source matches ws.<clientId> or starts with ws.<clientId>.
-      const device = devices.find(
-        (d) =>
-          source === `ws.${d.clientId}` ||
-          source.startsWith(`ws.${d.clientId}.`)
-      )
-      if (device && device.description) {
-        return device.description
-      }
-    }
-    return source
+    return getDeviceDisplayLabel(source, devices)
   }
 
   render() {

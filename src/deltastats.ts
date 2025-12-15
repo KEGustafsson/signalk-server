@@ -75,17 +75,16 @@ export function startDeltaStatistics(
     const anyApp = app as any
     const config = getSecurityConfig(anyApp)
     const showDeviceLabelNames = config?.showDeviceLabelNames !== false
-    let devices: any[] = []
+    let devices: { clientId: string; description?: string }[] = []
     if (
       anyApp &&
       anyApp.securityStrategy &&
       typeof anyApp.securityStrategy.getDevices === 'function'
     ) {
-      devices = anyApp.securityStrategy.getDevices(config)
-      // Strip descriptions when toggle is OFF so UI shows IDs
-      if (!showDeviceLabelNames) {
-        devices = devices.map((d: any) => ({ ...d, description: undefined }))
-      }
+      devices = anyApp.securityStrategy.getDevices(config).map((d: any) => ({
+        clientId: d.clientId,
+        description: showDeviceLabelNames ? d.description : undefined
+      }))
     }
     app.emit('serverevent', {
       type: 'SERVERSTATISTICS',
