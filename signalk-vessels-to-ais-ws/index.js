@@ -32,6 +32,18 @@ SOFTWARE.
 
 const AisEncode = require('ggencoder').AisEncode
 const haversine = require('haversine-distance')
+const {
+  getValue,
+  getTimestamp,
+  createTagBlock,
+  extractVesselData,
+  buildAisMessage3,
+  buildAisMessage5,
+  buildAisMessage18,
+  buildAisMessage24A,
+  buildAisMessage24B,
+  isDataFresh
+} = require('./lib/helpers')
 
 module.exports = function createPlugin(app) {
   const plugin = {}
@@ -48,118 +60,6 @@ module.exports = function createPlugin(app) {
   let eventName = 'nmea0183out'
 
   const setStatus = app.setPluginStatus || app.setProviderStatus
-
-  // State Mapping
-  const stateMapping = {
-    motoring: 0,
-    UnderWayUsingEngine: 0,
-    'under way using engine': 0,
-    'underway using engine': 0,
-    anchored: 1,
-    AtAnchor: 1,
-    'at anchor': 1,
-    'not under command': 2,
-    'restricted manouverability': 3,
-    'constrained by draft': 4,
-    'constrained by her draught': 4,
-    moored: 5,
-    Moored: 5,
-    aground: 6,
-    fishing: 7,
-    'engaged in fishing': 7,
-    sailing: 8,
-    UnderWaySailing: 8,
-    'under way sailing': 8,
-    'underway sailing': 8,
-    'hazardous material high speed': 9,
-    'hazardous material wing in ground': 10,
-    'reserved for future use': 13,
-    'ais-sart': 14,
-    default: 15,
-    UnDefined: 15,
-    undefined: 15
-  }
-
-  /**
-   * Extract value from SignalK data structure
-   * Handles both { value: X } objects and direct values
-   */
-  function getValue(obj, path) {
-    if (obj === undefined || obj === null) return null
-
-    const parts = path.split('.')
-    let current = obj
-
-    for (const part of parts) {
-      if (current === undefined || current === null) return null
-      current = current[part]
-    }
-
-    if (current === undefined || current === null) return null
-
-    // Handle SignalK value wrapper
-    if (typeof current === 'object' && 'value' in current) {
-      return current.value
-    }
-
-    return current
-  }
-
-  /**
-   * Get timestamp from SignalK data
-   */
-  function getTimestamp(obj, path) {
-    if (obj === undefined || obj === null) return null
-
-    const parts = path.split('.')
-    let current = obj
-
-    for (const part of parts) {
-      if (current === undefined || current === null) return null
-      current = current[part]
-    }
-
-    if (current === undefined || current === null) return null
-
-    if (typeof current === 'object' && 'timestamp' in current) {
-      return current.timestamp
-    }
-
-    return null
-  }
-
-  // Rad to Deg
-  function radToDegrees(radians) {
-    if (radians === null || radians === undefined) return null
-    return (radians * 180) / Math.PI
-  }
-
-  // m/s to knots
-  function msToKnots(speed) {
-    if (speed === null || speed === undefined) return null
-    return (speed * 3.6) / 1.852
-  }
-
-  // NMEA checksum hex conversion
-  const mHex = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F']
-
-  function toHexString(v) {
-    const msn = (v >> 4) & 0x0f
-    const lsn = (v >> 0) & 0x0f
-    return mHex[msn] + mHex[lsn]
-  }
-
-  function createTagBlock() {
-    let tagBlock = ''
-    tagBlock += 's:SK0001,'
-    tagBlock += `c:${Date.now()},`
-    tagBlock = tagBlock.slice(0, -1)
-    let tagBlockChecksum = 0
-    for (let i = 0; i < tagBlock.length; i++) {
-      tagBlockChecksum ^= tagBlock.charCodeAt(i)
-    }
-    return `\\${tagBlock}*${toHexString(tagBlockChecksum)}\\`
-  }
 
   // NMEA output
   function aisOut(encMsg) {
@@ -220,60 +120,19 @@ module.exports = function createPlugin(app) {
       }
 
       // Check data freshness
-      let aisDelay = false
-      if (aisTime) {
-        const ageSeconds = (Date.now() - new Date(aisTime).getTime()) / 1000
-        aisDelay = ageSeconds < positionUpdate
-      }
+      const aisDelay = isDataFresh(aisTime, positionUpdate)
 
-      // Extract vessel data
-      const mmsi = getValue(vessel, 'mmsi')
-      let shipName = getValue(vessel, 'name')
-      if (typeof shipName === 'number') shipName = ''
-
-      const lat = getValue(vessel, 'navigation.position.latitude')
-      const lon = getValue(vessel, 'navigation.position.longitude')
+      // Extract vessel data using helper
+      const data = extractVesselData(vessel)
 
       // Skip if no position
-      if (lat === null || lon === null) {
+      if (data.lat === null || data.lon === null) {
         continue
       }
 
-      const sog = msToKnots(getValue(vessel, 'navigation.speedOverGround'))
-      const cog = radToDegrees(getValue(vessel, 'navigation.courseOverGroundTrue'))
-      const rot = radToDegrees(getValue(vessel, 'navigation.rateOfTurn'))
-      const hdg = radToDegrees(getValue(vessel, 'navigation.headingTrue'))
-
-      const navStateValue = getValue(vessel, 'navigation.state')
-      const navStat = stateMapping[navStateValue] !== undefined ? stateMapping[navStateValue] : ''
-
-      let dst = getValue(vessel, 'navigation.destination.commonName')
-      if (typeof dst === 'number') dst = ''
-
-      let callSign = getValue(vessel, 'communication.callsignVhf')
-      if (typeof callSign === 'number') callSign = ''
-
-      let imo = getValue(vessel, 'registrations.imo')
-      if (imo && typeof imo === 'string' && imo.startsWith('IMO ')) {
-        imo = imo.substring(4)
-      }
-
-      const id = getValue(vessel, 'design.aisShipType.id')
-      let type = getValue(vessel, 'design.aisShipType.name')
-      if (typeof type === 'number') type = ''
-
-      let draftCur = getValue(vessel, 'design.draft.current')
-      if (draftCur !== null) draftCur = draftCur / 10
-
-      const length = getValue(vessel, 'design.length.overall')
-      let beam = getValue(vessel, 'design.beam')
-      if (beam !== null) beam = beam / 2
-
-      const aisClass = getValue(vessel, 'sensors.ais.class')
-
       // Calculate distance from own vessel
       const a = { lat: ownLat, lon: ownLon }
-      const b = { lat, lon }
+      const b = { lat: data.lat, lon: data.lon }
       const dist = (haversine(a, b) / 1000).toFixed(2)
 
       // Check if within distance range
@@ -281,98 +140,30 @@ module.exports = function createPlugin(app) {
         continue
       }
 
-      // Prepare AIS messages
-      const encMsg3 = {
-        own: isOwn,
-        aistype: 3, // class A position report
-        repeat: 0,
-        mmsi,
-        navstatus: navStat,
-        sog,
-        lon,
-        lat,
-        cog,
-        hdg,
-        rot
-      }
-
-      const encMsg5 = {
-        own: isOwn,
-        aistype: 5, // class A static
-        repeat: 0,
-        mmsi,
-        imo,
-        cargo: id,
-        callsign: callSign,
-        shipname: shipName,
-        draught: draftCur,
-        destination: dst,
-        dimA: 0,
-        dimB: length,
-        dimC: beam,
-        dimD: beam
-      }
-
-      const encMsg18 = {
-        own: isOwn,
-        aistype: 18, // class B position report
-        repeat: 0,
-        mmsi,
-        sog,
-        accuracy: 0,
-        lon,
-        lat,
-        cog,
-        hdg
-      }
-
-      const encMsg240 = {
-        own: isOwn,
-        aistype: 24, // class B static part A
-        repeat: 0,
-        part: 0,
-        mmsi,
-        shipname: shipName
-      }
-
-      const encMsg241 = {
-        own: isOwn,
-        aistype: 24, // class B static part B
-        repeat: 0,
-        part: 1,
-        mmsi,
-        cargo: id,
-        callsign: callSign,
-        dimA: 0,
-        dimB: length,
-        dimC: beam,
-        dimD: beam
-      }
-
       // Send AIS messages based on class
-      if (aisDelay && (aisClass === 'A' || aisClass === 'B' || aisClass === 'BASE')) {
+      if (aisDelay && (data.aisClass === 'A' || data.aisClass === 'B' || data.aisClass === 'BASE')) {
         app.debug(
-          `Distance range: ${distance}km, AIS target distance: ${dist}km, Class ${aisClass} Vessel, MMSI:${mmsi}`
+          `Distance range: ${distance}km, AIS target distance: ${dist}km, Class ${data.aisClass} Vessel, MMSI:${data.mmsi}`
         )
 
-        if (aisClass === 'A') {
-          app.debug(`Class A, MMSI: ${mmsi}, Name: ${shipName || 'Unknown'}`)
-          aisOut(encMsg3)
-          aisOut(encMsg5)
+        if (data.aisClass === 'A') {
+          app.debug(`Class A, MMSI: ${data.mmsi}, Name: ${data.shipName || 'Unknown'}`)
+          aisOut(buildAisMessage3(data, isOwn))
+          aisOut(buildAisMessage5(data, isOwn))
           processedCount++
         }
 
-        if (aisClass === 'B') {
-          app.debug(`Class B, MMSI: ${mmsi}, Name: ${shipName || 'Unknown'}`)
-          aisOut(encMsg18)
-          aisOut(encMsg240)
-          aisOut(encMsg241)
+        if (data.aisClass === 'B') {
+          app.debug(`Class B, MMSI: ${data.mmsi}, Name: ${data.shipName || 'Unknown'}`)
+          aisOut(buildAisMessage18(data, isOwn))
+          aisOut(buildAisMessage24A(data, isOwn))
+          aisOut(buildAisMessage24B(data, isOwn))
           processedCount++
         }
 
-        if (aisClass === 'BASE') {
-          app.debug(`Base Station, MMSI: ${mmsi}`)
-          aisOut(encMsg3)
+        if (data.aisClass === 'BASE') {
+          app.debug(`Base Station, MMSI: ${data.mmsi}`)
+          aisOut(buildAisMessage3(data, isOwn))
           processedCount++
         }
 
