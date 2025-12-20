@@ -1,0 +1,20 @@
+{
+  "name": "signalk-vessels-to-ais-ws",
+  "version": "1.0.0",
+  "description": "SignalK server plugin to convert other vessel data to NMEA0183 AIS format using direct data access (no REST API)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "signalk-node-server-plugin",
+    "signalk-category-ais"
+  ],
+  "repository": "https://github.com/KEGustafsson/signalk-vessels-to-ais",
+  "author": "Karl-Erik Gustafsson",
+  "license": "MIT",
+  "dependencies": {
+    "haversine-distance": "^1.2.1",
+    "ggencoder": "^1.0.9"
+  }
+}
