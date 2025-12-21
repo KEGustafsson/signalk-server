@@ -4,6 +4,7 @@ import { federation } from '@module-federation/vite'
 import path from 'path'
 
 export default defineConfig({
+  base: './',
   publicDir: 'public_src',
   plugins: [
     react({
