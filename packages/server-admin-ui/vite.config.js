@@ -41,8 +41,5 @@ export default defineConfig({
     alias: {
       path: false
     }
-  },
-  server: {
-    port: 3000
   }
 })
