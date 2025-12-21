@@ -34,7 +34,8 @@ export default defineConfig({
   build: {
     outDir: 'public',
     sourcemap: true,
-    target: 'es2022'
+    target: 'es2022',
+    assetsInlineLimit: 0 // Prevent inlining assets to allow server-side logo override
   },
   resolve: {
     alias: {
