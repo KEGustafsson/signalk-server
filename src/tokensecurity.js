@@ -568,6 +568,7 @@ module.exports = function (app, config) {
           (update.values &&
             update.values.find((valuePath) => {
               return (
+                valuePath &&
                 strategy.checkACL(
                   req.skPrincipal.identifier,
                   context,
@@ -580,6 +581,7 @@ module.exports = function (app, config) {
           (update.meta &&
             update.meta.find((valuePath) => {
               return (
+                valuePath &&
                 strategy.checkACL(
                   req.skPrincipal.identifier,
                   context,
@@ -638,7 +640,7 @@ module.exports = function (app, config) {
         .map((update) => {
           let res = (update.values || update.meta)
             .map((valuePath) => {
-              return strategy.checkACL(
+              return valuePath && strategy.checkACL(
                 principal.identifier,
                 context,
                 valuePath.path,
