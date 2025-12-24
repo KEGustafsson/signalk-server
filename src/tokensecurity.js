@@ -640,13 +640,14 @@ module.exports = function (app, config) {
         .map((update) => {
           let res = (update.values || update.meta)
             .map((valuePath) => {
-              return valuePath && strategy.checkACL(
-                principal.identifier,
-                context,
-                valuePath.path,
-                update.source,
-                'read'
-              )
+              return valuePath &&
+                strategy.checkACL(
+                  principal.identifier,
+                  context,
+                  valuePath.path,
+                  update.source,
+                  'read'
+                )
                 ? valuePath
                 : null
             })
