@@ -559,6 +559,19 @@ module.exports = function (app, config) {
       const context =
         delta.context === app.selfContext ? 'vessels.self' : delta.context
 
+      // Check for null valuePath values and log the entire delta for debugging
+      const hasNullValues = delta.updates.some((update) => {
+        return (
+          (update.values && update.values.some((vp) => !vp)) ||
+          (update.meta && update.meta.some((vp) => !vp))
+        )
+      })
+      if (hasNullValues) {
+        debug(
+          `Delta contains null valuePath entries. Full delta: ${JSON.stringify(delta, null, 2)}`
+        )
+      }
+
       const notAllowed = delta.updates.find((update) => {
         let source = update.$source
         if (!source) {
@@ -567,8 +580,13 @@ module.exports = function (app, config) {
         return (
           (update.values &&
             update.values.find((valuePath) => {
+              if (!valuePath) {
+                debug(
+                  `Null valuePath in update.values - source: ${source}, update.source: ${JSON.stringify(update.source)}, context: ${context}`
+                )
+                return false
+              }
               return (
-                valuePath &&
                 strategy.checkACL(
                   req.skPrincipal.identifier,
                   context,
@@ -580,8 +598,13 @@ module.exports = function (app, config) {
             })) ||
           (update.meta &&
             update.meta.find((valuePath) => {
+              if (!valuePath) {
+                debug(
+                  `Null valuePath in update.meta - source: ${source}, update.source: ${JSON.stringify(update.source)}, context: ${context}`
+                )
+                return false
+              }
               return (
-                valuePath &&
                 strategy.checkACL(
                   req.skPrincipal.identifier,
                   context,
@@ -640,14 +663,19 @@ module.exports = function (app, config) {
         .map((update) => {
           let res = (update.values || update.meta)
             .map((valuePath) => {
-              return valuePath &&
-                strategy.checkACL(
-                  principal.identifier,
-                  context,
-                  valuePath.path,
-                  update.source,
-                  'read'
+              if (!valuePath) {
+                debug(
+                  `Null valuePath in filterReadDelta - update.source: ${JSON.stringify(update.source)}, context: ${context}`
                 )
+                return null
+              }
+              return strategy.checkACL(
+                principal.identifier,
+                context,
+                valuePath.path,
+                update.source,
+                'read'
+              )
                 ? valuePath
                 : null
             })
