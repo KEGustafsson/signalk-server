@@ -504,6 +504,10 @@ function processUpdates(app, pathSources, spark, msg) {
 
       if (source) {
         update.values.forEach((valuePath) => {
+          // Skip null/undefined valuePath entries
+          if (!valuePath) {
+            return
+          }
           if (!pathSources[valuePath.path]) {
             pathSources[valuePath.path] = {}
           }
@@ -557,6 +561,10 @@ setInterval(
 )
 
 function handleValuesMeta(kp) {
+  // Skip null/undefined kp entries
+  if (!kp) {
+    return
+  }
   const fullContextPathKey = getContextPathMetaKey(this.context, kp.path)
   if (kp.path && !this.spark.sentMetaData[fullContextPathKey]) {
     const split = kp.path.split('.')

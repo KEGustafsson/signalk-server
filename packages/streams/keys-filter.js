@@ -37,6 +37,10 @@ ToSignalK.prototype._transform = function (chunk, encoding, done) {
         const values = []
 
         update.values.forEach((value) => {
+          // Skip null/undefined value entries
+          if (!value) {
+            return
+          }
           if (this.exclude.includes(value.path) !== true) {
             values.push(value)
           }

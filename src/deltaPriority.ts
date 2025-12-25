@@ -148,6 +148,10 @@ export const getToPreferredDelta = (
           if ('values' in update) {
             update.values = update.values.reduce(
               (acc: any, pathValue: PathValue) => {
+                // Skip null/undefined pathValue entries
+                if (!pathValue) {
+                  return acc
+                }
                 const latest = getLatest(
                   delta.context as Context,
                   pathValue.path as Path

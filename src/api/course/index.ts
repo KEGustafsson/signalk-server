@@ -187,6 +187,10 @@ export class CourseApi {
     delta.updates.forEach((update: Update) => {
       if (hasValues(update)) {
         update.values.forEach(async (pathValue: PathValue) => {
+          // Skip null/undefined pathValue entries
+          if (!pathValue) {
+            return
+          }
           if (ref === pathValue.path) {
             if (refType === 'routes') {
               if (this.courseInfo.activeRoute) {
@@ -277,6 +281,10 @@ export class CourseApi {
     delta.updates.forEach((update: Update) => {
       if (hasValues(update)) {
         update.values.forEach((pathValue: PathValue) => {
+          // Skip null/undefined pathValue entries
+          if (!pathValue) {
+            return
+          }
           if (
             update.source &&
             update.source.type &&

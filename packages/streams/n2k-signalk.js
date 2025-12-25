@@ -139,6 +139,10 @@ ToSignalK.prototype._transform = function (chunk, encoding, done) {
 
       delta.updates.forEach((update) => {
         update.values.forEach((kv) => {
+          // Skip null/undefined kv entries
+          if (!kv) {
+            return
+          }
           if (kv.path && kv.path.startsWith('notifications.')) {
             if (
               kv.value.state === 'normal' &&

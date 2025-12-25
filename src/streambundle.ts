@@ -65,6 +65,10 @@ export class StreamBundle implements IStreamBundle {
 
           if ('meta' in update) {
             update.meta.forEach((meta) => {
+              // Skip null/undefined meta entries
+              if (!meta) {
+                return
+              }
               this.push(meta.path, {
                 ...base,
                 path: meta.path,
@@ -76,6 +80,10 @@ export class StreamBundle implements IStreamBundle {
 
           if ('values' in update) {
             update.values.forEach((pathValue) => {
+              // Skip null/undefined pathValue entries
+              if (!pathValue) {
+                return
+              }
               this.push(pathValue.path, {
                 ...base,
                 path: pathValue.path,
