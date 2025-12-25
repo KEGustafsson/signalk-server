@@ -686,6 +686,14 @@ function filterStaticSelfData(delta: any, selfContext: string) {
     delta.updates &&
       delta.updates.forEach((update: any) => {
         if ('values' in update && update['$source'] !== 'defaults') {
+          // Check for null values and log the full update for debugging
+          const hasNullValues = update.values.some((pv: any) => !pv)
+          if (hasNullValues) {
+            debug(
+              `Update contains null pathValue entries. Update: ${JSON.stringify(update, null, 2)}`
+            )
+          }
+
           update.values = update.values.reduce((acc: any, pathValue: any) => {
             const nvp = filterSelfDataKP(pathValue)
             if (nvp) {
@@ -703,6 +711,12 @@ function filterStaticSelfData(delta: any, selfContext: string) {
 }
 
 function filterSelfDataKP(pathValue: any) {
+  // Return null if pathValue is null or undefined
+  if (!pathValue) {
+    debug('Null pathValue encountered in filterSelfDataKP')
+    return null
+  }
+
   const deepKeys: { [key: string]: string[] } = {
     '': ['name', 'mmsi']
   }
