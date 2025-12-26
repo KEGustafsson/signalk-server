@@ -29,28 +29,32 @@ describe('toPreferredDelta logic', () => {
     assert(delta.updates[0].values === undefined)
   })
 
-  it('filters non-priority sources at boot time', () => {
+  it('respects timeouts at boot time', () => {
     const sourcePreferences: SourcePrioritiesData = {
       'navigation.position': [
         {
           sourceRef: 'gps.main' as SourceRef,
-          timeout: 5000
+          timeout: 100 // Wait 100ms before falling back
         },
         {
           sourceRef: 'gps.backup' as SourceRef,
-          timeout: 5000
+          timeout: 100 // Wait another 100ms before falling back
+        },
+        {
+          sourceRef: 'gps.tertiary' as SourceRef,
+          timeout: 100
         }
       ]
     }
-    const toPreferredDelta = getToPreferredDelta(sourcePreferences, 10000)
+    const toPreferredDelta = getToPreferredDelta(sourcePreferences, 400)
 
-    // At boot time, non-priority source 'gps.unknown' should be rejected immediately
-    const unknownSourceDelta = toPreferredDelta(
+    // Test 1: Highest priority source should be accepted immediately
+    const mainSourceDelta = toPreferredDelta(
       {
         context: 'self',
         updates: [
           {
-            $source: 'gps.unknown' as SourceRef,
+            $source: 'gps.main' as SourceRef,
             values: [
               {
                 path: 'navigation.position',
@@ -63,11 +67,14 @@ describe('toPreferredDelta logic', () => {
       new Date(),
       'self'
     )
-    // Should filter out the value from unknown source at boot
-    assert.strictEqual(unknownSourceDelta.updates[0].values.length, 0)
+    // Highest priority should be accepted immediately
+    assert.strictEqual(mainSourceDelta.updates[0].values.length, 1)
 
-    // Priority source 'gps.backup' should be accepted at boot (even though it's not first priority)
-    const backupSourceDelta = toPreferredDelta(
+    // Test 2: Create new filter to test timeout behavior from boot
+    const toPreferredDelta2 = getToPreferredDelta(sourcePreferences, 400)
+
+    // Backup source should be rejected initially (before gps.main timeout expires)
+    const backupSourceDeltaEarly = toPreferredDelta2(
       {
         context: 'self',
         updates: [
@@ -82,19 +89,19 @@ describe('toPreferredDelta logic', () => {
           }
         ]
       },
-      new Date(),
+      new Date(Date.now() + 50), // 50ms after boot
       'self'
     )
-    // Should accept the value from priority source
-    assert.strictEqual(backupSourceDelta.updates[0].values.length, 1)
+    // Should be rejected (cumulative timeout for backup = 100ms, but only 50ms elapsed)
+    assert.strictEqual(backupSourceDeltaEarly.updates[0].values.length, 0)
 
-    // Higher priority source 'gps.main' should replace backup
-    const mainSourceDelta = toPreferredDelta(
+    // After timeout expires, backup source should be accepted
+    const backupSourceDeltaLate = toPreferredDelta2(
       {
         context: 'self',
         updates: [
           {
-            $source: 'gps.main' as SourceRef,
+            $source: 'gps.backup' as SourceRef,
             values: [
               {
                 path: 'navigation.position',
@@ -104,11 +111,101 @@ describe('toPreferredDelta logic', () => {
           }
         ]
       },
-      new Date(),
+      new Date(Date.now() + 150), // 150ms after boot
       'self'
     )
-    // Should accept the value from higher priority source
-    assert.strictEqual(mainSourceDelta.updates[0].values.length, 1)
+    // Should be accepted (cumulative timeout for backup = 100ms, 150ms elapsed)
+    assert.strictEqual(backupSourceDeltaLate.updates[0].values.length, 1)
+
+    // Test 3: Tertiary source needs cumulative timeout of main + backup
+    const toPreferredDelta3 = getToPreferredDelta(sourcePreferences, 400)
+
+    const tertiarySourceEarly = toPreferredDelta3(
+      {
+        context: 'self',
+        updates: [
+          {
+            $source: 'gps.tertiary' as SourceRef,
+            values: [
+              {
+                path: 'navigation.position',
+                value: { latitude: 60.4, longitude: 24.6 }
+              }
+            ]
+          }
+        ]
+      },
+      new Date(Date.now() + 150), // 150ms after boot
+      'self'
+    )
+    // Should be rejected (cumulative timeout = 100 + 100 = 200ms, but only 150ms elapsed)
+    assert.strictEqual(tertiarySourceEarly.updates[0].values.length, 0)
+
+    const tertiarySourceLate = toPreferredDelta3(
+      {
+        context: 'self',
+        updates: [
+          {
+            $source: 'gps.tertiary' as SourceRef,
+            values: [
+              {
+                path: 'navigation.position',
+                value: { latitude: 60.5, longitude: 24.5 }
+              }
+            ]
+          }
+        ]
+      },
+      new Date(Date.now() + 250), // 250ms after boot
+      'self'
+    )
+    // Should be accepted (cumulative timeout = 200ms, 250ms elapsed)
+    assert.strictEqual(tertiarySourceLate.updates[0].values.length, 1)
+
+    // Test 4: Unknown source should respect unknownSourceTimeout
+    const toPreferredDelta4 = getToPreferredDelta(sourcePreferences, 400)
+
+    const unknownSourceEarly = toPreferredDelta4(
+      {
+        context: 'self',
+        updates: [
+          {
+            $source: 'gps.unknown' as SourceRef,
+            values: [
+              {
+                path: 'navigation.position',
+                value: { latitude: 60.6, longitude: 24.4 }
+              }
+            ]
+          }
+        ]
+      },
+      new Date(Date.now() + 300), // 300ms after boot
+      'self'
+    )
+    // Should be rejected (unknownSourceTimeout = 400ms, but only 300ms elapsed)
+    assert.strictEqual(unknownSourceEarly.updates[0].values.length, 0)
+
+    const unknownSourceLate = toPreferredDelta4(
+      {
+        context: 'self',
+        updates: [
+          {
+            $source: 'gps.unknown' as SourceRef,
+            values: [
+              {
+                path: 'navigation.position',
+                value: { latitude: 60.7, longitude: 24.3 }
+              }
+            ]
+          }
+        ]
+      },
+      new Date(Date.now() + 450), // 450ms after boot
+      'self'
+    )
+    // Should be accepted (unknownSourceTimeout = 400ms, 450ms elapsed)
+    assert.strictEqual(unknownSourceLate.updates[0].values.length, 1)
   })
 
   it('works', () => {

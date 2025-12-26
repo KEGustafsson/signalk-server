@@ -67,6 +67,9 @@ export const getToPreferredDelta = (
   }
   const precedences = toPrecedences(sourcePrioritiesData)
 
+  // Track when filtering started (boot time reference)
+  const filterStartTime = Date.now()
+
   const contextPathTimestamps = new Map<Context, PathLatestTimestamps>()
 
   const setLatest = (
@@ -123,24 +126,42 @@ export const getToPreferredDelta = (
       return true
     }
 
-    // Special case: no value received yet for this path
-    // Accept any source from the priority list immediately
-    // Reject sources not in the priority list (they can only be used for failover)
-    // This fixes boot-time filtering where all sources were incorrectly allowed through
+    // Special case: no value received yet for this path (boot time)
+    // Respect priority list and timeouts to avoid accepting all sources immediately
     if (latest.sourceRef === '') {
       const incomingPrecedence = pathPrecedences.get(sourceRef)
       if (incomingPrecedence) {
-        // Source is in priority list - accept it as the first value
-        if (debug.enabled) {
-          debug(`${path}:${sourceRef}:true:first-value`)
+        // Source is in priority list - check if enough time has elapsed
+        // based on cumulative timeouts of higher priority sources
+
+        // Calculate cumulative timeout: sum of timeouts for all higher precedence sources
+        let cumulativeTimeout = 0
+        for (const [, precedenceData] of pathPrecedences) {
+          if (precedenceData.precedence < incomingPrecedence.precedence) {
+            cumulativeTimeout += precedenceData.timeout
+          }
         }
-        return true
+
+        const timeSinceBoot = millis - filterStartTime
+        const isPreferred = timeSinceBoot >= cumulativeTimeout
+
+        if (debug.enabled) {
+          debug(
+            `${path}:${sourceRef}:${isPreferred}:boot-time:precedence=${incomingPrecedence.precedence}:cumulative-timeout=${cumulativeTimeout}:time-since-boot=${timeSinceBoot}`
+          )
+        }
+        return isPreferred
       }
-      // Source not in priority list - reject at boot (no source to fail over from)
+
+      // Source not in priority list - apply unknown source timeout
+      const timeSinceBoot = millis - filterStartTime
+      const isPreferred = timeSinceBoot >= unknownSourceTimeout
       if (debug.enabled) {
-        debug(`${path}:${sourceRef}:false:unknown-source-at-boot`)
+        debug(
+          `${path}:${sourceRef}:${isPreferred}:boot-time:unknown-source:timeout=${unknownSourceTimeout}:time-since-boot=${timeSinceBoot}`
+        )
       }
-      return false
+      return isPreferred
     }
 
     const latestPrecedence =
