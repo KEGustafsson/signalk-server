@@ -156,10 +156,10 @@ describe('toPreferredDelta logic', () => {
           }
         ]
       },
-      new Date(Date.now() + 250), // 250ms after boot
+      new Date(Date.now() + 350), // 350ms after first call, 200ms after first delta
       'self'
     )
-    // Should be accepted (cumulative timeout = 200ms, 250ms elapsed)
+    // Should be accepted (cumulative timeout = 200ms, 200ms elapsed since first delta)
     assert.strictEqual(tertiarySourceLate.updates[0].values.length, 1)
 
     // Test 4: Unknown source should respect unknownSourceTimeout
@@ -201,10 +201,10 @@ describe('toPreferredDelta logic', () => {
           }
         ]
       },
-      new Date(Date.now() + 450), // 450ms after boot
+      new Date(Date.now() + 700), // 700ms after first call, 400ms after first delta
       'self'
     )
-    // Should be accepted (unknownSourceTimeout = 400ms, 450ms elapsed)
+    // Should be accepted (unknownSourceTimeout = 400ms, 400ms elapsed since first delta)
     assert.strictEqual(unknownSourceLate.updates[0].values.length, 1)
   })
 

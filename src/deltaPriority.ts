@@ -67,11 +67,11 @@ export const getToPreferredDelta = (
   }
   const precedences = toPrecedences(sourcePrioritiesData)
 
-  // Capture filter start time as boot time reference
-  // This represents when filtering was activated, NOT when config was updated
-  const filterStartTime = Date.now()
-
   const contextPathTimestamps = new Map<Context, PathLatestTimestamps>()
+
+  // Lazy-initialize boot time on first delta to avoid timing issues
+  // where constructor runs before data flows
+  let filterStartTime: number | null = null
 
   const setLatest = (
     context: Context,
@@ -130,6 +130,11 @@ export const getToPreferredDelta = (
     // Special case: no value received yet for this path (boot time)
     // Respect priority list and timeouts to avoid accepting all sources immediately
     if (latest.sourceRef === '') {
+      // Initialize filter start time on first delta to avoid timing issues
+      if (filterStartTime === null) {
+        filterStartTime = millis
+      }
+
       const incomingPrecedence = pathPrecedences.get(sourceRef)
       if (incomingPrecedence) {
         // Source is in priority list - check if enough time has elapsed
