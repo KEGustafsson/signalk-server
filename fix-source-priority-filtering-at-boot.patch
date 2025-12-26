@@ -33,7 +33,7 @@ index b66b738..2ef8b4d 100644
 @@ -123,6 +123,26 @@ export const getToPreferredDelta = (
        return true
      }
- 
+
 +    // Special case: no value received yet for this path
 +    // Accept any source from the priority list immediately
 +    // Reject sources not in the priority list (they can only be used for failover)
@@ -64,7 +64,7 @@ index 8f0d620..8ab0610 100644
 @@ -29,6 +29,88 @@ describe('toPreferredDelta logic', () => {
      assert(delta.updates[0].values === undefined)
    })
- 
+
 +  it('filters non-priority sources at boot time', () => {
 +    const sourcePreferences: SourcePrioritiesData = {
 +      'navigation.position': [
@@ -150,7 +150,7 @@ index 8f0d620..8ab0610 100644
    it('works', () => {
      const sourcePreferences: SourcePrioritiesData = {
        'environment.wind.speedApparent': [
--- 
+--
 2.43.0
 
 
@@ -201,17 +201,17 @@ index 2ef8b4d..1d2db09 100644
 @@ -67,6 +67,9 @@ export const getToPreferredDelta = (
    }
    const precedences = toPrecedences(sourcePrioritiesData)
- 
+
 +  // Track when filtering started (boot time reference)
 +  const filterStartTime = Date.now()
 +
    const contextPathTimestamps = new Map<Context, PathLatestTimestamps>()
- 
+
    const setLatest = (
 @@ -123,24 +126,42 @@ export const getToPreferredDelta = (
        return true
      }
- 
+
 -    // Special case: no value received yet for this path
 -    // Accept any source from the priority list immediately
 -    // Reject sources not in the priority list (they can only be used for failover)
@@ -259,7 +259,7 @@ index 2ef8b4d..1d2db09 100644
 -      return false
 +      return isPreferred
      }
- 
+
      const latestPrecedence =
 diff --git a/test/deltaPriority.ts b/test/deltaPriority.ts
 index 8ab0610..49a2bb1 100644
@@ -268,7 +268,7 @@ index 8ab0610..49a2bb1 100644
 @@ -29,28 +29,32 @@ describe('toPreferredDelta logic', () => {
      assert(delta.updates[0].values === undefined)
    })
- 
+
 -  it('filters non-priority sources at boot time', () => {
 +  it('respects timeouts at boot time', () => {
      const sourcePreferences: SourcePrioritiesData = {
@@ -291,7 +291,7 @@ index 8ab0610..49a2bb1 100644
      }
 -    const toPreferredDelta = getToPreferredDelta(sourcePreferences, 10000)
 +    const toPreferredDelta = getToPreferredDelta(sourcePreferences, 400)
- 
+
 -    // At boot time, non-priority source 'gps.unknown' should be rejected immediately
 -    const unknownSourceDelta = toPreferredDelta(
 +    // Test 1: Highest priority source should be accepted immediately
@@ -316,7 +316,7 @@ index 8ab0610..49a2bb1 100644
 +
 +    // Test 2: Create new filter to test timeout behavior from boot
 +    const toPreferredDelta2 = getToPreferredDelta(sourcePreferences, 400)
- 
+
 -    // Priority source 'gps.backup' should be accepted at boot (even though it's not first priority)
 -    const backupSourceDelta = toPreferredDelta(
 +    // Backup source should be rejected initially (before gps.main timeout expires)
@@ -336,7 +336,7 @@ index 8ab0610..49a2bb1 100644
 -    assert.strictEqual(backupSourceDelta.updates[0].values.length, 1)
 +    // Should be rejected (cumulative timeout for backup = 100ms, but only 50ms elapsed)
 +    assert.strictEqual(backupSourceDeltaEarly.updates[0].values.length, 0)
- 
+
 -    // Higher priority source 'gps.main' should replace backup
 -    const mainSourceDelta = toPreferredDelta(
 +    // After timeout expires, backup source should be accepted
@@ -453,8 +453,8 @@ index 8ab0610..49a2bb1 100644
 +    // Should be accepted (unknownSourceTimeout = 400ms, 450ms elapsed)
 +    assert.strictEqual(unknownSourceLate.updates[0].values.length, 1)
    })
- 
+
    it('works', () => {
--- 
+--
 2.43.0
 
