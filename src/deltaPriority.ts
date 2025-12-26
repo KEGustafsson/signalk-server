@@ -67,7 +67,8 @@ export const getToPreferredDelta = (
   }
   const precedences = toPrecedences(sourcePrioritiesData)
 
-  // Track when filtering started (boot time reference)
+  // Capture filter start time as boot time reference
+  // This represents when filtering was activated, NOT when config was updated
   const filterStartTime = Date.now()
 
   const contextPathTimestamps = new Map<Context, PathLatestTimestamps>()
