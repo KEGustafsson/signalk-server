@@ -1,9 +1,9 @@
---- /tmp/deltaPriority-original.ts	2025-12-26 15:37:31.665314126 +0000
-+++ /tmp/deltaPriority-with-fix.ts	2025-12-26 15:37:31.653313979 +0000
-@@ -69,6 +69,10 @@
-
+--- a/src/deltaPriority.ts
++++ b/src/deltaPriority.ts
+@@ -69,6 +69,10 @@ export const getToPreferredDelta = (
+ 
    const contextPathTimestamps = new Map<Context, PathLatestTimestamps>()
-
+ 
 +  // Lazy-initialize boot time on first delta to avoid timing issues
 +  // where constructor runs before data flows
 +  let filterStartTime: number | null = null
@@ -11,10 +11,10 @@
    const setLatest = (
      context: Context,
      path: Path,
-@@ -123,6 +127,49 @@
+@@ -123,6 +127,49 @@ export const getToPreferredDelta = (
        return true
      }
-
+ 
 +    // Special case: no value received yet for this path (boot time)
 +    // Respect priority list and timeouts to avoid accepting all sources immediately
 +    if (latest.sourceRef === '') {
