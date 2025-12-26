@@ -123,6 +123,26 @@ export const getToPreferredDelta = (
       return true
     }
 
+    // Special case: no value received yet for this path
+    // Accept any source from the priority list immediately
+    // Reject sources not in the priority list (they can only be used for failover)
+    // This fixes boot-time filtering where all sources were incorrectly allowed through
+    if (latest.sourceRef === '') {
+      const incomingPrecedence = pathPrecedences.get(sourceRef)
+      if (incomingPrecedence) {
+        // Source is in priority list - accept it as the first value
+        if (debug.enabled) {
+          debug(`${path}:${sourceRef}:true:first-value`)
+        }
+        return true
+      }
+      // Source not in priority list - reject at boot (no source to fail over from)
+      if (debug.enabled) {
+        debug(`${path}:${sourceRef}:false:unknown-source-at-boot`)
+      }
+      return false
+    }
+
     const latestPrecedence =
       pathPrecedences.get(latest.sourceRef) || HIGHESTPRECEDENCE
     const incomingPrecedence =

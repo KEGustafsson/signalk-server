@@ -29,6 +29,88 @@ describe('toPreferredDelta logic', () => {
     assert(delta.updates[0].values === undefined)
   })
 
+  it('filters non-priority sources at boot time', () => {
+    const sourcePreferences: SourcePrioritiesData = {
+      'navigation.position': [
+        {
+          sourceRef: 'gps.main' as SourceRef,
+          timeout: 5000
+        },
+        {
+          sourceRef: 'gps.backup' as SourceRef,
+          timeout: 5000
+        }
+      ]
+    }
+    const toPreferredDelta = getToPreferredDelta(sourcePreferences, 10000)
+
+    // At boot time, non-priority source 'gps.unknown' should be rejected immediately
+    const unknownSourceDelta = toPreferredDelta(
+      {
+        context: 'self',
+        updates: [
+          {
+            $source: 'gps.unknown' as SourceRef,
+            values: [
+              {
+                path: 'navigation.position',
+                value: { latitude: 60.1, longitude: 24.9 }
+              }
+            ]
+          }
+        ]
+      },
+      new Date(),
+      'self'
+    )
+    // Should filter out the value from unknown source at boot
+    assert.strictEqual(unknownSourceDelta.updates[0].values.length, 0)
+
+    // Priority source 'gps.backup' should be accepted at boot (even though it's not first priority)
+    const backupSourceDelta = toPreferredDelta(
+      {
+        context: 'self',
+        updates: [
+          {
+            $source: 'gps.backup' as SourceRef,
+            values: [
+              {
+                path: 'navigation.position',
+                value: { latitude: 60.2, longitude: 24.8 }
+              }
+            ]
+          }
+        ]
+      },
+      new Date(),
+      'self'
+    )
+    // Should accept the value from priority source
+    assert.strictEqual(backupSourceDelta.updates[0].values.length, 1)
+
+    // Higher priority source 'gps.main' should replace backup
+    const mainSourceDelta = toPreferredDelta(
+      {
+        context: 'self',
+        updates: [
+          {
+            $source: 'gps.main' as SourceRef,
+            values: [
+              {
+                path: 'navigation.position',
+                value: { latitude: 60.3, longitude: 24.7 }
+              }
+            ]
+          }
+        ]
+      },
+      new Date(),
+      'self'
+    )
+    // Should accept the value from higher priority source
+    assert.strictEqual(mainSourceDelta.updates[0].values.length, 1)
+  })
+
   it('works', () => {
     const sourcePreferences: SourcePrioritiesData = {
       'environment.wind.speedApparent': [
