@@ -139,7 +139,7 @@ export const getToPreferredDelta = (
       // Calculate cumulative timeout for sources in priority list
       const cumulativeTimeout = incomingPrecedence
         ? Array.from(pathPrecedences.values())
-            .filter(p => p.precedence < incomingPrecedence.precedence)
+            .filter((p) => p.precedence < incomingPrecedence.precedence)
             .reduce((sum, p) => sum + p.timeout, 0)
         : unknownSourceTimeout
 
@@ -149,7 +149,9 @@ export const getToPreferredDelta = (
         const status = incomingPrecedence
           ? `precedence=${incomingPrecedence.precedence}:cumulative-timeout=${cumulativeTimeout}`
           : `unknown-source:timeout=${unknownSourceTimeout}`
-        debug(`${path}:${sourceRef}:${isPreferred}:boot-time:${status}:time-since-boot=${timeSinceBoot}`)
+        debug(
+          `${path}:${sourceRef}:${isPreferred}:boot-time:${status}:time-since-boot=${timeSinceBoot}`
+        )
       }
 
       return isPreferred
