@@ -69,10 +69,6 @@ export const getToPreferredDelta = (
 
   const contextPathTimestamps = new Map<Context, PathLatestTimestamps>()
 
-  // Lazy-initialize boot time on first delta to avoid timing issues
-  // where constructor runs before data flows
-  let filterStartTime: number | null = null
-
   const setLatest = (
     context: Context,
     path: Path,
@@ -125,49 +121,6 @@ export const getToPreferredDelta = (
 
     if (!pathPrecedences) {
       return true
-    }
-
-    // Special case: no value received yet for this path (boot time)
-    // Respect priority list and timeouts to avoid accepting all sources immediately
-    if (latest.sourceRef === '') {
-      // Initialize filter start time on first delta to avoid timing issues
-      if (filterStartTime === null) {
-        filterStartTime = millis
-      }
-
-      const incomingPrecedence = pathPrecedences.get(sourceRef)
-      if (incomingPrecedence) {
-        // Source is in priority list - check if enough time has elapsed
-        // based on cumulative timeouts of higher priority sources
-
-        // Calculate cumulative timeout: sum of timeouts for all higher precedence sources
-        let cumulativeTimeout = 0
-        for (const [, precedenceData] of pathPrecedences) {
-          if (precedenceData.precedence < incomingPrecedence.precedence) {
-            cumulativeTimeout += precedenceData.timeout
-          }
-        }
-
-        const timeSinceBoot = millis - filterStartTime
-        const isPreferred = timeSinceBoot >= cumulativeTimeout
-
-        if (debug.enabled) {
-          debug(
-            `${path}:${sourceRef}:${isPreferred}:boot-time:precedence=${incomingPrecedence.precedence}:cumulative-timeout=${cumulativeTimeout}:time-since-boot=${timeSinceBoot}`
-          )
-        }
-        return isPreferred
-      }
-
-      // Source not in priority list - apply unknown source timeout
-      const timeSinceBoot = millis - filterStartTime
-      const isPreferred = timeSinceBoot >= unknownSourceTimeout
-      if (debug.enabled) {
-        debug(
-          `${path}:${sourceRef}:${isPreferred}:boot-time:unknown-source:timeout=${unknownSourceTimeout}:time-since-boot=${timeSinceBoot}`
-        )
-      }
-      return isPreferred
     }
 
     const latestPrecedence =
