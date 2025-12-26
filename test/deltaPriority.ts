@@ -208,6 +208,148 @@ describe('toPreferredDelta logic', () => {
     assert.strictEqual(unknownSourceLate.updates[0].values.length, 1)
   })
 
+  it('filters 2nd priority source at boot, accepts after timeout', () => {
+    const sourcePreferences: SourcePrioritiesData = {
+      'navigation.speedOverGround': [
+        {
+          sourceRef: 'gps.primary' as SourceRef,
+          timeout: 200 // Wait 200ms before accepting backup
+        },
+        {
+          sourceRef: 'gps.secondary' as SourceRef,
+          timeout: 200
+        }
+      ]
+    }
+    const toPreferredDelta = getToPreferredDelta(sourcePreferences, 500)
+
+    // Feed 2nd priority source first at boot - should be rejected
+    const secondaryEarly = toPreferredDelta(
+      {
+        context: 'self',
+        updates: [
+          {
+            $source: 'gps.secondary' as SourceRef,
+            values: [
+              {
+                path: 'navigation.speedOverGround',
+                value: 5.2
+              }
+            ]
+          }
+        ]
+      },
+      new Date(Date.now() + 50), // 50ms after boot
+      'self'
+    )
+    // Should be rejected (cumulative timeout = 200ms, only 50ms elapsed)
+    assert.strictEqual(secondaryEarly.updates[0].values.length, 0)
+
+    // Wait for timeout to expire, feed 2nd source again - should be accepted
+    const secondaryLate = toPreferredDelta(
+      {
+        context: 'self',
+        updates: [
+          {
+            $source: 'gps.secondary' as SourceRef,
+            values: [
+              {
+                path: 'navigation.speedOverGround',
+                value: 5.3
+              }
+            ]
+          }
+        ]
+      },
+      new Date(Date.now() + 250), // 250ms after boot (past 200ms timeout)
+      'self'
+    )
+    // Should be accepted now (timeout expired, primary never showed up)
+    assert.strictEqual(secondaryLate.updates[0].values.length, 1)
+  })
+
+  it('accepts 1st priority source when both send within timeout', () => {
+    const sourcePreferences: SourcePrioritiesData = {
+      'navigation.courseOverGroundTrue': [
+        {
+          sourceRef: 'gps.main' as SourceRef,
+          timeout: 300
+        },
+        {
+          sourceRef: 'gps.backup' as SourceRef,
+          timeout: 300
+        }
+      ]
+    }
+    const toPreferredDelta = getToPreferredDelta(sourcePreferences, 500)
+
+    // Feed 2nd priority source first
+    const backupFirst = toPreferredDelta(
+      {
+        context: 'self',
+        updates: [
+          {
+            $source: 'gps.backup' as SourceRef,
+            values: [
+              {
+                path: 'navigation.courseOverGroundTrue',
+                value: 180.5
+              }
+            ]
+          }
+        ]
+      },
+      new Date(Date.now() + 50), // 50ms after boot
+      'self'
+    )
+    // Should be rejected (within timeout window, waiting for primary)
+    assert.strictEqual(backupFirst.updates[0].values.length, 0)
+
+    // Feed 1st priority source shortly after (still within timeout)
+    const mainSource = toPreferredDelta(
+      {
+        context: 'self',
+        updates: [
+          {
+            $source: 'gps.main' as SourceRef,
+            values: [
+              {
+                path: 'navigation.courseOverGroundTrue',
+                value: 181.2
+              }
+            ]
+          }
+        ]
+      },
+      new Date(Date.now() + 100), // 100ms after boot
+      'self'
+    )
+    // Should be accepted (highest priority, no timeout needed)
+    assert.strictEqual(mainSource.updates[0].values.length, 1)
+
+    // Now feed backup again - should be rejected because primary is active
+    const backupAfterMain = toPreferredDelta(
+      {
+        context: 'self',
+        updates: [
+          {
+            $source: 'gps.backup' as SourceRef,
+            values: [
+              {
+                path: 'navigation.courseOverGroundTrue',
+                value: 180.8
+              }
+            ]
+          }
+        ]
+      },
+      new Date(Date.now() + 150), // 150ms after boot
+      'self'
+    )
+    // Should be rejected (primary source is active and hasn't timed out)
+    assert.strictEqual(backupAfterMain.updates[0].values.length, 0)
+  })
+
   it('works', () => {
     const sourcePreferences: SourcePrioritiesData = {
       'environment.wind.speedApparent': [
