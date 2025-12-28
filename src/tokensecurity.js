@@ -103,7 +103,8 @@ module.exports = function (app, config) {
     immutableConfig,
     acls,
     allowDeviceAccessRequests,
-    allowNewUserRegistration
+    allowNewUserRegistration,
+    allowedSourceIPs: config.allowedSourceIPs
   }
 
   // so that enableSecurity gets the defaults to save
@@ -227,7 +228,10 @@ module.exports = function (app, config) {
       message: {
         message:
           'Too many login attempts from this IP, please try again after 10 minutes'
-      }
+      },
+      // Disable X-Forwarded-For validation - we handle trust proxy configuration
+      // ourselves and this avoids error log output when trust proxy isn't configured
+      validate: { xForwardedForHeader: false }
     })
 
     app.use(require('body-parser').urlencoded({ extended: true }))

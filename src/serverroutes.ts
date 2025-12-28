@@ -55,6 +55,12 @@ import { getAISShipTypeName } from '@signalk/signalk-schema'
 import availableInterfaces from './interfaces'
 import redirects from './redirects.json'
 import rateLimit from 'express-rate-limit'
+import {
+  createIPFilterMiddleware,
+  isIPAllowed,
+  normalizeIP,
+  validateIPList
+} from './ip-validation'
 
 const readdir = util.promisify(fs.readdir)
 const debug = createDebug('signalk-server:serverroutes')
@@ -154,7 +160,10 @@ module.exports = function (
     message: {
       message:
         'Too many requests from this IP, please try again after 10 minutes'
-    }
+    },
+    // We use Express' trust proxy that sets the actual client's ip in req.ip
+    // so rateLimit need not complain about the presence of x-forwarded-for
+    validate: { xForwardedForHeader: false }
   })
 
   const loginStatusLimiter = rateLimit({
@@ -163,8 +172,13 @@ module.exports = function (
     message: {
       message:
         'Too many requests from this IP, please try again after 10 minutes'
-    }
+    },
+    validate: { xForwardedForHeader: false }
   })
+
+  const ipFilter = createIPFilterMiddleware(
+    () => getSecurityConfig(app).allowedSourceIPs
+  )
 
   let securityWasEnabled = false
   const restoreSessions = new Map<string, string>()
@@ -332,6 +346,32 @@ module.exports = function (
         } catch (err: any) {
           res.status(400).send(err.message)
           return
+        }
+
+        // Validate allowedSourceIPs if provided
+        if (
+          req.body.allowedSourceIPs &&
+          Array.isArray(req.body.allowedSourceIPs)
+        ) {
+          const ipErrors = validateIPList(req.body.allowedSourceIPs)
+          if (ipErrors.length > 0) {
+            res
+              .status(400)
+              .send(`Invalid IP configuration: ${ipErrors.join(', ')}`)
+            return
+          }
+
+          // Check if user would lock themselves out
+          const clientIP = req.ip ? normalizeIP(req.ip) : undefined
+          if (clientIP && !isIPAllowed(clientIP, req.body.allowedSourceIPs)) {
+            res
+              .status(400)
+              .send(
+                `Warning: This configuration would block your current IP address (${clientIP}). ` +
+                  `Please ensure your IP is included in the allowed list.`
+              )
+            return
+          }
         }
 
         let config = getSecurityConfig(app)
@@ -538,6 +578,7 @@ module.exports = function (
 
   app.post(
     `${skPrefix}/access/requests`,
+    ipFilter,
     apiLimiter,
     (req: Request, res: Response) => {
       if (
@@ -548,7 +589,7 @@ module.exports = function (
         return
       }
       const config = getSecurityConfig(app)
-      const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress
+      const ip = req.ip
       if (!app.securityStrategy.requestAccess) {
         res.status(404).json({
           message:
@@ -573,6 +614,7 @@ module.exports = function (
 
   app.get(
     `${skPrefix}/requests/:id`,
+    ipFilter,
     apiLimiter,
     (req: Request, res: Response) => {
       queryRequest(req.params.id)
@@ -601,7 +643,8 @@ module.exports = function (
           app.config.settings.accessLogging,
         enablePluginLogging:
           isUndefined(app.config.settings.enablePluginLogging) ||
-          app.config.settings.enablePluginLogging
+          app.config.settings.enablePluginLogging,
+        trustProxy: app.config.settings.trustProxy || false
       },
       loggingDirectory: app.config.settings.loggingDirectory,
       pruneContextsMinutes: app.config.settings.pruneContextsMinutes || 60,
@@ -727,6 +770,10 @@ module.exports = function (
     if (!isUndefined(settings.options.enablePluginLogging)) {
       app.config.settings.enablePluginLogging =
         settings.options.enablePluginLogging
+    }
+
+    if (!isUndefined(settings.options.trustProxy)) {
+      app.config.settings.trustProxy = settings.options.trustProxy
     }
 
     if (!isUndefined(settings.port)) {
