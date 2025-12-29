@@ -1,0 +1,13 @@
+diff --git a/src/interfaces/ws.js b/src/interfaces/ws.js
+index e7854da..c64d1e1 100644
+--- a/src/interfaces/ws.js
++++ b/src/interfaces/ws.js
+@@ -380,7 +380,7 @@ module.exports = function (app) {
+         requestId: msg.requestId,
+         state: 'COMPLETED',
+         statusCode: 400,
+-        message: 'A request has already beem submitted'
++        message: 'A request has already been submitted'
+       })
+     } else {
+       requestAccess(
