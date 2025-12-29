@@ -19,7 +19,10 @@ const Dashboard = (props) => {
     wsClients,
     providerStatistics,
     uptime,
-    devices
+    devices,
+    loadAvg1m,
+    loadAvg5m,
+    loadAvg15m
   } = props.serverStatistics || {
     deltaRate: 0,
     numberOfAvailablePaths: 0,
@@ -115,11 +118,33 @@ const Dashboard = (props) => {
           </span>
         )}
         <div className="bars">
-          <Progress
-            className="progress-xs"
-            color="warning"
-            value={(providerStats.deltaRate / deltaRate) * 100}
-          />
+          <div className="progress-xs progress">
+            <div
+              class="progress-bar bg-warning"
+              role="progressbar"
+              style={{
+                width: (providerStats.deltaRate / deltaRate) * 100 + '%',
+              }}
+              aria-valuenow={(providerStats.deltaRate / deltaRate) * 100}
+              aria-valuemin="0"
+              aria-valuemax="100"
+            ></div>
+            {providerStats.writeRate > 0 && (
+              <div
+                class="progress-bar bg-info"
+                role="progressbar"
+                style={{
+                  width:
+                    100 - (providerStats.deltaRate / deltaRate) * 100 + '%',
+                }}
+                aria-valuenow={
+                  100 - (providerStats.deltaRate / deltaRate) * 100
+                }
+                aria-valuemin="0"
+                aria-valuemax="100"
+              ></div>
+            )}
+          </div>
         </div>
       </li>
     )
@@ -190,6 +215,15 @@ const Dashboard = (props) => {
                     <br />
                     <strong className="h5">
                       {uptimeD} days, {uptimeH} hours, {uptimeM} minutes
+                    </strong>
+                  </div>
+                  <div className="callout callout-primary">
+                    <small className="text-muted">
+                      Average CPU Load (1/5/15min)
+                    </small>
+                    <br />
+                    <strong className="h5">
+                      {loadAvg1m} {loadAvg5m} {loadAvg15m}
                     </strong>
                   </div>
                 </Col>
