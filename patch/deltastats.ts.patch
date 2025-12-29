@@ -1,0 +1,32 @@
+diff --git a/src/deltastats.ts b/src/deltastats.ts
+index f93df44..1ac4d2a 100644
+--- a/src/deltastats.ts
++++ b/src/deltastats.ts
+@@ -17,6 +17,7 @@
+
+ import { isUndefined, values } from 'lodash'
+ import { EventEmitter } from 'node:events'
++import os from 'os'
+ import { getSecurityConfig } from './security'
+ const STATS_UPDATE_INTERVAL_SECONDS = 5
+ export const CONNECTION_WRITE_EVENT_NAME = 'connectionwrite'
+@@ -73,6 +74,7 @@ export function startDeltaStatistics(
+   return setInterval(() => {
+     updateProviderPeriodStats(app)
+     const anyApp = app as any
++    const loadAverage = os.loadavg()
+     const config = getSecurityConfig(anyApp)
+     const showDeviceLabelNames = config?.showDeviceLabelNames !== false
+     let devices: { clientId: string; description?: string }[] = []
+@@ -98,7 +100,10 @@ export function startDeltaStatistics(
+         providerStatistics: app.providerStatistics,
+         uptime: process.uptime(),
+         devices: devices,
+-        showDeviceLabelNames
++        showDeviceLabelNames,
++        loadAvg1m: loadAverage[0].toFixed(2),
++        loadAvg5m: loadAverage[1].toFixed(2),
++        loadAvg15m: loadAverage[2].toFixed(2)
+       }
+     })
+     app.lastIntervalDeltaCount = app.deltaCount
