@@ -47,12 +47,25 @@ export default defineConfig({
     assetsInlineLimit: 0, // Prevent inlining assets to allow server-side logo override
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Split vendor code into separate chunks to improve caching
-          'vendor-react': ['react', 'react-dom', 'react-redux', 'redux', 'redux-thunk'],
-          'vendor-bootstrap': ['bootstrap', 'reactstrap', 'react-bootstrap'],
-          'vendor-icons': ['@fortawesome/fontawesome-svg-core', '@fortawesome/free-solid-svg-icons', '@fortawesome/free-regular-svg-icons', '@fortawesome/react-fontawesome'],
-          'vendor-forms': ['@rjsf/core', '@rjsf/bootstrap-4', '@rjsf/utils', '@rjsf/validator-ajv8']
+        manualChunks(id) {
+          // More conservative chunking to avoid breaking module resolution
+          if (id.includes('node_modules')) {
+            // Split large vendor libraries into separate chunks
+            if (id.includes('@rjsf')) {
+              return 'vendor-forms'
+            }
+            if (id.includes('react') || id.includes('redux')) {
+              return 'vendor-react'
+            }
+            if (id.includes('bootstrap') || id.includes('reactstrap')) {
+              return 'vendor-bootstrap'
+            }
+            if (id.includes('@fortawesome')) {
+              return 'vendor-icons'
+            }
+            // Other node_modules go into vendor chunk
+            return 'vendor'
+          }
         }
       }
     }
