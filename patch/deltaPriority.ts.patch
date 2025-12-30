@@ -1,5 +1,5 @@
 diff --git a/src/deltaPriority.ts b/src/deltaPriority.ts
-index b66b738..18df406 100644
+index b66b738..3dfd89e 100644
 --- a/src/deltaPriority.ts
 +++ b/src/deltaPriority.ts
 @@ -30,26 +30,38 @@ interface SourcePrecedenceData {
@@ -114,13 +114,49 @@ index b66b738..18df406 100644
        return {
          sourceRef: '' as SourceRef,
          timestamp: 0
-@@ -150,7 +172,8 @@ export const getToPreferredDelta = (
+@@ -148,27 +170,30 @@ export const getToPreferredDelta = (
+           if ('values' in update) {
+             update.values = update.values.reduce(
                (acc: any, pathValue: PathValue) => {
-                 const latest = getLatest(
-                   delta.context as Context,
+-                const latest = getLatest(
+-                  delta.context as Context,
 -                  pathValue.path as Path
-+                  pathValue.path as Path,
-+                  millis
-                 )
-                 const isPreferred = isPreferredValue(
-                   pathValue.path as Path,
+-                )
+-                const isPreferred = isPreferredValue(
+-                  pathValue.path as Path,
+-                  latest,
+-                  update.$source,
+-                  millis
+-                )
+-                if (isPreferred) {
+-                  setLatest(
++                if (pathValue != null) {
++                  const latest = getLatest(
+                     delta.context as Context,
+                     pathValue.path as Path,
+-                    update.$source as SourceRef,
+                     millis
+                   )
+-                  acc.push(pathValue)
++                  const isPreferred = isPreferredValue(
++                    pathValue.path as Path,
++                    latest,
++                    update.$source,
++                    millis
++                  )
++                  if (isPreferred) {
++                    setLatest(
++                      delta.context as Context,
++                      pathValue.path as Path,
++                      update.$source as SourceRef,
++                      millis
++                    )
++                    acc.push(pathValue)
++                    return acc
++                  }
+                   return acc
+                 }
+-                return acc
+               },
+               []
+             )
