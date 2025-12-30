@@ -652,27 +652,31 @@ module.exports = function (app, config) {
         return (
           (update.values &&
             update.values.find((valuePath) => {
-              return (
-                strategy.checkACL(
-                  req.skPrincipal.identifier,
-                  context,
-                  valuePath.path,
-                  source,
-                  'write'
-                ) === false
-              )
+              if (valuePath != null) {
+                return (
+                  strategy.checkACL(
+                    req.skPrincipal.identifier,
+                    context,
+                    valuePath.path,
+                    source,
+                    'write'
+                  ) === false
+                )
+              }
             })) ||
           (update.meta &&
             update.meta.find((valuePath) => {
-              return (
-                strategy.checkACL(
-                  req.skPrincipal.identifier,
-                  context,
-                  valuePath.path,
-                  source,
-                  'write'
-                ) === false
-              )
+              if (valuePath != null) {
+                return (
+                  strategy.checkACL(
+                    req.skPrincipal.identifier,
+                    context,
+                    valuePath.path,
+                    source,
+                    'write'
+                  ) === false
+                )
+              }
             }))
         )
       })
