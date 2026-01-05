@@ -430,7 +430,23 @@ function readSettingsFile(app: ConfigApp) {
 export function writeSettingsFile(app: ConfigApp, settings: any, cb: any) {
   if (!disableWriteSettings) {
     const settingsPath = getSettingsFilename(app)
-    fs.writeFile(settingsPath, JSON.stringify(settings, null, 2), cb)
+    const tempPath = settingsPath + '.tmp'
+    const data = JSON.stringify(settings, null, 2)
+
+    // Atomic write: write to temp file, then rename
+    fs.writeFile(tempPath, data, (writeErr) => {
+      if (writeErr) {
+        return cb(writeErr)
+      }
+      fs.rename(tempPath, settingsPath, (renameErr) => {
+        if (renameErr) {
+          // Clean up temp file on rename failure
+          fs.unlink(tempPath, () => cb(renameErr))
+        } else {
+          cb()
+        }
+      })
+    })
   } else {
     cb()
   }
