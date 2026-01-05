@@ -10,3 +10,14 @@ export function atomicWriteFileSync(filePath: string, data: string): void {
     throw err
   }
 }
+
+export async function atomicWriteFile(filePath: string, data: string): Promise<void> {
+  const tmp = filePath + '.tmp'
+  try {
+    await fs.promises.writeFile(tmp, data)
+    await fs.promises.rename(tmp, filePath)
+  } catch (err) {
+    try { await fs.promises.unlink(tmp) } catch {}
+    throw err
+  }
+}

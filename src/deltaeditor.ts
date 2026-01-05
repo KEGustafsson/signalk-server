@@ -17,7 +17,7 @@
 
 import fs from 'fs'
 import _ from 'lodash'
-import { atomicWriteFileSync } from './atomicWrite'
+import { atomicWriteFileSync, atomicWriteFile } from './atomicWrite'
 
 const VALUES = 'values'
 const META = 'meta'
@@ -46,7 +46,7 @@ class DeltaEditor {
   }
 
   save(filename: string): Promise<void> {
-    return Promise.resolve(this.saveSync(filename))
+    return atomicWriteFile(filename, JSON.stringify(this.deltas, null, 2))
   }
 
   setValue(context: string, path: string, value: any) {

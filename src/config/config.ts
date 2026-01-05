@@ -28,7 +28,7 @@ import { ServerApp, SignalKMessageHub, WithConfig } from '../app'
 import { createDebug } from '../debug'
 import DeltaEditor from '../deltaeditor'
 import { getExternalPort } from '../ports'
-import { atomicWriteFileSync } from '../atomicWrite'
+import { atomicWriteFile } from '../atomicWrite'
 const debug = createDebug('signalk-server:config')
 
 let disableWriteSettings = false
@@ -355,12 +355,9 @@ export function sendBaseDeltas(app: ConfigApp) {
 }
 
 export function writeDefaultsFile(app: ConfigApp, defaults: any, cb: any) {
-  try {
-    atomicWriteFileSync(getDefaultsPath(app), JSON.stringify(defaults, null, 2))
-    cb()
-  } catch (err) {
-    cb(err)
-  }
+  atomicWriteFile(getDefaultsPath(app), JSON.stringify(defaults, null, 2))
+    .then(() => cb())
+    .catch(cb)
 }
 
 export function writeBaseDeltasFileSync(app: ConfigApp) {
@@ -435,12 +432,9 @@ function readSettingsFile(app: ConfigApp) {
 
 export function writeSettingsFile(app: ConfigApp, settings: any, cb: any) {
   if (!disableWriteSettings) {
-    try {
-      atomicWriteFileSync(getSettingsFilename(app), JSON.stringify(settings, null, 2))
-      cb()
-    } catch (err) {
-      cb(err)
-    }
+    atomicWriteFile(getSettingsFilename(app), JSON.stringify(settings, null, 2))
+      .then(() => cb())
+      .catch(cb)
   } else {
     cb()
   }
