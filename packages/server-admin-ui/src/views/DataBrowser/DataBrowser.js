@@ -505,6 +505,7 @@ class DataBrowser extends Component {
                     selectedSources={this.state.selectedSources}
                     onToggleSourceFilter={this.toggleSourceFilter}
                     sourceFilterActive={this.state.sourceFilterActive}
+                    devices={this.props.serverStatistics?.devices || []}
                   />
                 )}
 
@@ -580,4 +581,7 @@ class DataBrowser extends Component {
   }
 }
 
-export default connect(({ webSocket }) => ({ webSocket }))(DataBrowser)
+export default connect(({ webSocket, serverStatistics }) => ({
+  webSocket,
+  serverStatistics
+}))(DataBrowser)

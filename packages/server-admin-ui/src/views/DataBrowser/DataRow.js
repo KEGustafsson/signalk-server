@@ -3,6 +3,7 @@ import { usePathData, useMetaData } from './usePathData'
 import TimestampCell from './TimestampCell'
 import CopyToClipboardWithFade from './CopyToClipboardWithFade'
 import { getValueRenderer, DefaultValueRenderer } from './ValueRenderers'
+import { getDeviceDisplayLabel } from '../../util/deviceUtils'
 
 /**
  * DataRow - Individual virtualized row with granular subscription
@@ -15,7 +16,8 @@ function DataRow({
   raw,
   isPaused,
   onToggleSource,
-  selectedSources
+  selectedSources,
+  devices
 }) {
   const data = usePathData(context, path$SourceKey)
   const meta = useMetaData(context, data?.path)
@@ -65,7 +67,8 @@ function DataRow({
           }}
         />
         <CopyToClipboardWithFade text={data.$source}>
-          {data.$source} <i className="far fa-copy"></i>
+          {getDeviceDisplayLabel(data.$source, devices)}{' '}
+          <i className="far fa-copy"></i>
         </CopyToClipboardWithFade>{' '}
         {data.pgn || ''}
         {data.sentence || ''}
