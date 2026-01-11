@@ -5,10 +5,23 @@ import { federation } from '@module-federation/vite'
 // Validate peer dependencies for Module Federation compatibility
 import '@signalk/server-admin-ui-dependencies'
 
+// Exclude SVG fonts from node_modules (only needed for IE9)
+function excludeSvgFonts() {
+  return {
+    name: 'exclude-svg-fonts',
+    load(id) {
+      if (id.includes('node_modules') && id.endsWith('.svg')) {
+        return 'export default ""'
+      }
+    }
+  }
+}
+
 export default defineConfig({
   base: './',
   publicDir: 'public_src',
   plugins: [
+    excludeSvgFonts(),
     react({
       babel: {
         presets: ['@babel/preset-react']

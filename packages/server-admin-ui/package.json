@@ -31,7 +31,6 @@
     "bootstrap": "^4.5.3",
     "buffer": "^6.0.3",
     "escape-html": "^1.0.3",
-    "font-awesome": "^4.7.0",
     "jsonlint-mod": "^1.7.6",
     "lodash.remove": "^4.7.0",
     "lodash.set": "^4.3.2",
