@@ -68,6 +68,7 @@ import { pipedProviders } from './pipedproviders'
 import { EventsActorId, WithWrappedEmitter, wrapEmitter } from './events'
 import { Zones } from './zones'
 import checkNodeVersion from './version'
+import helmet from 'helmet'
 const debug = createDebug('signalk-server')
 
 import { StreamBundle } from './streambundle'
@@ -91,6 +92,24 @@ class Server {
     const bodyParser = require('body-parser')
     const app = express() as any
     app.use(require('compression')())
+    app.use(
+      helmet({
+        // ENABLED (safe, no compatibility impact):
+        xContentTypeOptions: true,
+        xDnsPrefetchControl: true,
+        xDownloadOptions: true,
+        xPermittedCrossDomainPolicies: true,
+        referrerPolicy: true,
+        hsts: true,
+
+        // DISABLED (would break chart plotters, plugins, webapps):
+        frameguard: false, // Allow embedding in iframes (chart plotters, MFDs)
+        contentSecurityPolicy: false,
+        crossOriginEmbedderPolicy: false,
+        crossOriginOpenerPolicy: false,
+        crossOriginResourcePolicy: false
+      })
+    )
     app.use(bodyParser.json({ limit: FILEUPLOADSIZELIMIT }))
 
     this.app = app
@@ -98,6 +117,12 @@ class Server {
     _.merge(app, opts)
 
     load(app)
+
+    // Apply trust proxy setting if configured
+    if (app.config.settings.trustProxy !== undefined) {
+      app.set('trust proxy', app.config.settings.trustProxy)
+    }
+
     app.logging = require('./logging')(app)
     app.version = '0.0.1'
 
@@ -321,7 +346,7 @@ class Server {
           let delta = filterStaticSelfData(data, app.selfContext)
           delta = toPreferredDelta(delta, now, app.selfContext)
 
-          if (skVersion == SKVersion.v1) {
+          if (skVersion === SKVersion.v1) {
             deltachainV1.process(delta)
           } else {
             deltachainV2.process(delta)
@@ -524,51 +549,64 @@ class Server {
       if (!this.app.started) {
         resolve(this)
       } else {
-        try {
-          _.each(this.app.interfaces, (intf: any) => {
-            if (
-              intf !== null &&
-              typeof intf === 'object' &&
-              typeof intf.stop === 'function'
-            ) {
-              intf.stop()
+        // Stop all interfaces (some may be async)
+        const stopInterfaces = async () => {
+          const stopPromises = Object.values(this.app.interfaces).map(
+            (intf: any) => {
+              if (
+                intf !== null &&
+                typeof intf === 'object' &&
+                typeof intf.stop === 'function'
+              ) {
+                const result = intf.stop()
+                // Handle both sync and async stops
+                return result instanceof Promise ? result : Promise.resolve()
+              }
+              return Promise.resolve()
             }
-          })
+          )
+          await Promise.all(stopPromises)
+        }
 
-          this.app.intervals.forEach((interval) => {
-            clearInterval(interval)
-          })
+        stopInterfaces()
+          .catch((err) => debug('Error stopping interfaces:', err))
+          .then(() => {
+            try {
+              this.app.intervals.forEach((interval) => {
+                clearInterval(interval)
+              })
 
-          this.app.providers.forEach((providerHolder) => {
-            providerHolder.pipeElements[0].end()
-          })
+              this.app.providers.forEach((providerHolder) => {
+                providerHolder.pipeElements[0].end()
+              })
 
-          debug('Closing server...')
+              debug('Closing server...')
 
-          const that = this
-          this.app.server.close(() => {
-            debug('Server closed')
-            if (that.app.redirectServer) {
-              try {
-                that.app.redirectServer.close(() => {
-                  debug('Redirect server closed')
-                  delete that.app.redirectServer
+              const that = this
+              this.app.server.close(() => {
+                debug('Server closed')
+                if (that.app.redirectServer) {
+                  try {
+                    that.app.redirectServer.close(() => {
+                      debug('Redirect server closed')
+                      delete that.app.redirectServer
+                      that.app.started = false
+                      cb && cb()
+                      resolve(that)
+                    })
+                  } catch (err) {
+                    reject(err)
+                  }
+                } else {
                   that.app.started = false
                   cb && cb()
                   resolve(that)
-                })
-              } catch (err) {
-                reject(err)
-              }
-            } else {
-              that.app.started = false
-              cb && cb()
-              resolve(that)
+                }
+              })
+            } catch (err) {
+              reject(err)
             }
           })
-        } catch (err) {
-          reject(err)
-        }
       }
     })
   }
@@ -669,7 +707,7 @@ async function startInterfaces(
             !_interface.forceInactive
           ) {
             debug(`Starting interface '${name}'`)
-            _interface.data = _interface.start()
+            _interface.data = await _interface.start()
           } else {
             debug(`Not starting interface '${name}' by forceInactive`)
           }
@@ -693,7 +731,7 @@ function filterStaticSelfData(delta: any, selfContext: string) {
             }
             return acc
           }, [])
-          if (update.values.length == 0) {
+          if (update.values.length === 0) {
             delete update.values
           }
         }
@@ -741,7 +779,7 @@ function filterSelfDataKP(pathValue: any) {
         delete pathValue.value.communication
       }
     }
-    if (Object.keys(pathValue.value).length == 0) {
+    if (Object.keys(pathValue.value).length === 0) {
       return null
     }
   } else if (filteredPaths.includes(pathValue.path)) {

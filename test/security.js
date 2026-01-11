@@ -68,9 +68,13 @@ const metaDelta = {
 
 describe('Security', () => {
   let server, url, port, readToken, writeToken, adminToken, noPasswordToken
+  let previousHttpRateLimits
 
   before(async function () {
     this.timeout(5000)
+    previousHttpRateLimits = process.env.HTTP_RATE_LIMITS
+    process.env.HTTP_RATE_LIMITS = 'api=1000,loginStatus=1000,login=1000'
+
     const securityConfig = {
       allowNewUserRegistration: true,
       allowDeviceAccessRequests: true,
@@ -125,6 +129,12 @@ describe('Security', () => {
 
   after(async function () {
     await server.stop()
+
+    if (previousHttpRateLimits === undefined) {
+      delete process.env.HTTP_RATE_LIMITS
+    } else {
+      process.env.HTTP_RATE_LIMITS = previousHttpRateLimits
+    }
   })
 
   async function login(username, password) {
@@ -200,6 +210,53 @@ describe('Security', () => {
       LIMITED_USER_PASSWORD
     )
     limitedUserToken.length.should.equal(149)
+  })
+
+  async function formLoginWithDestination(username, password, destination) {
+    const body = new URLSearchParams({
+      username,
+      password,
+      destination
+    })
+
+    return fetch(`${url}/signalk/v1/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      redirect: 'manual',
+      body
+    })
+  }
+
+  it('login redirect allows only relative destinations (blocks https://)', async function () {
+    const result = await formLoginWithDestination(
+      WRITE_USER_NAME,
+      WRITE_USER_PASSWORD,
+      'https://evil.example/phish'
+    )
+    result.status.should.equal(302)
+    result.headers.get('location').should.equal('/')
+  })
+
+  it('login redirect allows only relative destinations (blocks //)', async function () {
+    const result = await formLoginWithDestination(
+      WRITE_USER_NAME,
+      WRITE_USER_PASSWORD,
+      '//evil.example/phish'
+    )
+    result.status.should.equal(302)
+    result.headers.get('location').should.equal('/')
+  })
+
+  it('login redirect allows relative destinations', async function () {
+    const result = await formLoginWithDestination(
+      WRITE_USER_NAME,
+      WRITE_USER_PASSWORD,
+      '  /admin/  '
+    )
+    result.status.should.equal(302)
+    result.headers.get('location').should.equal('/admin/')
   })
 
   it('authorized read works', async function () {
@@ -517,5 +574,249 @@ describe('Security', () => {
     })
     json = await result.json()
     json.length.should.equal(1)
+  })
+
+  it('should reject access requests > 10kb', async function () {
+    const largeDescription = 'a'.repeat(10 * 1024)
+    const res = await fetch(`${url}/signalk/v1/access/requests`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clientId: 'device-large',
+        description: largeDescription
+      })
+    })
+    res.status.should.equal(413)
+  })
+})
+
+describe('Access Request Limit', () => {
+  let server, url, port
+  let previousHttpRateLimits
+
+  before(async function () {
+    this.timeout(20000)
+    previousHttpRateLimits = process.env.HTTP_RATE_LIMITS
+    process.env.HTTP_RATE_LIMITS = 'api=1000,loginStatus=1000'
+
+    port = await freeport()
+    url = `http://0.0.0.0:${port}`
+    const securityConfig = {
+      allowNewUserRegistration: true,
+      allowDeviceAccessRequests: true
+    }
+    server = await startServerP(port, true, {}, securityConfig)
+  })
+
+  after(async function () {
+    await server.stop()
+
+    if (previousHttpRateLimits === undefined) {
+      delete process.env.HTTP_RATE_LIMITS
+    } else {
+      process.env.HTTP_RATE_LIMITS = previousHttpRateLimits
+    }
+  })
+
+  it('should limit pending access requests to 100', async function () {
+    this.timeout(20000)
+    const requests = []
+    for (let i = 0; i < 100; i++) {
+      requests.push(
+        fetch(`${url}/signalk/v1/access/requests`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            clientId: `device-${i}`,
+            description: `Device ${i}`
+          })
+        })
+      )
+    }
+
+    await Promise.all(requests)
+
+    const res = await fetch(`${url}/signalk/v1/access/requests`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clientId: 'device-101',
+        description: 'Device 101'
+      })
+    })
+
+    res.status.should.equal(503)
+  })
+})
+
+describe('Access Request IP reporting', () => {
+  let server, url, port
+  let previousHttpRateLimits
+
+  beforeEach(async function () {
+    previousHttpRateLimits = process.env.HTTP_RATE_LIMITS
+    process.env.HTTP_RATE_LIMITS = 'api=1000,loginStatus=1000'
+    port = await freeport()
+    url = `http://0.0.0.0:${port}`
+  })
+
+  afterEach(async function () {
+    await server.stop()
+    if (previousHttpRateLimits === undefined) {
+      delete process.env.HTTP_RATE_LIMITS
+    } else {
+      process.env.HTTP_RATE_LIMITS = previousHttpRateLimits
+    }
+  })
+
+  it('without trustProxy setting the ip address reported is not from x-forwarded-for', async function () {
+    const securityConfig = {
+      allowDeviceAccessRequests: true
+    }
+    server = await startServerP(port, true, {}, securityConfig)
+
+    const res = await fetch(`${url}/signalk/v1/access/requests`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Forwarded-For': '1.2.3.4'
+      },
+      body: JSON.stringify({
+        clientId: 'device-no-trust',
+        description: 'Device No Trust'
+      })
+    })
+    res.status.should.equal(202)
+    const requestJson = await res.json()
+
+    const requestRes = await fetch(`${url}${requestJson.href}`)
+    const json = await requestRes.json()
+    json.ip.should.not.equal('1.2.3.4')
+  })
+
+  it('with trustProxy: true the ip address reported is from x-forwarded-for', async function () {
+    const securityConfig = {
+      allowDeviceAccessRequests: true
+    }
+    server = await startServerP(
+      port,
+      true,
+      { settings: { trustProxy: true } },
+      securityConfig
+    )
+
+    const res = await fetch(`${url}/signalk/v1/access/requests`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Forwarded-For': '1.2.3.4'
+      },
+      body: JSON.stringify({
+        clientId: 'device-trust',
+        description: 'Device Trust'
+      })
+    })
+    res.status.should.equal(202)
+    const requestJson = await res.json()
+
+    const requestRes = await fetch(`${url}${requestJson.href}`)
+    const json = await requestRes.json()
+    json.ip.should.equal('1.2.3.4')
+  })
+})
+
+describe('WS Access Request IP reporting', () => {
+  let server, port
+  let previousHttpRateLimits
+
+  beforeEach(async function () {
+    this.timeout(20000)
+    previousHttpRateLimits = process.env.HTTP_RATE_LIMITS
+    process.env.HTTP_RATE_LIMITS = 'api=1000,loginStatus=1000'
+    port = await freeport()
+  })
+
+  afterEach(async function () {
+    await server.stop()
+    if (previousHttpRateLimits === undefined) {
+      delete process.env.HTTP_RATE_LIMITS
+    } else {
+      process.env.HTTP_RATE_LIMITS = previousHttpRateLimits
+    }
+  })
+
+  it('without trustProxy setting the ip address reported is not from x-forwarded-for', async function () {
+    const securityConfig = {
+      allowDeviceAccessRequests: true
+    }
+    server = await startServerP(port, true, {}, securityConfig)
+
+    const response = await new Promise((resolve, reject) => {
+      const ws = new WebSocket(
+        `ws://0.0.0.0:${port}/signalk/v1/stream?subscribe=none`,
+        {
+          headers: { 'X-Forwarded-For': '1.2.3.4' }
+        }
+      )
+      ws.on('message', (msg) => {
+        const data = JSON.parse(msg)
+        if (data.requestId) {
+          resolve(data)
+          ws.close()
+        } else if (data.name && data.version) {
+          ws.send(
+            JSON.stringify({
+              accessRequest: {
+                clientId: 'ws-device-no-trust',
+                description: 'WS Device No Trust'
+              }
+            })
+          )
+        }
+      })
+      ws.on('error', reject)
+    })
+
+    response.ip.should.not.equal('1.2.3.4')
+  })
+
+  it('with trustProxy: true the ip address reported is from x-forwarded-for', async function () {
+    const securityConfig = {
+      allowDeviceAccessRequests: true
+    }
+    server = await startServerP(
+      port,
+      true,
+      { settings: { trustProxy: true } },
+      securityConfig
+    )
+
+    const response = await new Promise((resolve, reject) => {
+      const ws = new WebSocket(
+        `ws://0.0.0.0:${port}/signalk/v1/stream?subscribe=none`,
+        {
+          headers: { 'X-Forwarded-For': '1.2.3.4' }
+        }
+      )
+      ws.on('message', (msg) => {
+        const data = JSON.parse(msg)
+        if (data.requestId) {
+          resolve(data)
+          ws.close()
+        } else if (data.name && data.version) {
+          ws.send(
+            JSON.stringify({
+              accessRequest: {
+                clientId: 'ws-device-trust',
+                description: 'WS Device Trust'
+              }
+            })
+          )
+        }
+      })
+      ws.on('error', reject)
+    })
+
+    response.ip.should.equal('1.2.3.4')
   })
 })

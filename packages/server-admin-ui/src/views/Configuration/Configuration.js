@@ -26,7 +26,8 @@ export default class PluginConfigurationList extends Component {
       search: localStorage.getItem(searchStorageKey) || '',
       statusFilter: localStorage.getItem(statusFilterStorageKey) || 'all',
       searchResults: null,
-      selectedPlugin: null
+      selectedPlugin: null,
+      wasmEnabled: true // Assume enabled until settings are loaded
     }
     this.lastOpenedPlugin = '--'
     this.handleSearch = this.handleSearch.bind(this)
@@ -57,8 +58,9 @@ export default class PluginConfigurationList extends Component {
       const configurationRequired =
         plugin.schema &&
         plugin.schema.properties &&
-        Object.keys(plugin.schema?.properties).length != 0 &&
-        plugin.data.configuration == null
+        Object.keys(plugin.schema?.properties).length !== 0 &&
+        (plugin.data.configuration === null ||
+          plugin.data.configuration === undefined)
 
       switch (statusFilter) {
         case 'enabled':
@@ -154,17 +156,37 @@ export default class PluginConfigurationList extends Component {
   }
 
   componentDidMount() {
-    fetch(`${window.serverRoutesPrefix}/plugins`, {
-      credentials: 'same-origin'
-    })
-      .then((response) => {
-        if (response.status == 200) {
+    // Fetch both plugins and settings in parallel
+    Promise.all([
+      fetch(`${window.serverRoutesPrefix}/plugins`, {
+        credentials: 'same-origin'
+      }).then((response) => {
+        if (response.status === 200) {
           return response.json()
         } else {
           throw new Error('/plugins request failed:' + response.status)
         }
+      }),
+      fetch(`${window.serverRoutesPrefix}/settings`, {
+        credentials: 'same-origin'
       })
-      .then((plugins) => {
+        .then((response) => {
+          if (response.status === 200) {
+            return response.json()
+          } else {
+            // Settings fetch failed, assume WASM is enabled
+            return { interfaces: { wasm: true } }
+          }
+        })
+        .catch(() => {
+          // Settings fetch failed, assume WASM is enabled
+          return { interfaces: { wasm: true } }
+        })
+    ])
+      .then(([plugins, settings]) => {
+        // Check if WASM interface is enabled (default true if not specified)
+        const wasmEnabled = settings?.interfaces?.wasm !== false
+
         // Set initial selected plugin from URL or localStorage
         const currentPluginId = this.props.match.params.pluginid
         const lastOpenPluginId = localStorage.getItem(openPluginStorageKey)
@@ -180,7 +202,7 @@ export default class PluginConfigurationList extends Component {
           )
         }
 
-        this.setState({ plugins, selectedPlugin })
+        this.setState({ plugins, selectedPlugin, wasmEnabled })
 
         // Scroll to the initially selected plugin if one exists (from URL/bookmark)
         if (selectedPlugin) {
@@ -289,8 +311,26 @@ export default class PluginConfigurationList extends Component {
                     const configurationRequired =
                       plugin.schema &&
                       plugin.schema.properties &&
-                      Object.keys(plugin.schema?.properties).length != 0 &&
-                      plugin.data.configuration == null
+                      Object.keys(plugin.schema?.properties).length !== 0 &&
+                      (plugin.data.configuration === null ||
+                        plugin.data.configuration === undefined)
+
+                    // Check if this is a WASM plugin with WASM interface disabled
+                    const isWasmPlugin = plugin.type === 'wasm'
+                    const wasmDisabledForPlugin =
+                      isWasmPlugin && !this.state.wasmEnabled
+
+                    // Determine badge class and text
+                    let badgeClass = 'badge-secondary'
+                    let badgeText = 'Disabled'
+
+                    if (wasmDisabledForPlugin) {
+                      badgeClass = 'badge-danger'
+                      badgeText = 'WASM disabled'
+                    } else if (plugin.data.enabled && !configurationRequired) {
+                      badgeClass = 'badge-success'
+                      badgeText = 'Enabled'
+                    }
 
                     return (
                       <tr
@@ -305,12 +345,8 @@ export default class PluginConfigurationList extends Component {
                         </td>
                         <td>
                           <div className="d-flex align-items-center justify-content-between">
-                            <div
-                              className={`badge ${plugin.data.enabled && !configurationRequired ? 'badge-success' : 'badge-secondary'}`}
-                            >
-                              {plugin.data.enabled && !configurationRequired
-                                ? 'Enabled'
-                                : 'Disabled'}
+                            <div className={`badge ${badgeClass}`}>
+                              {badgeText}
                             </div>
                             <i
                               className="fa fa-cog text-muted"
@@ -339,7 +375,13 @@ export default class PluginConfigurationList extends Component {
             isConfigurator={isConfigurator(this.state.selectedPlugin)}
             onClose={() => this.selectPlugin(null)}
             saveData={(data) => {
-              if (this.state.selectedPlugin.data.configuration === undefined) {
+              // Only auto-enable on first-ever configuration save
+              // Check if plugin was never configured before (no enabled state set)
+              // This allows plugins that are already enabled/disabled to be toggled
+              if (
+                this.state.selectedPlugin.data.enabled === undefined &&
+                data.enabled === undefined
+              ) {
                 data.enabled = true
               }
               return this.saveData(this.state.selectedPlugin.id, data)
@@ -357,7 +399,7 @@ export default class PluginConfigurationList extends Component {
       headers: new Headers({ 'Content-Type': 'application/json' }),
       credentials: 'same-origin'
     }).then((response) => {
-      if (response.status != 200) {
+      if (response.status !== 200) {
         console.error(response)
         alert('Saving plugin settings failed')
         throw new Error('Save failed')
@@ -405,8 +447,9 @@ class PluginConfigCard extends Component {
     const configurationRequired =
       schema &&
       schema.properties &&
-      Object.keys(schema?.properties).length != 0 &&
-      this.props.plugin.data.configuration == null
+      Object.keys(schema?.properties).length !== 0 &&
+      (this.props.plugin.data.configuration === null ||
+        this.props.plugin.data.configuration === undefined)
 
     return (
       <div>

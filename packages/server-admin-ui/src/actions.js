@@ -87,7 +87,7 @@ export function enableSecurity(dispatch, userId, password, callback) {
     },
     body: JSON.stringify(payload)
   }).then((response) => {
-    if (response.status != 200) {
+    if (response.status !== 200) {
       response.text().then((text) => {
         callback(text)
       })
@@ -157,7 +157,7 @@ export function fetchAllData(dispatch) {
 }
 
 export function openServerEventsConnection(dispatch, isReconnect) {
-  const proto = window.location.protocol == 'https:' ? 'wss' : 'ws'
+  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws'
   const ws = new WebSocket(
     proto +
       '://' +
@@ -167,6 +167,23 @@ export function openServerEventsConnection(dispatch, isReconnect) {
 
   ws.onmessage = function (event) {
     const serverEvent = JSON.parse(event.data)
+
+    // Check for backpressure indicator on any delta
+    if (serverEvent.$backpressure) {
+      dispatch({
+        type: 'BACKPRESSURE_WARNING',
+        data: {
+          accumulated: serverEvent.$backpressure.accumulated,
+          duration: serverEvent.$backpressure.duration,
+          timestamp: Date.now()
+        }
+      })
+      // Auto-clear after 10 seconds
+      setTimeout(() => {
+        dispatch({ type: 'BACKPRESSURE_WARNING_CLEAR' })
+      }, 10000)
+    }
+
     if (serverEvent.type) {
       dispatch(serverEvent)
     } else if (serverEvent.name) {

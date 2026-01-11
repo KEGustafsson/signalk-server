@@ -1,4 +1,6 @@
 import React from 'react'
+import { Suspense } from 'react'
+import { toLazyDynamicComponent } from '../Webapps/dynamicutilities'
 import ReactHtmlParser from 'react-html-parser'
 import {
   faEye,
@@ -9,6 +11,7 @@ import {
 
 import '../../blinking-circle.css'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+
 function radiansToDegrees(radians) {
   return radians * (180 / Math.PI)
 }
@@ -138,7 +141,7 @@ const AttitudeRenderer = ({ value, size = '2em' }) => {
 }
 
 const NotificationRenderer = ({ value }) => {
-  const { message, state, method = [] } = value
+  const { message, state, method = [] } = value ? value : {}
 
   const severityColor =
     {
@@ -168,7 +171,7 @@ const NotificationRenderer = ({ value }) => {
           <span style={circleStyle}></span>
         )}
         <span className="d-flex" style={{ marginLeft: '.5em' }}>
-          {state.toUpperCase() + ': ' + message}
+          {(state ? state.toUpperCase() : 'undefined') + ': ' + message}
         </span>
       </div>
       <div className="d-flex" style={{ gap: '.5em' }}>
@@ -478,17 +481,43 @@ const SatellitesInViewRenderer = ({ value }) => {
 }
 
 export const getValueRenderer = (path, meta) => {
-  if (meta) {
-    if (meta && meta.renderer) {
-      return Renderers[meta.renderer.name]
-    }
-    if (meta && meta.units === 'ratio') {
-      return MeterRenderer
-    }
-  }
   if (path.startsWith('notifications.')) {
-    return NotificationRenderer
+    return NotificationRenderer // notification paths should always use NotificationRenderer
+    // better implementation would set up regex path -> renderer mapping in settings file
+    // even better implementation would be to have first class object types like Notification,
+    // Battery, Sensor, Engine, GPS etc. that encapsulate their paths and their renderer
+    // as well as other useful data/behavior.
   }
+  if (meta && meta.renderer && meta.renderer.module) {
+    if (Renderers[`${meta.renderer.module}.${meta.renderer.name}`]) {
+      return Renderers[`${meta.renderer.module}.${meta.renderer.name}`]
+    } else {
+      const Renderer = toLazyDynamicComponent(
+        meta.renderer.module,
+        meta.renderer.name
+      )
+
+      const comp = function component(props) {
+        return (
+          <div>
+            <Suspense fallback={<DefaultValueRenderer {...props} />}>
+              <Renderer {...props} />
+            </Suspense>
+          </div>
+        )
+      }
+      Renderers[`${meta.renderer.module}.${meta.renderer.name}`] = comp
+      return comp
+    }
+  }
+
+  if (meta && meta.renderer) {
+    return Renderers[meta.renderer.name]
+  }
+  if (meta && meta.units === 'ratio') {
+    return MeterRenderer
+  }
+
   if (VALUE_RENDERERS[path]) {
     return VALUE_RENDERERS[path]
   }
