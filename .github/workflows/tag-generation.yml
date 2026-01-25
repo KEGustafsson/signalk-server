@@ -1,0 +1,43 @@
+name: Release - build & publish modules and server, build & publish docker containers
+
+on:
+  workflow_dispatch:
+
+jobs:
+  create-and-push-manifest:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [24.04]
+        node: [22.x, 24.x]
+        include:
+          - os: 24.04
+            node: 22.x
+            tag: latest
+          - os: 24.04
+            node: 24.x
+            tag: latest
+            suffix: -24.x
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Docker meta
+        id: docker_meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            signalk/signalk-server
+            ghcr.io/signalk/signalk-server
+          tags: |
+            type=semver,pattern={{raw}}
+            type=semver,pattern=v{{major}},enable=${{ !contains(github.ref, 'beta') }}
+            type=semver,pattern=v{{major}}.{{minor}},enable=${{ !contains(github.ref, 'beta') }}
+            type=raw,value=${{ matrix.tag }},enable=${{ !contains(github.ref, 'beta') }}
+          flavor: |
+            suffix=${{ matrix.suffix }}
+      - name: Print tags
+        run: |
+          echo "Tags:"
+          echo "${{ steps.docker_meta.outputs.tags }}"
