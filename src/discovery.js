@@ -245,10 +245,10 @@ module.exports.runDiscovery = function (app) {
         }
       )
 
-      setTimeout(() => {
+      setTimeout(async () => {
         try {
           browser.stop()
-          dnssd.destroy()
+          await dnssd.destroy()
           debug('discoverSignalkWs close')
         } catch (err) {
           debug('discoverSignalkWs:', err)

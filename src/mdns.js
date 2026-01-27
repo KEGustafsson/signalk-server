@@ -107,15 +107,11 @@ module.exports = function mdnsResponder(app) {
   debug(`Published ${publishedServices.length} mDNS services`)
 
   return {
-    stop: function () {
+    stop: async function () {
       debug('Stopping mDNS advertisements...')
-      return new Promise((resolve) => {
-        dnssd.unpublishAll(() => {
-          dnssd.destroy()
-          debug('mDNS advertisements stopped')
-          resolve()
-        })
-      })
+      await dnssd.unpublishAll()
+      await dnssd.destroy()
+      debug('mDNS advertisements stopped')
     }
   }
 }
