@@ -175,12 +175,6 @@ module.exports = function (app) {
         app.historyProvider.registerHistoryApiRoute(historyApiRouter)
         app.use(pathPrefix + versionPrefix + '/history', historyApiRouter)
       }
-    },
-
-    mdns: {
-      name: app.config.settings.ssl ? '_signalk-https' : '_signalk-http',
-      type: 'tcp',
-      port: ports.getExternalPort(app)
     }
   }
 }
