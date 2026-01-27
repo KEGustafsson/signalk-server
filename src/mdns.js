@@ -19,7 +19,7 @@
 const _ = require('lodash')
 import { createDebug } from './debug'
 const debug = createDebug('signalk-server:mdns')
-const { Bonjour } = require('bonjour-service')
+const { DNSSD } = require('@collight/dns-sd')
 const ports = require('./ports')
 
 module.exports = function mdnsResponder(app) {
@@ -30,8 +30,8 @@ module.exports = function mdnsResponder(app) {
     return
   }
 
-  // Create Bonjour instance
-  const bonjour = new Bonjour()
+  // Create DNSSD instance
+  const dnssd = new DNSSD()
 
   // Build TXT record, stripping null/empty values
   let txtRecord = {
@@ -60,7 +60,7 @@ module.exports = function mdnsResponder(app) {
 
   debug(`Starting mDNS ad: _${primaryType}._tcp ${host}:${primaryPort}`)
   publishedServices.push(
-    bonjour.publish({
+    dnssd.publish({
       name: serviceName,
       type: primaryType,
       port: primaryPort,
@@ -79,14 +79,14 @@ module.exports = function mdnsResponder(app) {
       const mdnsConfig = app.interfaces[key].mdns
 
       if (mdnsConfig.type === 'tcp' && mdnsConfig.name.charAt(0) === '_') {
-        // Remove leading underscore - bonjour-service adds it automatically
+        // Remove leading underscore - DNSSD adds it automatically
         const serviceType = mdnsConfig.name.substring(1)
 
         debug(
           `Starting mDNS ad: _${serviceType}._tcp ${host}:${mdnsConfig.port}`
         )
         publishedServices.push(
-          bonjour.publish({
+          dnssd.publish({
             name: serviceName,
             type: serviceType,
             port: mdnsConfig.port,
@@ -110,8 +110,8 @@ module.exports = function mdnsResponder(app) {
     stop: function () {
       debug('Stopping mDNS advertisements...')
       return new Promise((resolve) => {
-        bonjour.unpublishAll(() => {
-          bonjour.destroy()
+        dnssd.unpublishAll(() => {
+          dnssd.destroy()
           debug('mDNS advertisements stopped')
           resolve()
         })

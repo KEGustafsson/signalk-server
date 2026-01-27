@@ -18,7 +18,7 @@ import { createDebug } from './debug'
 const debug = createDebug('signalk-server:discovery')
 const canboatjs = require('@canboat/canboatjs')
 const dgram = require('dgram')
-const mdns = require('mdns-js')
+const { DNSSD } = require('@collight/dns-sd')
 const { networkInterfaces } = require('os')
 
 module.exports.runDiscovery = function (app) {
@@ -196,56 +196,59 @@ module.exports.runDiscovery = function (app) {
 
   function discoverSignalkWs(wsType) {
     try {
-      mdns.excludeInterface('0.0.0.0')
-      var browser = mdns.createBrowser(mdns.tcp('signalk-' + wsType))
+      const dnssd = new DNSSD()
+      debug('looking for SignalK ' + wsType)
 
-      browser.on('ready', function onReady() {
-        try {
-          debug('looking for SignalK ' + wsType)
-          browser.discover()
-        } catch (err) {
-          debug('discoverSignalkWs:', err)
-        }
-      })
-
-      browser.on('update', function onUpdate(data) {
-        try {
-          if (
-            !isLocalIP(data.addresses[0]) &&
-            Array.isArray(data.type) &&
-            data.type[0].name === 'signalk-' + wsType &&
-            !findWSProvider(data.addresses[0], wsType, data.host, data.port)
-          ) {
-            debug('discoverSignalkWs found data[' + wsType + ']:', data)
-            const providerId = wsType + '-' + data.host + ':' + data.port
-            app.emit('discovered', {
-              id: providerId,
-              enabled: false,
-              pipeElements: [
-                {
-                  type: 'providers/simple',
-                  options: {
-                    type: 'SignalK',
-                    subOptions: {
-                      type: wsType,
-                      host: data.host,
-                      port: data.port,
-                      providerId: providerId
-                    },
-                    providerId: providerId
-                  }
-                }
-              ]
-            })
+      const browser = dnssd.startBrowser(
+        {
+          filter: {
+            protocol: 'tcp',
+            type: 'signalk-' + wsType
           }
-        } catch (err) {
-          debug('discoverSignalkWs:', err)
+        },
+        (service) => {
+          try {
+            const addresses = service.addresses || []
+            const host = service.host || service.name
+            const port = service.port
+
+            if (
+              addresses.length > 0 &&
+              !isLocalIP(addresses[0]) &&
+              !findWSProvider(addresses[0], wsType, host, port)
+            ) {
+              debug('discoverSignalkWs found service[' + wsType + ']:', service)
+              const providerId = wsType + '-' + host + ':' + port
+              app.emit('discovered', {
+                id: providerId,
+                enabled: false,
+                pipeElements: [
+                  {
+                    type: 'providers/simple',
+                    options: {
+                      type: 'SignalK',
+                      subOptions: {
+                        type: wsType,
+                        host: host,
+                        port: port,
+                        providerId: providerId
+                      },
+                      providerId: providerId
+                    }
+                  }
+                ]
+              })
+            }
+          } catch (err) {
+            debug('discoverSignalkWs:', err)
+          }
         }
-      })
+      )
 
       setTimeout(() => {
         try {
           browser.stop()
+          dnssd.destroy()
           debug('discoverSignalkWs close')
         } catch (err) {
           debug('discoverSignalkWs:', err)
