@@ -1,0 +1,78 @@
+name: SignalK Pre-Release Full Sanity Test
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  signalk-full-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build SignalK image
+        run: |
+          docker buildx build \
+            --platform linux/${{ matrix.arch }} \
+            --load \
+            -t signalk:test-${{ matrix.arch }} .
+
+      - name: Start SignalK container
+        run: |
+          docker run -d --name signalk \
+            -p 3000:3000 \
+            -p 10120:10120 \
+            signalk:test-${{ matrix.arch }}
+
+      - name: Wait for startup
+        run: sleep 15
+
+      - name: Feed NMEA0183 input
+        run: |
+          cat docker/tests/sample.nmea | nc localhost 10120
+
+      - name: Validate REST API output
+        run: |
+          pip3 install requests
+          python3 docker/tests/validate_rest.py
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Playwright
+        run: |
+          npm install --save-dev @playwright/test
+          npx playwright install --with-deps
+
+      - name: Run UI tests
+        run: npx playwright test
+
+      - name: Upload Playwright artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: |
+            test-results
+            playwright-report
+
+      - name: Security scan (Trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: signalk:test-${{ matrix.arch }}
