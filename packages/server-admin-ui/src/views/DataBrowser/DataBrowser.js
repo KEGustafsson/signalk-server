@@ -509,6 +509,7 @@ class DataBrowser extends Component {
                     selectedSources={this.state.selectedSources}
                     onToggleSourceFilter={this.toggleSourceFilter}
                     sourceFilterActive={this.state.sourceFilterActive}
+                    sources={this.state.sources || {}}
                   />
                 )}
 

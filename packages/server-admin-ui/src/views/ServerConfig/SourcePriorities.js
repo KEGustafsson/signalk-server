@@ -15,6 +15,7 @@ import {
 import Creatable from 'react-select/creatable'
 import remove from 'lodash.remove'
 import uniq from 'lodash.uniq'
+import { getSourceDisplayLabel } from '../../utils/sourceLabelUtils'
 
 export const SOURCEPRIOS_PRIO_CHANGED = 'SOURCEPRIOS_PPRIO_CHANGED'
 export const SOURCEPRIOS_PRIO_DELETED = 'SOURCEPRIOS_PRIO_DELETED'
@@ -189,8 +190,11 @@ class PrefsEditor extends Component {
             <tbody>
               {[...this.props.priorities, { sourceRef: '', timeout: '' }].map(
                 ({ sourceRef, timeout }, index) => {
+                  const { resolveSourceLabel } = this.props
                   const options = this.state.sourceRefs.map((sourceRef) => ({
-                    label: sourceRef,
+                    label: resolveSourceLabel
+                      ? resolveSourceLabel(sourceRef)
+                      : sourceRef,
                     value: sourceRef
                   }))
                   return (
@@ -200,7 +204,12 @@ class PrefsEditor extends Component {
                         <Creatable
                           menuPortalTarget={document.body}
                           options={options}
-                          value={{ value: sourceRef, label: sourceRef }}
+                          value={{
+                            value: sourceRef,
+                            label: resolveSourceLabel
+                              ? resolveSourceLabel(sourceRef)
+                              : sourceRef
+                          }}
                           onChange={(e) => {
                             this.props.dispatch({
                               type: SOURCEPRIOS_PRIO_CHANGED,
@@ -348,7 +357,8 @@ class SourcePriorities extends Component {
   constructor(props) {
     super(props)
     this.state = {
-      availablePaths: []
+      availablePaths: [],
+      sources: {}
     }
     fetchAvailablePaths((pathsArray) => {
       this.setState({
@@ -358,6 +368,27 @@ class SourcePriorities extends Component {
         }))
       })
     })
+    this.fetchSources = this.fetchSources.bind(this)
+    this.resolveSourceLabel = this.resolveSourceLabel.bind(this)
+  }
+
+  componentDidMount() {
+    this.fetchSources()
+  }
+
+  fetchSources() {
+    fetch('/signalk/v1/api/sources', {
+      credentials: 'include'
+    })
+      .then((response) => response.json())
+      .then((sources) => {
+        this.setState({ sources })
+      })
+      .catch(() => undefined)
+  }
+
+  resolveSourceLabel(sourceRef) {
+    return getSourceDisplayLabel(sourceRef, this.state.sources)
   }
 
   render() {
@@ -421,6 +452,7 @@ class SourcePriorities extends Component {
                         dispatch={this.props.dispatch}
                         isSaving={this.props.saveState.isSaving}
                         pathIndex={index}
+                        resolveSourceLabel={this.resolveSourceLabel}
                       />
                     </td>
                     <td style={{ border: 'none' }}>

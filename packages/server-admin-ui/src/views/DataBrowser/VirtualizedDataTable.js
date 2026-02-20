@@ -15,7 +15,8 @@ function VirtualizedDataTable({
   onToggleSource,
   selectedSources,
   onToggleSourceFilter,
-  sourceFilterActive
+  sourceFilterActive,
+  sources
 }) {
   const containerRef = useRef(null)
   const [visibleRange, setVisibleRange] = useState({ start: 0, end: 50 })
@@ -236,6 +237,7 @@ function VirtualizedDataTable({
             isPaused={isPaused}
             onToggleSource={onToggleSource}
             selectedSources={selectedSources}
+            sources={sources}
           />
         ))}
 
