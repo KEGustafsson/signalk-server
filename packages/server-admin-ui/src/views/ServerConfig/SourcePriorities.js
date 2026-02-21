@@ -369,7 +369,6 @@ class SourcePriorities extends Component {
         }))
       })
     })
-    this.fetchSources = this.fetchSources.bind(this)
     this.resolveSourceLabel = this.resolveSourceLabel.bind(this)
   }
 

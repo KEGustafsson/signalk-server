@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import DataRow from './DataRow'
 import granularSubscriptionManager from './GranularSubscriptionManager'
+import { useSources } from '../../utils/useSources'
 import './VirtualTable.css'
 
 /**
@@ -15,9 +16,9 @@ function VirtualizedDataTable({
   onToggleSource,
   selectedSources,
   onToggleSourceFilter,
-  sourceFilterActive,
-  sources
+  sourceFilterActive
 }) {
+  const sources = useSources(0)
   const containerRef = useRef(null)
   const [visibleRange, setVisibleRange] = useState({ start: 0, end: 50 })
   const [isNarrowScreen, setIsNarrowScreen] = useState(

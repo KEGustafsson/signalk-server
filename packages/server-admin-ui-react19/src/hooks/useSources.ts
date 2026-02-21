@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 
-export function fetchSourcesData() {
+export function fetchSourcesData(): Promise<Record<string, unknown>> {
   return fetch('/signalk/v1/api/sources', {
     credentials: 'include'
   }).then((response) => response.json())
 }
 
-export function useSources(pollInterval = 30000) {
-  const [sources, setSources] = useState({})
+export function useSources(pollInterval = 30000): Record<string, unknown> {
+  const [sources, setSources] = useState<Record<string, unknown>>({})
 
   useEffect(() => {
     let canceled = false
@@ -23,9 +23,8 @@ export function useSources(pollInterval = 30000) {
     }
 
     doFetch()
-    const interval = pollInterval > 0
-      ? setInterval(doFetch, pollInterval)
-      : null
+    const interval =
+      pollInterval > 0 ? setInterval(doFetch, pollInterval) : null
 
     return () => {
       canceled = true

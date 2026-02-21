@@ -14,6 +14,8 @@ import { faFloppyDisk } from '@fortawesome/free-solid-svg-icons/faFloppyDisk'
 import Creatable from 'react-select/creatable'
 import uniq from 'lodash.uniq'
 import { useStore, useSourcePriorities } from '../../store'
+import { fetchSourcesData } from '../../hooks/useSources'
+import { getSourceDisplayLabel } from '../../hooks/sourceLabelUtils'
 
 // Types
 interface Priority {
@@ -65,6 +67,7 @@ const PrefsEditor: React.FC<PrefsEditorProps> = ({
 
   const [isOpen, setIsOpen] = useState(false)
   const [sourceRefs, setSourceRefs] = useState<string[]>([])
+  const [sources, setSources] = useState<Record<string, unknown>>({})
 
   useEffect(() => {
     if (path) {
@@ -74,10 +77,17 @@ const PrefsEditor: React.FC<PrefsEditorProps> = ({
     }
   }, [path])
 
+  useEffect(() => {
+    fetchSourcesData().then(setSources).catch(() => undefined)
+  }, [])
+
   const toggleEditor = () => setIsOpen((prev) => !prev)
 
+  const resolveSourceLabel = (ref: string): string =>
+    getSourceDisplayLabel(ref, sources)
+
   const options: SelectOption[] = sourceRefs.map((ref) => ({
-    label: ref,
+    label: resolveSourceLabel(ref),
     value: ref
   }))
 
