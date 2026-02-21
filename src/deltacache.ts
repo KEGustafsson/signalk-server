@@ -157,7 +157,19 @@ export default class DeltaCache {
     const addDelta = signalk.addDelta.bind(signalk)
     _.values(this.sourceDeltas).forEach(addDelta)
 
-    return signalk.retrieve().sources
+    const sources = signalk.retrieve().sources
+
+    // Promote ws device description from n2k (where the schema puts it
+    // because ws sources have a src field) to the source node top level
+    if (sources.ws) {
+      _.forEach(sources.ws, (node: any, key: string) => {
+        if (key !== 'label' && key !== 'type' && node?.n2k?.description) {
+          node.description = node.n2k.description
+        }
+      })
+    }
+
+    return sources
   }
 
   buildFullFromDeltas(

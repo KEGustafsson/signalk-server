@@ -1,6 +1,5 @@
 interface SourceMetadata {
   description?: string
-  n2k?: { description?: string }
   [key: string]: unknown
 }
 
@@ -28,6 +27,6 @@ export function getSourceDisplayLabel(
   sources: Record<string, unknown> = {}
 ): string {
   const metadata = getDeepestSourceMetadata(sourceRef, sources)
-  const description = metadata?.description || metadata?.n2k?.description
+  const description = metadata?.description
   return description || sourceRef
 }

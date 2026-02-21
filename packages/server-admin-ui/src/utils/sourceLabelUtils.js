@@ -19,6 +19,6 @@ function getDeepestSourceMetadata(sourceRef, sources) {
 
 export function getSourceDisplayLabel(sourceRef, sources = {}) {
   const metadata = getDeepestSourceMetadata(sourceRef, sources)
-  const description = metadata?.description || metadata?.n2k?.description
+  const description = metadata?.description
   return description || sourceRef
 }
