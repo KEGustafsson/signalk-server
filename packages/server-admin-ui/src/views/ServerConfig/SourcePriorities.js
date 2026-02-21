@@ -374,6 +374,13 @@ class SourcePriorities extends Component {
 
   componentDidMount() {
     this.fetchSources()
+    this.sourcesInterval = setInterval(() => this.fetchSources(), 30000)
+  }
+
+  componentWillUnmount() {
+    if (this.sourcesInterval) {
+      clearInterval(this.sourcesInterval)
+    }
   }
 
   fetchSources() {

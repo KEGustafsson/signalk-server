@@ -39,7 +39,7 @@ function VirtualizedDataTable({
   sourceFilterActive,
   showContext
 }: VirtualizedDataTableProps) {
-  const sources = useSources(0)
+  const sources = useSources()
   const containerRef = useRef<HTMLDivElement>(null)
   const [isNarrowScreen, setIsNarrowScreen] = useState(
     typeof window !== 'undefined' && window.innerWidth <= 768
