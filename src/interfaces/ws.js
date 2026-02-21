@@ -53,6 +53,8 @@ function wsSourceRefFromIdentifier(identifier) {
   return `ws.${identifier.replace(/\./g, '_')}`
 }
 
+const wsDeviceDescriptionCache = new Map()
+
 function getWsDeviceDescription(app, identifier) {
   if (
     !identifier ||
@@ -63,20 +65,30 @@ function getWsDeviceDescription(app, identifier) {
     return undefined
   }
 
+  const cached = wsDeviceDescriptionCache.get(identifier)
+  if (cached !== undefined) {
+    return cached || undefined
+  }
+
   try {
     const config = getSecurityConfig(app)
     const devices = app.securityStrategy.getDevices(config)
     if (!Array.isArray(devices)) {
+      wsDeviceDescriptionCache.set(identifier, null)
       return undefined
     }
     const device = devices.find((candidate) => candidate.clientId === identifier)
-    return device && device.description ? device.description : undefined
+    const description =
+      device && device.description ? device.description : undefined
+    wsDeviceDescriptionCache.set(identifier, description || null)
+    return description
   } catch (error) {
     debugConnection(
       `could not resolve ws device description for ${identifier}: ${
         error && error.message ? error.message : error
       }`
     )
+    wsDeviceDescriptionCache.set(identifier, null)
     return undefined
   }
 }
@@ -86,12 +98,16 @@ function publishWsDeviceSourceMetadata(app, identifier) {
     return
   }
 
+  const sourceRef = wsSourceRefFromIdentifier(identifier)
+  if (sourceRef in app.deltaCache.sourceDeltas) {
+    return
+  }
+
   const description = getWsDeviceDescription(app, identifier)
   if (!description) {
     return
   }
 
-  const sourceRef = wsSourceRefFromIdentifier(identifier)
   const sourceDelta = {
     context: app.selfContext,
     updates: [

@@ -11,34 +11,10 @@ import {
 } from 'reactstrap'
 import '../../fa-pulse.css'
 import { getSourceDisplayLabel } from '../../utils/sourceLabelUtils'
+import { useSources } from '../../utils/useSources'
 
 const Dashboard = (props) => {
-  const [sources, setSources] = React.useState({})
-
-  React.useEffect(() => {
-    let canceled = false
-
-    const fetchSources = () => {
-      fetch('/signalk/v1/api/sources', {
-        credentials: 'include'
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          if (!canceled) {
-            setSources(data)
-          }
-        })
-        .catch(() => undefined)
-    }
-
-    fetchSources()
-    const interval = setInterval(fetchSources, 30 * 1000)
-
-    return () => {
-      canceled = true
-      clearInterval(interval)
-    }
-  }, [])
+  const sources = useSources()
 
   const {
     deltaRate,

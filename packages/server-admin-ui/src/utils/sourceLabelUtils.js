@@ -1,22 +1,18 @@
 function getDeepestSourceMetadata(sourceRef, sources) {
   if (
-    !sourceRef ||
+    !sourceRef?.startsWith('ws.') ||
     !sources ||
-    typeof sources !== 'object' ||
-    !sourceRef.startsWith('ws.')
+    typeof sources !== 'object'
   ) {
     return null
   }
 
-  const parts = sourceRef.split('.')
-  let node = sources
-
-  for (let i = 0; i < parts.length; i++) {
-    if (!node || typeof node !== 'object' || !(parts[i] in node)) {
-      break
-    }
-    node = node[parts[i]]
-  }
+  const node = sourceRef
+    .split('.')
+    .reduce(
+      (acc, key) => (acc && typeof acc === 'object' ? acc[key] : undefined),
+      sources
+    )
 
   return node && typeof node === 'object' ? node : null
 }

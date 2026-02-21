@@ -16,6 +16,7 @@ import Creatable from 'react-select/creatable'
 import remove from 'lodash.remove'
 import uniq from 'lodash.uniq'
 import { getSourceDisplayLabel } from '../../utils/sourceLabelUtils'
+import { fetchSourcesData } from '../../utils/useSources'
 
 export const SOURCEPRIOS_PRIO_CHANGED = 'SOURCEPRIOS_PPRIO_CHANGED'
 export const SOURCEPRIOS_PRIO_DELETED = 'SOURCEPRIOS_PRIO_DELETED'
@@ -377,10 +378,7 @@ class SourcePriorities extends Component {
   }
 
   fetchSources() {
-    fetch('/signalk/v1/api/sources', {
-      credentials: 'include'
-    })
-      .then((response) => response.json())
+    fetchSourcesData()
       .then((sources) => {
         this.setState({ sources })
       })
