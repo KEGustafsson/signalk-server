@@ -541,6 +541,7 @@ describe('Security', () => {
     json = await result.json()
     json.should.have.property('ws')
     json.ws.should.have.property('1235-45653-343453')
+    json.ws['1235-45653-343453'].description.should.equal('My Awesome Sensor')
     json.ws['1235-45653-343453'].should.have.property('n2k')
     json.ws['1235-45653-343453'].n2k.description.should.equal(
       'My Awesome Sensor'

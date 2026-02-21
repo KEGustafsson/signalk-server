@@ -1,9 +1,12 @@
 interface SourceMetadata {
   description?: string
+  n2k?: {
+    description?: string
+  }
   [key: string]: unknown
 }
 
-function getDeepestSourceMetadata(
+function getWsSourceMetadata(
   sourceRef: string,
   sources: Record<string, unknown>
 ): SourceMetadata | null {
@@ -11,14 +14,18 @@ function getDeepestSourceMetadata(
     return null
   }
 
-  const node = sourceRef
-    .split('.')
-    .reduce<unknown>(
-      (acc, key) =>
-        acc && typeof acc === 'object' ? (acc as Record<string, unknown>)[key] : undefined,
-      sources
-    )
+  const parts = sourceRef.split('.')
+  const wsDeviceId = parts[1]
+  if (!wsDeviceId) {
+    return null
+  }
 
+  const wsSources = sources.ws
+  if (!wsSources || typeof wsSources !== 'object') {
+    return null
+  }
+
+  const node = (wsSources as Record<string, unknown>)[wsDeviceId]
   return node && typeof node === 'object' ? (node as SourceMetadata) : null
 }
 
@@ -26,7 +33,7 @@ export function getSourceDisplayLabel(
   sourceRef: string,
   sources: Record<string, unknown> = {}
 ): string {
-  const metadata = getDeepestSourceMetadata(sourceRef, sources)
-  const description = metadata?.description
+  const metadata = getWsSourceMetadata(sourceRef, sources)
+  const description = metadata?.description || metadata?.n2k?.description
   return description || sourceRef
 }

@@ -158,17 +158,7 @@ export default class DeltaCache {
     _.values(this.sourceDeltas).forEach(addDelta)
 
     const sources = signalk.retrieve().sources
-
-    // Promote ws device description from n2k (where the schema puts it
-    // because ws sources have a src field) to the source node top level
-    if (sources.ws) {
-      _.forEach(sources.ws, (node: any, key: string) => {
-        if (key !== 'label' && key !== 'type' && node?.n2k?.description) {
-          node.description = node.n2k.description
-        }
-      })
-    }
-
+    promoteWsDescriptionsToTopLevel(sources)
     return sources
   }
 
@@ -192,7 +182,11 @@ export default class DeltaCache {
       deltas.filter(secFilter).forEach(addDelta)
     }
 
-    return signalk.retrieve()
+    const full = signalk.retrieve()
+    if (includeSources) {
+      promoteWsDescriptionsToTopLevel(full.sources)
+    }
+    return full
   }
 
   getCachedDeltas(contextFilter: ContextMatcher, user?: string, key?: string) {
@@ -293,4 +287,21 @@ function getLeafObject(
     current = current[p]
   }
   return current
+}
+
+function promoteWsDescriptionsToTopLevel(sources: any) {
+  if (!sources?.ws || typeof sources.ws !== 'object') {
+    return
+  }
+
+  _.forEach(sources.ws, (node: any, key: string) => {
+    if (
+      key !== 'label' &&
+      key !== 'type' &&
+      !node?.description &&
+      node?.n2k?.description
+    ) {
+      node.description = node.n2k.description
+    }
+  })
 }

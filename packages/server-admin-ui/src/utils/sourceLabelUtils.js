@@ -1,4 +1,4 @@
-function getDeepestSourceMetadata(sourceRef, sources) {
+function getWsSourceMetadata(sourceRef, sources) {
   if (
     !sourceRef?.startsWith('ws.') ||
     !sources ||
@@ -7,18 +7,23 @@ function getDeepestSourceMetadata(sourceRef, sources) {
     return null
   }
 
-  const node = sourceRef
-    .split('.')
-    .reduce(
-      (acc, key) => (acc && typeof acc === 'object' ? acc[key] : undefined),
-      sources
-    )
+  const parts = sourceRef.split('.')
+  const wsDeviceId = parts[1]
+  if (!wsDeviceId) {
+    return null
+  }
 
+  const wsSources = sources.ws
+  if (!wsSources || typeof wsSources !== 'object') {
+    return null
+  }
+
+  const node = wsSources[wsDeviceId]
   return node && typeof node === 'object' ? node : null
 }
 
 export function getSourceDisplayLabel(sourceRef, sources = {}) {
-  const metadata = getDeepestSourceMetadata(sourceRef, sources)
-  const description = metadata?.description
+  const metadata = getWsSourceMetadata(sourceRef, sources)
+  const description = metadata?.description || metadata?.n2k?.description
   return description || sourceRef
 }

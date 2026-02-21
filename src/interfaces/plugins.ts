@@ -362,13 +362,32 @@ module.exports = (theApp: any) => {
 
   function getPath(aPath: string) {
     if (aPath === '/sources') {
-      return {
+      const sources = {
         ...theApp.signalk.retrieve().sources,
         ...theApp.deltaCache.getSources()
       }
+      promoteWsDescriptionsToTopLevel(sources)
+      return sources
     } else {
       return _.get(theApp.signalk.retrieve(), aPath)
     }
+  }
+
+  function promoteWsDescriptionsToTopLevel(sources: any) {
+    if (!sources?.ws || typeof sources.ws !== 'object') {
+      return
+    }
+
+    _.forEach(sources.ws, (node: any, key: string) => {
+      if (
+        key !== 'label' &&
+        key !== 'type' &&
+        !node?.description &&
+        node?.n2k?.description
+      ) {
+        node.description = node.n2k.description
+      }
+    })
   }
 
   function putSelfPath(
