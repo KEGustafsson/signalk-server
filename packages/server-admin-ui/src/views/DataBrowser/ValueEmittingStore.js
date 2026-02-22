@@ -8,6 +8,10 @@
  * since the same path can have multiple values from different sources.
  */
 
+// Evict non-self contexts that have not received an update in this window.
+// Mirrors the server-side deltacache.ts AIS purge cycle.
+const CONTEXT_EVICTION_MAX_AGE_MS = 5 * 60 * 1000
+
 class ValueEmittingStore {
   constructor() {
     // Data storage: { context: { path$SourceKey: pathData } }
@@ -20,6 +24,39 @@ class ValueEmittingStore {
     this.structureListeners = new Set()
     // Version counter for structural changes
     this.version = 0
+    // Last-updated timestamps for non-self contexts (used for eviction)
+    this._contextLastUpdated = {}
+  }
+
+  /**
+   * Evict a single context - removes all stored data, meta, and listeners.
+   * Structure listeners are notified so the UI can update.
+   */
+  _evictContext(context) {
+    const paths = Object.keys(this.data[context] || {})
+    for (const path$SourceKey of paths) {
+      this.listeners.delete(`${context}:${path$SourceKey}`)
+    }
+    delete this.data[context]
+    delete this.meta[context]
+    delete this._contextLastUpdated[context]
+    this.version++
+    this.structureListeners.forEach((callback) => callback(this.version))
+  }
+
+  /**
+   * Evict non-self contexts that have not received an update within maxAgeMs.
+   * Called periodically by the singleton instance.
+   */
+  _evictStaleContexts(maxAgeMs) {
+    const now = Date.now()
+    for (const context of Object.keys(this.data)) {
+      if (context === 'self') continue
+      const lastUpdated = this._contextLastUpdated[context] || 0
+      if (now - lastUpdated > maxAgeMs) {
+        this._evictContext(context)
+      }
+    }
   }
 
   /**
@@ -28,6 +65,11 @@ class ValueEmittingStore {
   updatePath(context, path$SourceKey, pathData) {
     if (!this.data[context]) {
       this.data[context] = {}
+    }
+
+    // Track last-update time so _evictStaleContexts knows which contexts are live
+    if (context !== 'self') {
+      this._contextLastUpdated[context] = Date.now()
     }
 
     const isNew = !this.data[context][path$SourceKey]
@@ -117,6 +159,13 @@ class ValueEmittingStore {
 
 // Singleton instance
 const store = new ValueEmittingStore()
+
+// Periodically remove stale non-self contexts to prevent unbounded memory growth
+// from AIS targets that are no longer transmitting.
+setInterval(
+  () => store._evictStaleContexts(CONTEXT_EVICTION_MAX_AGE_MS),
+  CONTEXT_EVICTION_MAX_AGE_MS
+)
 
 export default store
 export { ValueEmittingStore }
