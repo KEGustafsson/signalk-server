@@ -156,6 +156,10 @@ export function fetchAllData(dispatch) {
   fetchAccessRequests(dispatch)
 }
 
+// Single timer shared across connections so stale auto-clear dispatches
+// from a previous burst of backpressure events cannot race with newer ones.
+let backpressureClearTimer = null
+
 export function openServerEventsConnection(dispatch, isReconnect) {
   const proto = window.location.protocol === 'https:' ? 'wss' : 'ws'
   const ws = new WebSocket(
@@ -178,8 +182,12 @@ export function openServerEventsConnection(dispatch, isReconnect) {
           timestamp: Date.now()
         }
       })
-      // Auto-clear after 10 seconds
-      setTimeout(() => {
+      // Cancel any pending clear so only the most recent event's timer fires
+      if (backpressureClearTimer) {
+        clearTimeout(backpressureClearTimer)
+      }
+      backpressureClearTimer = setTimeout(() => {
+        backpressureClearTimer = null
         dispatch({ type: 'BACKPRESSURE_WARNING_CLEAR' })
       }, 10000)
     }
