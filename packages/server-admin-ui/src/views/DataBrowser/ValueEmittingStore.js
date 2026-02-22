@@ -8,6 +8,10 @@
  * since the same path can have multiple values from different sources.
  */
 
+// Evict contexts that have received no updates for this duration.
+// AIS targets that go silent are the primary source of unbounded store growth.
+const CONTEXT_EVICTION_MS = 5 * 60 * 1000 // 5 minutes
+
 class ValueEmittingStore {
   constructor() {
     // Data storage: { context: { path$SourceKey: pathData } }
@@ -16,10 +20,14 @@ class ValueEmittingStore {
     this.meta = {}
     // Per-path listeners: Map<"context:path$SourceKey", Set<callback>>
     this.listeners = new Map()
+    // Per-path meta listeners: Map<"meta:context:path", Set<callback>>
+    this.metaListeners = new Map()
     // Listeners for structural changes (new paths added)
     this.structureListeners = new Set()
     // Version counter for structural changes
     this.version = 0
+    // Last update timestamp per context for eviction
+    this._contextLastUpdated = {}
   }
 
   /**
@@ -32,6 +40,7 @@ class ValueEmittingStore {
 
     const isNew = !this.data[context][path$SourceKey]
     this.data[context][path$SourceKey] = pathData
+    this._contextLastUpdated[context] = Date.now()
 
     // Notify path-specific listeners
     const key = `${context}:${path$SourceKey}`
@@ -45,16 +54,24 @@ class ValueEmittingStore {
       this.version++
       this.structureListeners.forEach((callback) => callback(this.version))
     }
+
+    this._evictStaleContexts()
   }
 
   /**
-   * Update metadata for a path
+   * Update metadata for a path and notify meta subscribers
    */
   updateMeta(context, path, metaData) {
     if (!this.meta[context]) {
       this.meta[context] = {}
     }
     this.meta[context][path] = { ...this.meta[context][path], ...metaData }
+
+    const key = `meta:${context}:${path}`
+    const listeners = this.metaListeners.get(key)
+    if (listeners) {
+      listeners.forEach((callback) => callback(this.meta[context][path]))
+    }
   }
 
   /**
@@ -107,11 +124,64 @@ class ValueEmittingStore {
   }
 
   /**
+   * Subscribe to metadata updates for a path - returns unsubscribe function
+   */
+  subscribeMeta(context, path, callback) {
+    const key = `meta:${context}:${path}`
+    if (!this.metaListeners.has(key)) {
+      this.metaListeners.set(key, new Set())
+    }
+    this.metaListeners.get(key).add(callback)
+
+    return () => {
+      const listeners = this.metaListeners.get(key)
+      if (listeners) {
+        listeners.delete(callback)
+        if (listeners.size === 0) {
+          this.metaListeners.delete(key)
+        }
+      }
+    }
+  }
+
+  /**
    * Subscribe to structural changes (new paths added)
    */
   subscribeToStructure(callback) {
     this.structureListeners.add(callback)
     return () => this.structureListeners.delete(callback)
+  }
+
+  /**
+   * Remove a context and all its associated listener entries.
+   * Called for contexts that have been silent for CONTEXT_EVICTION_MS.
+   */
+  _evictContext(context) {
+    const path$SourceKeys = Object.keys(this.data[context] || {})
+    for (const path$SourceKey of path$SourceKeys) {
+      this.listeners.delete(`${context}:${path$SourceKey}`)
+    }
+
+    // Clean meta listeners keyed by path (not path$SourceKey)
+    const metaPaths = Object.keys(this.meta[context] || {})
+    for (const path of metaPaths) {
+      this.metaListeners.delete(`meta:${context}:${path}`)
+    }
+
+    delete this.data[context]
+    delete this.meta[context]
+    delete this._contextLastUpdated[context]
+    this.version++
+    this.structureListeners.forEach((callback) => callback(this.version))
+  }
+
+  _evictStaleContexts() {
+    const now = Date.now()
+    for (const context of Object.keys(this._contextLastUpdated)) {
+      if (now - this._contextLastUpdated[context] > CONTEXT_EVICTION_MS) {
+        this._evictContext(context)
+      }
+    }
   }
 }
 
