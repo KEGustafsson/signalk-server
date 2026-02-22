@@ -24,6 +24,12 @@ const STATE = {
 const DEBUG = false
 const log = (...args) => DEBUG && console.log('[GranularSub]', ...args)
 
+// Delay before sending the initial discovery message after startDiscovery() is
+// called.  Rapid view transitions (Dashboard <-> DataBrowser) cancel and
+// restart discovery before the timer fires, so the server never receives the
+// expensive "stream everything" message for short-lived mounts.
+const DISCOVERY_DEBOUNCE_MS = 200
+
 class GranularSubscriptionManager {
   constructor() {
     this.webSocket = null
@@ -31,6 +37,7 @@ class GranularSubscriptionManager {
     this.currentPaths = new Set()
     this.pendingPaths = null
     this.debounceTimer = null
+    this.discoveryTimer = null
     this.messageHandler = null
 
     // Configuration
@@ -48,17 +55,42 @@ class GranularSubscriptionManager {
   }
 
   /**
-   * Start subscription - immediately subscribe with announceNewPaths
-   * The server will announce all existing paths (once) and any new paths as they appear
+   * Start subscription - debounced to avoid a server cache flood on rapid
+   * view transitions.  The actual discovery message is sent after
+   * DISCOVERY_DEBOUNCE_MS; unsubscribeAll() cancels it if the component
+   * unmounts before the timer fires.
    */
   startDiscovery() {
     if (!this.webSocket) return
 
+    // Reset path tracking so _pathsAreSimilar does not suppress the first
+    // requestPaths call after a context change or reconnect
+    this.currentPaths = new Set()
+
+    // Cancel any in-flight discovery so rapid mount/unmount cycles do not
+    // trigger multiple server cache dumps
+    if (this.discoveryTimer) {
+      clearTimeout(this.discoveryTimer)
+    }
+
+    this.discoveryTimer = setTimeout(() => {
+      this.discoveryTimer = null
+      this._sendDiscovery()
+    }, DISCOVERY_DEBOUNCE_MS)
+  }
+
+  /**
+   * Send the actual discovery message to the server.
+   * Called by the debounced startDiscovery timer.
+   */
+  _sendDiscovery() {
+    if (!this.webSocket) return
+
     log('Starting subscription with announceNewPaths')
 
-    // Subscribe with announceNewPaths to discover all paths
+    // Subscribe with announceNewPaths to discover all paths.
     // Server will send cached values for ALL paths matching context (once each)
-    // and announce any new paths that appear later
+    // and announce any new paths that appear later.
     this._send({
       context: '*',
       announceNewPaths: true,
@@ -184,44 +216,45 @@ class GranularSubscriptionManager {
       unsubscribe: [{ path: '*' }]
     })
 
-    // Step 2: Subscribe to new paths (with small delay to ensure order)
-    setTimeout(() => {
-      if (!newPaths || newPaths.size === 0) {
-        this.currentPaths = new Set()
-        this.state = STATE.SUBSCRIBED
-        return
-      }
-
-      // Extract unique paths (remove source suffix from path$SourceKeys)
-      const uniquePaths = this._extractUniquePaths(newPaths)
-
-      if (uniquePaths.length === 0) {
-        this.currentPaths = new Set()
-        this.state = STATE.SUBSCRIBED
-        return
-      }
-
-      const subMsg = {
-        context: '*',
-        announceNewPaths: true, // Continue discovering new paths
-        subscribe: uniquePaths.map((path) => ({ path }))
-      }
-
-      this._send(subMsg)
-      this.currentPaths = newPaths
+    // Step 2: Subscribe to new paths.
+    // WebSocket guarantees in-order delivery on a single connection, so the
+    // subscribe message sent right after the unsubscribe will always be
+    // processed by the server in the correct sequence.
+    if (!newPaths || newPaths.size === 0) {
+      this.currentPaths = new Set()
       this.state = STATE.SUBSCRIBED
+      return
+    }
 
-      // Check if there's a pending request that came in during resubscription
-      if (this.pendingPaths) {
-        const pending = this.pendingPaths
-        this.pendingPaths = null
-        // Debounce the pending request
-        this.debounceTimer = setTimeout(() => {
-          this.debounceTimer = null
-          this._executeResubscription(pending)
-        }, this.DEBOUNCE_MS)
-      }
-    }, 10)
+    // Extract unique paths (remove source suffix from path$SourceKeys)
+    const uniquePaths = this._extractUniquePaths(newPaths)
+
+    if (uniquePaths.length === 0) {
+      this.currentPaths = new Set()
+      this.state = STATE.SUBSCRIBED
+      return
+    }
+
+    const subMsg = {
+      context: '*',
+      announceNewPaths: true, // Continue discovering new paths
+      subscribe: uniquePaths.map((path) => ({ path }))
+    }
+
+    this._send(subMsg)
+    this.currentPaths = newPaths
+    this.state = STATE.SUBSCRIBED
+
+    // Check if there's a pending request that came in during resubscription
+    if (this.pendingPaths) {
+      const pending = this.pendingPaths
+      this.pendingPaths = null
+      // Debounce the pending request
+      this.debounceTimer = setTimeout(() => {
+        this.debounceTimer = null
+        this._executeResubscription(pending)
+      }, this.DEBOUNCE_MS)
+    }
   }
 
   /**
@@ -252,6 +285,11 @@ class GranularSubscriptionManager {
    * Unsubscribe from all paths - used during pause/cleanup
    */
   unsubscribeAll() {
+    if (this.discoveryTimer) {
+      clearTimeout(this.discoveryTimer)
+      this.discoveryTimer = null
+    }
+
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer)
       this.debounceTimer = null
@@ -277,6 +315,11 @@ class GranularSubscriptionManager {
    * Cancel pending subscription changes
    */
   cancelPending() {
+    if (this.discoveryTimer) {
+      clearTimeout(this.discoveryTimer)
+      this.discoveryTimer = null
+    }
+
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer)
       this.debounceTimer = null
@@ -292,7 +335,8 @@ class GranularSubscriptionManager {
       state: this.state,
       currentPathsCount: this.currentPaths.size,
       hasPending: this.pendingPaths !== null,
-      hasDebounceTimer: this.debounceTimer !== null
+      hasDebounceTimer: this.debounceTimer !== null,
+      hasDiscoveryTimer: this.discoveryTimer !== null
     }
   }
 
