@@ -54,6 +54,10 @@ class GranularSubscriptionManager {
   startDiscovery() {
     if (!this.webSocket) return
 
+    // Reset path tracking so _pathsAreSimilar does not suppress the first
+    // requestPaths call after a context change or reconnect
+    this.currentPaths = new Set()
+
     log('Starting subscription with announceNewPaths')
 
     // Subscribe with announceNewPaths to discover all paths

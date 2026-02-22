@@ -224,26 +224,7 @@ module.exports = function (app) {
           )
           if (!filtered) return
 
-          const bufferSize = spark.request.socket.bufferSize
-
-          if (bufferSize > BACKPRESSURE_ENTER_THRESHOLD) {
-            // Enter/stay in backpressure mode - accumulate latest values only
-            if (!spark.backpressure.active) {
-              spark.backpressure.active = true
-              spark.backpressure.since = Date.now()
-              debug(
-                'Entering backpressure mode for spark %s (buffer: %d)',
-                spark.id,
-                bufferSize
-              )
-            }
-            accumulateLatestValue(spark.backpressure.accumulator, filtered)
-          } else {
-            // Normal mode - send immediately
-            sendMetaData(app, spark, filtered)
-            spark.write(filtered)
-          }
-
+          sendOrAccumulate(app, spark, filtered)
           assertBufferSize(spark)
         }
 
@@ -695,26 +676,7 @@ function processSubscribe(app, unsubscribes, spark, assertBufferSize, msg) {
         )
         if (!filtered) return
 
-        const bufferSize = spark.request.socket.bufferSize
-
-        if (bufferSize > BACKPRESSURE_ENTER_THRESHOLD) {
-          // Enter/stay in backpressure mode - accumulate latest values only
-          if (!spark.backpressure.active) {
-            spark.backpressure.active = true
-            spark.backpressure.since = Date.now()
-            debug(
-              'Entering backpressure mode for spark %s (buffer: %d)',
-              spark.id,
-              bufferSize
-            )
-          }
-          accumulateLatestValue(spark.backpressure.accumulator, filtered)
-        } else {
-          // Normal mode - send immediately
-          sendMetaData(app, spark, filtered)
-          spark.write(filtered)
-        }
-
+        sendOrAccumulate(app, spark, filtered)
         assertBufferSize(spark)
       },
       spark.request.skPrincipal
@@ -869,6 +831,31 @@ function startServerLog(app, spark) {
   })
   return () => {
     app.removeListener('serverlog', onServerLogEvent)
+  }
+}
+
+/**
+ * Send a filtered delta to the client, applying backpressure if the socket
+ * buffer is over threshold.  Extracted to avoid duplicating this logic in
+ * both the realtime onChange handler and the subscription callback.
+ */
+function sendOrAccumulate(app, spark, filtered) {
+  const bufferSize = spark.request.socket.bufferSize
+
+  if (bufferSize > BACKPRESSURE_ENTER_THRESHOLD) {
+    if (!spark.backpressure.active) {
+      spark.backpressure.active = true
+      spark.backpressure.since = Date.now()
+      debug(
+        'Entering backpressure mode for spark %s (buffer: %d)',
+        spark.id,
+        bufferSize
+      )
+    }
+    accumulateLatestValue(spark.backpressure.accumulator, filtered)
+  } else {
+    sendMetaData(app, spark, filtered)
+    spark.write(filtered)
   }
 }
 
