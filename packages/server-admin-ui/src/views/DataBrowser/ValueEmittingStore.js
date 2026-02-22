@@ -20,6 +20,8 @@ class ValueEmittingStore {
     this.meta = {}
     // Per-path listeners: Map<"context:path$SourceKey", Set<callback>>
     this.listeners = new Map()
+    // Per-path meta listeners: Map<"meta:context:path", Set<callback>>
+    this.metaListeners = new Map()
     // Listeners for structural changes (new paths added)
     this.structureListeners = new Set()
     // Version counter for structural changes
@@ -90,13 +92,20 @@ class ValueEmittingStore {
   }
 
   /**
-   * Update metadata for a path
+   * Update metadata for a path and notify subscribers
    */
   updateMeta(context, path, metaData) {
     if (!this.meta[context]) {
       this.meta[context] = {}
     }
     this.meta[context][path] = { ...this.meta[context][path], ...metaData }
+
+    // Notify meta-specific listeners
+    const key = `meta:${context}:${path}`
+    const listeners = this.metaListeners.get(key)
+    if (listeners) {
+      listeners.forEach((callback) => callback(this.meta[context][path]))
+    }
   }
 
   /**
@@ -143,6 +152,27 @@ class ValueEmittingStore {
         listeners.delete(callback)
         if (listeners.size === 0) {
           this.listeners.delete(key)
+        }
+      }
+    }
+  }
+
+  /**
+   * Subscribe to metadata updates for a path - returns unsubscribe function
+   */
+  subscribeMeta(context, path, callback) {
+    const key = `meta:${context}:${path}`
+    if (!this.metaListeners.has(key)) {
+      this.metaListeners.set(key, new Set())
+    }
+    this.metaListeners.get(key).add(callback)
+
+    return () => {
+      const listeners = this.metaListeners.get(key)
+      if (listeners) {
+        listeners.delete(callback)
+        if (listeners.size === 0) {
+          this.metaListeners.delete(key)
         }
       }
     }

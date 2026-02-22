@@ -59,13 +59,18 @@ export function usePathData(context, path$SourceKey) {
 }
 
 /**
- * Hook to get metadata for a path
+ * Hook to get metadata for a path, updating whenever new meta arrives
  */
 export function useMetaData(context, path) {
   const [meta, setMeta] = useState(() => store.getMeta(context, path))
 
   useEffect(() => {
+    // Sync with current value when context or path changes
     setMeta(store.getMeta(context, path))
+
+    // Subscribe to future meta updates for this path
+    const unsubscribe = store.subscribeMeta(context, path, setMeta)
+    return unsubscribe
   }, [context, path])
 
   return meta
