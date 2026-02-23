@@ -54,6 +54,10 @@ class GranularSubscriptionManager {
   startDiscovery() {
     if (!this.webSocket) return
 
+    // Reset path tracking so _pathsAreSimilar does not suppress the first
+    // requestPaths call after a context change or reconnect.
+    this.currentPaths = new Set()
+
     log('Starting subscription with announceNewPaths')
 
     // Subscribe with announceNewPaths to discover all paths
@@ -184,44 +188,45 @@ class GranularSubscriptionManager {
       unsubscribe: [{ path: '*' }]
     })
 
-    // Step 2: Subscribe to new paths (with small delay to ensure order)
-    setTimeout(() => {
-      if (!newPaths || newPaths.size === 0) {
-        this.currentPaths = new Set()
-        this.state = STATE.SUBSCRIBED
-        return
-      }
-
-      // Extract unique paths (remove source suffix from path$SourceKeys)
-      const uniquePaths = this._extractUniquePaths(newPaths)
-
-      if (uniquePaths.length === 0) {
-        this.currentPaths = new Set()
-        this.state = STATE.SUBSCRIBED
-        return
-      }
-
-      const subMsg = {
-        context: '*',
-        announceNewPaths: true, // Continue discovering new paths
-        subscribe: uniquePaths.map((path) => ({ path }))
-      }
-
-      this._send(subMsg)
-      this.currentPaths = newPaths
+    // Step 2: Subscribe to new paths.
+    // WebSocket guarantees in-order delivery on a single connection, so the
+    // subscribe message sent immediately after unsubscribe will always be
+    // processed by the server in the correct sequence.
+    if (!newPaths || newPaths.size === 0) {
+      this.currentPaths = new Set()
       this.state = STATE.SUBSCRIBED
+      return
+    }
 
-      // Check if there's a pending request that came in during resubscription
-      if (this.pendingPaths) {
-        const pending = this.pendingPaths
-        this.pendingPaths = null
-        // Debounce the pending request
-        this.debounceTimer = setTimeout(() => {
-          this.debounceTimer = null
-          this._executeResubscription(pending)
-        }, this.DEBOUNCE_MS)
-      }
-    }, 10)
+    // Extract unique paths (remove source suffix from path$SourceKeys)
+    const uniquePaths = this._extractUniquePaths(newPaths)
+
+    if (uniquePaths.length === 0) {
+      this.currentPaths = new Set()
+      this.state = STATE.SUBSCRIBED
+      return
+    }
+
+    const subMsg = {
+      context: '*',
+      announceNewPaths: true, // Continue discovering new paths
+      subscribe: uniquePaths.map((path) => ({ path }))
+    }
+
+    this._send(subMsg)
+    this.currentPaths = newPaths
+    this.state = STATE.SUBSCRIBED
+
+    // Check if there's a pending request that came in during resubscription
+    if (this.pendingPaths) {
+      const pending = this.pendingPaths
+      this.pendingPaths = null
+      // Debounce the pending request
+      this.debounceTimer = setTimeout(() => {
+        this.debounceTimer = null
+        this._executeResubscription(pending)
+      }, this.DEBOUNCE_MS)
+    }
   }
 
   /**
