@@ -60,12 +60,16 @@ export function usePathData(context, path$SourceKey) {
 
 /**
  * Hook to get metadata for a path
+ * Subscribes to live updates so metadata arriving after initial render
+ * (e.g. units, description) triggers a re-render.
  */
 export function useMetaData(context, path) {
   const [meta, setMeta] = useState(() => store.getMeta(context, path))
 
   useEffect(() => {
     setMeta(store.getMeta(context, path))
+    const unsubscribe = store.subscribeMeta(context, path, setMeta)
+    return unsubscribe
   }, [context, path])
 
   return meta
