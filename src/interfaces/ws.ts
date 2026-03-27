@@ -71,6 +71,8 @@ interface SignalKSparkRequest {
   connection: { remoteAddress: string }
 }
 
+type SourcePolicy = 'preferred' | 'all'
+
 interface Spark {
   id: string
   query: {
@@ -81,11 +83,11 @@ interface Spark {
     serverevents?: string
     events?: string
     sendCachedValues?: string
-    sourcePolicy?: string
+    sourcePolicy?: SourcePolicy
   }
   request: SignalKSparkRequest
   sendMetaDeltas: boolean
-  sourcePolicy: string
+  sourcePolicy: SourcePolicy
   sentMetaData: Record<string, boolean>
   backpressureManager?: BackpressureManager
   skPendingAccessRequest?: boolean
@@ -116,7 +118,7 @@ interface WsMessage {
   state?: string
   statusCode?: number
   message?: string
-  sourcePolicy?: string
+  sourcePolicy?: SourcePolicy
 }
 
 interface WsRequestReply extends UpdateOptions {
