@@ -285,13 +285,6 @@ export class WebSocketService {
           .getState()
           .setVesselInfo(data as Parameters<SignalKStore['setVesselInfo']>[0])
         break
-      case 'SOURCEPRIORITIES':
-        useStore
-          .getState()
-          .setSourcePriorities(
-            data as Parameters<SignalKStore['setSourcePriorities']>[0]
-          )
-        break
       case 'RECEIVE_APPSTORE_LIST':
       case 'APP_STORE_CHANGED':
         useStore
