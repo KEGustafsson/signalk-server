@@ -165,7 +165,8 @@ export default defineConfig({
     sourcemap: true,
     target: 'es2023',
     assetsInlineLimit: 0, // Prevent inlining assets to allow server-side logo override
-    cssCodeSplit: false // Generate single CSS file to ensure it's always loaded
+    cssCodeSplit: false, // Generate single CSS file to ensure it's always loaded
+    chunkSizeWarningLimit: 2500
   },
   resolve: {
     alias: {
