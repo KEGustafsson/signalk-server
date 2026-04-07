@@ -471,6 +471,11 @@ const SourcePriorities: React.FC = () => {
 
     const result: string[] = []
     for (const [path, sources] of Object.entries(multiSourcePaths)) {
+      // Notifications bypass source priority server-side, so configuring
+      // them here would be a no-op. Hide them from the warning banner.
+      if (path === 'notifications' || path.startsWith('notifications.')) {
+        continue
+      }
       const hasUncoveredSource = sources.some((ref) => {
         if (configuredSourcesByPath.get(path)?.has(ref)) return false
         if (rankedRefs.has(ref)) return false
@@ -504,10 +509,15 @@ const SourcePriorities: React.FC = () => {
   useEffect(() => {
     fetchAvailablePaths((pathsArray) => {
       setAvailablePaths(
-        pathsArray.map((path) => ({
-          value: path,
-          label: path
-        }))
+        pathsArray
+          .filter(
+            (path) =>
+              path !== 'notifications' && !path.startsWith('notifications.')
+          )
+          .map((path) => ({
+            value: path,
+            label: path
+          }))
       )
     })
     fetch('/signalk/v1/api/sources', { credentials: 'include' })

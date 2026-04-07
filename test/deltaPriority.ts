@@ -388,6 +388,64 @@ describe('path-level overrides source ranking', () => {
   })
 })
 
+describe('notifications bypass priority', () => {
+  const NOTI = 'notifications.instrument.NoFix'
+
+  it('notification from low-ranked source is accepted even when higher-ranked source is latest', () => {
+    const ranking: SourceRankingEntry[] = [
+      { sourceRef: 'plotter' as SourceRef, timeout: 5000 },
+      { sourceRef: 'i70' as SourceRef, timeout: 5000 }
+    ]
+    const toPreferred = getToPreferredDelta({}, ranking)
+    const t = 1000000
+
+    toPreferred(makeDelta('plotter', NOTI, 1), new Date(t), 'self')
+    const r = toPreferred(makeDelta('i70', NOTI, 2), new Date(t + 1), 'self')
+    assert(
+      accepted(r),
+      'i70 notification accepted despite plotter being higher ranked'
+    )
+  })
+
+  it('notification from globally-disabled source is still accepted', () => {
+    const ranking: SourceRankingEntry[] = [
+      { sourceRef: 'i70' as SourceRef, timeout: -1 }
+    ]
+    const toPreferred = getToPreferredDelta({}, ranking)
+    const r = toPreferred(makeDelta('i70', NOTI, 1), new Date(1000000), 'self')
+    assert(accepted(r), 'disabled source notification still accepted')
+  })
+
+  it('path-level config on a notification path is ignored', () => {
+    const pathConfig: SourcePrioritiesData = {
+      [NOTI]: [{ sourceRef: 'plotter' as SourceRef, timeout: 5000 }]
+    }
+    const toPreferred = getToPreferredDelta(pathConfig, undefined)
+    const t = 1000000
+
+    toPreferred(makeDelta('plotter', NOTI, 1), new Date(t), 'self')
+    const r = toPreferred(makeDelta('i70', NOTI, 2), new Date(t + 1), 'self')
+    assert(accepted(r), 'unranked source still wins on notification path')
+  })
+
+  it('non-notification path in same scenario still respects priority', () => {
+    const ranking: SourceRankingEntry[] = [
+      { sourceRef: 'plotter' as SourceRef, timeout: 5000 },
+      { sourceRef: 'i70' as SourceRef, timeout: 5000 }
+    ]
+    const toPreferred = getToPreferredDelta({}, ranking)
+    const PATH = 'environment.wind.speedApparent'
+    const t = 1000000
+
+    toPreferred(makeDelta('plotter', PATH, 1), new Date(t), 'self')
+    const r = toPreferred(makeDelta('i70', PATH, 2), new Date(t + 1), 'self')
+    assert(
+      !accepted(r),
+      'i70 rejected on regular path because plotter is higher ranked'
+    )
+  })
+})
+
 describe('non-self context', () => {
   it('non-self context deltas pass through unchanged', () => {
     const ranking: SourceRankingEntry[] = [
