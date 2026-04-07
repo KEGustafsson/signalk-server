@@ -72,6 +72,8 @@ The priority engine uses a timeout-based fallback mechanism:
 
 All source data is preserved in the server's data model regardless of priority configuration. Priority filtering only affects which source's values are delivered to subscribers by default. See [Source Priority in the Data Browser](#source-priority-in-the-data-browser) for how to view all sources.
 
+`notifications.*` paths bypass source priority entirely — every source's notifications are delivered unchanged. Notifications are events, not measurements, so suppressing one source's alarm because another source is "preferred" is never the right behaviour.
+
 ## Source Priority in the Data Browser
 
 The Data Browser (_Data -> Data Browser_) includes a **Source Priority** toggle that controls which source's data is displayed:

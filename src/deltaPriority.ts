@@ -208,6 +208,14 @@ export const getToPreferredDelta = (
           if ('values' in update) {
             update.values = update.values.reduce(
               (acc: any, pathValue: PathValue) => {
+                // Notifications are events, not measurements — never subject
+                // to source priority. Every source's notifications are
+                // delivered unchanged.
+                const p = pathValue.path as string
+                if (p === 'notifications' || p.startsWith('notifications.')) {
+                  acc.push(pathValue)
+                  return acc
+                }
                 const latest = getLatest(
                   delta.context as Context,
                   pathValue.path as Path
