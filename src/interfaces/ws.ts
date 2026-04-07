@@ -24,12 +24,18 @@ import {
   InvalidTokenError,
   WithSecurityStrategy
 } from '../security'
+import {
+  LoginRateLimiter,
+  LOGIN_RATE_LIMIT_MESSAGE
+} from '../login-rate-limiter'
 import { WithConfig } from '../app'
 import {
   findRequest,
   updateRequest,
   queryRequest,
-  Reply
+  Reply,
+  RequestState,
+  UpdateOptions
 } from '../requestResponse'
 import { putPath, deletePath } from '../put'
 import { createDebug } from '../debug'
@@ -110,6 +116,44 @@ interface WsMessage {
   message?: string
 }
 
+interface WsRequestReply extends UpdateOptions {
+  requestId: string
+  state: RequestState | null
+}
+
+function isWsRequestReply(msg: unknown): msg is WsRequestReply {
+  if (!msg || typeof msg !== 'object') {
+    return false
+  }
+
+  const candidate = msg as Record<string, unknown>
+  const state = candidate.state
+
+  return (
+    typeof candidate.requestId === 'string' &&
+    (state === 'PENDING' || state === 'COMPLETED' || state === null)
+  )
+}
+
+function normalizeStatusCode(statusCode: unknown): number | null {
+  return typeof statusCode === 'number' && Number.isFinite(statusCode)
+    ? statusCode
+    : null
+}
+
+function normalizeMessage(message: unknown): string | null {
+  return typeof message === 'string' ? message : null
+}
+
+function normalizePercentComplete(percentComplete: unknown): number | null {
+  return typeof percentComplete === 'number' &&
+    Number.isFinite(percentComplete) &&
+    percentComplete >= 0 &&
+    percentComplete <= 100
+    ? percentComplete
+    : null
+}
+
 interface PathSources {
   [path: string]: {
     [source: string]: Spark
@@ -135,6 +179,7 @@ interface SecurityStrategy {
     timeToLive?: number | null
   }>
   isDummy: () => boolean
+  loginRateLimiter?: LoginRateLimiter
 }
 
 interface SubscriptionManager {
@@ -309,13 +354,30 @@ function wsInterface(app: WsApp): WsApi {
             return
           }
 
-          const listener = (msg: WsMessage) => {
-            if (msg.requestId === requestId) {
-              updateRequest(
-                requestId,
-                msg.state as 'PENDING' | 'COMPLETED' | null,
-                msg
-              )
+          const listener = (msg: unknown) => {
+            let parsedMsg = msg
+            if (typeof parsedMsg === 'string' || Buffer.isBuffer(parsedMsg)) {
+              try {
+                parsedMsg = JSON.parse(String(parsedMsg))
+              } catch (_err) {
+                return
+              }
+            }
+
+            if (
+              isWsRequestReply(parsedMsg) &&
+              parsedMsg.requestId === requestId
+            ) {
+              const updateOptions: UpdateOptions = {
+                statusCode: normalizeStatusCode(parsedMsg.statusCode),
+                data: parsedMsg.data ?? null,
+                message: normalizeMessage(parsedMsg.message),
+                percentComplete: normalizePercentComplete(
+                  parsedMsg.percentComplete
+                )
+              }
+
+              updateRequest(requestId, parsedMsg.state, updateOptions)
                 .then((reply) => {
                   if (reply.state !== 'PENDING') {
                     spark!.removeListener(
@@ -668,6 +730,22 @@ function wsInterface(app: WsApp): WsApi {
     })
   }
 
+  function getClientIp(app: WsApp, spark: Spark): string {
+    if (
+      app.config.settings.trustProxy &&
+      app.config.settings.trustProxy !== 'false'
+    ) {
+      const forwardedFor = spark.request.headers['x-forwarded-for']
+      if (typeof forwardedFor === 'string') {
+        const firstIp = forwardedFor.split(',')[0].trim()
+        if (firstIp) {
+          return firstIp
+        }
+      }
+    }
+    return spark.request.connection.remoteAddress
+  }
+
   function processAccessRequest(
     app: WsApp,
     spark: Spark,
@@ -681,13 +759,7 @@ function wsInterface(app: WsApp): WsApi {
         message: 'A request has already been submitted'
       })
     } else {
-      const forwardedFor = spark.request.headers['x-forwarded-for']
-      const clientIp =
-        (app.config.settings.trustProxy &&
-          app.config.settings.trustProxy !== 'false' &&
-          typeof forwardedFor === 'string' &&
-          forwardedFor) ||
-        spark.request.connection.remoteAddress
+      const clientIp = getClientIp(app, spark)
       requestAccess(
         app as unknown as WithSecurityStrategy & WithConfig,
         msg,
@@ -725,6 +797,20 @@ function wsInterface(app: WsApp): WsApi {
   }
 
   function processLoginRequest(app: WsApp, spark: Spark, msg: WsMessage): void {
+    const rateLimiter = app.securityStrategy.loginRateLimiter
+    if (rateLimiter) {
+      const { allowed } = rateLimiter.check(getClientIp(app, spark))
+      if (!allowed) {
+        spark.write({
+          requestId: msg.requestId,
+          state: 'COMPLETED',
+          statusCode: 429,
+          message: LOGIN_RATE_LIMIT_MESSAGE
+        })
+        return
+      }
+    }
+
     app.securityStrategy
       .login(msg.login!.username, msg.login!.password)
       .then((reply) => {
