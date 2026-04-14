@@ -261,6 +261,69 @@ describe('source ranking', () => {
     const r2 = toPreferred(makeDelta('b', PATH, 2), new Date(t + 1), 'self')
     assert(accepted(r2), 'b updating its own value should be accepted')
   })
+
+  it("ranked source's timeout holds off unknown competitors", () => {
+    // User ranks a plugin source and sets a 60s timeout, expecting
+    // "hold this source for 60s of silence before anyone else wins".
+    // An unknown NMEA 2000 source publishing the same path must not
+    // steal the slot after the default unknownSourceTimeout.
+    const ranking: SourceRankingEntry[] = [
+      { sourceRef: 'plugin' as SourceRef, timeout: 60000 }
+    ]
+    const toPreferred = getToPreferredDelta({}, ranking, 10000)
+    const t = 1000000
+
+    toPreferred(makeDelta('plugin', PATH, 1), new Date(t), 'self')
+
+    const r1 = toPreferred(
+      makeDelta('n2k', PATH, 2),
+      new Date(t + 11000),
+      'self'
+    )
+    assert(
+      !accepted(r1),
+      'unknown n2k rejected within ranked source timeout even past unknownSourceTimeout'
+    )
+
+    const r2 = toPreferred(
+      makeDelta('n2k', PATH, 3),
+      new Date(t + 60001),
+      'self'
+    )
+    assert(accepted(r2), 'unknown n2k accepted after ranked source timeout')
+  })
+
+  it('unknown source that briefly won does not self-renew forever', () => {
+    // If the configured source goes silent for just long enough that
+    // an unknown source squeezes in, the unknown source must not then
+    // hold the slot via the "latest.sourceRef === sourceRef" rule —
+    // otherwise a transient gap permanently shadows the user's
+    // configured preference.
+    const ranking: SourceRankingEntry[] = [
+      { sourceRef: 'plugin' as SourceRef, timeout: 1000 }
+    ]
+    const toPreferred = getToPreferredDelta({}, ranking, 500)
+    const t = 1000000
+
+    toPreferred(makeDelta('plugin', PATH, 1), new Date(t), 'self')
+
+    // Unknown n2k waits past both timeouts and becomes latest
+    const r1 = toPreferred(
+      makeDelta('n2k', PATH, 2),
+      new Date(t + 1500),
+      'self'
+    )
+    assert(accepted(r1), 'n2k accepted after plugin goes silent')
+
+    // Plugin comes back — should be accepted immediately because it
+    // outranks the unknown incumbent
+    const r2 = toPreferred(
+      makeDelta('plugin', PATH, 3),
+      new Date(t + 1501),
+      'self'
+    )
+    assert(accepted(r2), 'plugin reclaims the slot from unknown incumbent')
+  })
 })
 
 describe('disabled source (timeout=-1)', () => {
