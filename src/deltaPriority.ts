@@ -216,8 +216,7 @@ export const getToPreferredDelta = (
       : incomingPrecedence.timeout
 
     const isPreferred =
-      !latestIsFromHigherPrecedence ||
-      millis - latest.timestamp > holdTimeout
+      !latestIsFromHigherPrecedence || millis - latest.timestamp > holdTimeout
     if (debug.enabled) {
       debug(`${path}:${sourceRef}:${isPreferred}:${millis - latest.timestamp}`)
     }
