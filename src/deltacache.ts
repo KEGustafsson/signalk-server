@@ -496,6 +496,10 @@ export default class DeltaCache {
     const byPath = new Map<string, NormalizedDelta>()
     const result: NormalizedDelta[] = []
     for (const d of deltas) {
+      // Defensive: getCachedDeltas(key=...) can surface non-leaf branch
+      // objects when the subscription path is a parent of the actual
+      // leaves. Skip anything that isn't a well-formed delta.
+      if (!d || typeof d.path !== 'string') continue
       if (d.path.length === 0) {
         // Root multi-value deltas carry distinct data per source — keep all
         result.push(d)
