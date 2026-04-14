@@ -205,15 +205,20 @@ export const getToPreferredDelta = (
     const latestIsFromHigherPrecedence =
       latestPrecedence.precedence < incomingPrecedence.precedence
 
-    // When deciding whether enough silence has passed to switch away
-    // from the current winner, use the winner's timeout — the user's
-    // ranking/priority entry expresses "hold this source for N ms of
-    // silence". Using the incoming source's timeout (especially the
-    // default unknownSourceTimeout for unranked sources) lets an
-    // unranked competitor steal the slot after just 10s.
-    const holdTimeout = latestKnown
-      ? latestPrecedence.timeout
-      : incomingPrecedence.timeout
+    // Baseline: the incoming (lower-ranked) source's timeout governs —
+    // that is how path-level priority lists express "b may take over
+    // after 5s of a-silence".
+    //
+    // Additional constraint when a known source is winning and an
+    // unknown source tries to take over: the unknown source must also
+    // outwait the winner's own timeout. Otherwise a ranked source
+    // configured with a long timeout (e.g. the user's 60s preference
+    // for a plugin) can still be stolen after just unknownSourceTimeout
+    // by any random source that happens to publish the same path.
+    const holdTimeout =
+      latestKnown && !incomingKnown
+        ? Math.max(latestPrecedence.timeout, incomingPrecedence.timeout)
+        : incomingPrecedence.timeout
 
     const isPreferred =
       !latestIsFromHigherPrecedence || millis - latest.timestamp > holdTimeout
