@@ -476,12 +476,16 @@ const SourcePriorities: React.FC = () => {
       if (path === 'notifications' || path.startsWith('notifications.')) {
         continue
       }
-      const hasUncoveredSource = sources.some((ref) => {
-        if (configuredSourcesByPath.get(path)?.has(ref)) return false
-        if (rankedRefs.has(ref)) return false
-        return true
+      // A path is considered configured as soon as any one of its
+      // sources is covered by per-path priorities or global ranking:
+      // the user's intent ("prefer this source") is expressed, and
+      // listing the path here would be noise.
+      const hasCoveredSource = sources.some((ref) => {
+        if (configuredSourcesByPath.get(path)?.has(ref)) return true
+        if (rankedRefs.has(ref)) return true
+        return false
       })
-      if (hasUncoveredSource) result.push(path)
+      if (!hasCoveredSource) result.push(path)
     }
     return result.sort()
   }, [multiSourcePaths, sourcePriorities, sourceRankingData])
