@@ -162,6 +162,13 @@ export const getToPreferredDelta = (
     return HIGHESTPRECEDENCE
   }
 
+  const isKnownSource = (path: Path, sourceRef: SourceRef): boolean => {
+    const pathPrecedences = precedences.get(path)
+    if (pathPrecedences?.has(sourceRef)) return true
+    if (rankingPrecedences?.has(sourceRef)) return true
+    return false
+  }
+
   const isPreferredValue = (
     path: Path,
     latest: TimestampedSource,
@@ -183,17 +190,34 @@ export const getToPreferredDelta = (
       return false
     }
 
-    // A source updating its own value is always accepted
-    if (latest.sourceRef === sourceRef) {
+    const latestKnown = isKnownSource(path, latest.sourceRef)
+    const incomingKnown = isKnownSource(path, sourceRef)
+
+    // A source updating its own value is always accepted — but only if
+    // the currently-latest source is actually configured. Otherwise an
+    // unknown source that briefly won (e.g. because the configured
+    // source was momentarily silent) would self-renew forever and
+    // permanently shadow the configured preference.
+    if (latest.sourceRef === sourceRef && (latestKnown || !incomingKnown)) {
       return true
     }
 
     const latestIsFromHigherPrecedence =
       latestPrecedence.precedence < incomingPrecedence.precedence
 
+    // When deciding whether enough silence has passed to switch away
+    // from the current winner, use the winner's timeout — the user's
+    // ranking/priority entry expresses "hold this source for N ms of
+    // silence". Using the incoming source's timeout (especially the
+    // default unknownSourceTimeout for unranked sources) lets an
+    // unranked competitor steal the slot after just 10s.
+    const holdTimeout = latestKnown
+      ? latestPrecedence.timeout
+      : incomingPrecedence.timeout
+
     const isPreferred =
       !latestIsFromHigherPrecedence ||
-      millis - latest.timestamp > incomingPrecedence.timeout
+      millis - latest.timestamp > holdTimeout
     if (debug.enabled) {
       debug(`${path}:${sourceRef}:${isPreferred}:${millis - latest.timestamp}`)
     }
