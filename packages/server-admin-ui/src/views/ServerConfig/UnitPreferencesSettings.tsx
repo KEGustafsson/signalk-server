@@ -41,10 +41,18 @@ const UnitPreferencesSettings: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (loginStatus.status === 'loggedIn') {
+    if (
+      loginStatus.status === 'loggedIn' ||
+      loginStatus.authenticationRequired === false
+    ) {
       fetchUnitPreferences()
     }
-  }, [fetchUnitPreferences, loginStatus.status, loginStatus.username])
+  }, [
+    fetchUnitPreferences,
+    loginStatus.status,
+    loginStatus.username,
+    loginStatus.authenticationRequired
+  ])
 
   const isAdmin =
     !loginStatus.authenticationRequired ||
