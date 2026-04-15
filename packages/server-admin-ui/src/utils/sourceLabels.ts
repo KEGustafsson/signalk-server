@@ -219,6 +219,24 @@ const PROTOCOL_PGNS = new Set([
 ])
 
 /**
+ * Manufacturer-proprietary PGN ranges. The same PGN number can carry
+ * entirely different payload semantics for different manufacturers
+ * (bytes 0-1 are the Manufacturer Code, byte 2 is the Industry Code,
+ * the rest is manufacturer-defined), so shared proprietary PGNs across
+ * devices are not a reliable signal of a real conflict.
+ */
+export function isProprietaryPGN(pgn: string | number): boolean {
+  const n = typeof pgn === 'number' ? pgn : Number(pgn)
+  if (!Number.isFinite(n)) return false
+  return (
+    n === 61184 ||
+    (n >= 65280 && n <= 65535) ||
+    n === 126720 ||
+    (n >= 130816 && n <= 131071)
+  )
+}
+
+/**
  * Temperature/humidity PGNs where the unique key is instance + source,
  * not just instance. Two devices sending the same PGN with the same
  * instance but different source types are NOT in conflict.
@@ -237,7 +255,9 @@ const COMPOUND_KEY_PGNS = new Set([
  *
  * Protocol/management PGNs (ISO Address Claim, Heartbeat, Product Info,
  * etc.) are excluded — every device sends those and they do not represent
- * real data conflicts.
+ * real data conflicts. Manufacturer-proprietary PGNs are also excluded:
+ * the same PGN number can carry different semantics for different
+ * manufacturers, so sharing one is not a reliable conflict signal.
  *
  * When actual data instance information is available (from the sources API
  * pgnInstances or n2k-discovery pgnDataInstances), PGNs where both devices
@@ -274,12 +294,10 @@ export function detectInstanceConflicts(
       for (let j = i + 1; j < group.length; j++) {
         const a = group[i]
         const b = group[j]
-        const aPGNs = a.pgns
-          ? Object.keys(a.pgns).filter((p) => !PROTOCOL_PGNS.has(p))
-          : []
-        const bPGNs = new Set(
-          b.pgns ? Object.keys(b.pgns).filter((p) => !PROTOCOL_PGNS.has(p)) : []
-        )
+        const keep = (p: string) =>
+          !PROTOCOL_PGNS.has(p) && !isProprietaryPGN(p)
+        const aPGNs = a.pgns ? Object.keys(a.pgns).filter(keep) : []
+        const bPGNs = new Set(b.pgns ? Object.keys(b.pgns).filter(keep) : [])
         const shared = aPGNs.filter((pgn) => {
           if (!bPGNs.has(pgn)) return false
 

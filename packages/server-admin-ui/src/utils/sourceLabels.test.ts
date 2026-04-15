@@ -5,6 +5,7 @@ import {
   buildSourceLabel,
   buildSourceLabelMap,
   detectInstanceConflicts,
+  isProprietaryPGN,
   type SourcesData,
   type N2kDeviceEntry
 } from './sourceLabels'
@@ -604,5 +605,85 @@ describe('detectInstanceConflicts', () => {
       })
     ]
     expect(detectInstanceConflicts(devices)).toHaveLength(0)
+  })
+
+  it('ignores proprietary PGNs when they are the only shared PGN', () => {
+    const devices: N2kDeviceEntry[] = [
+      makeDevice({
+        sourceRef: 'can0.189',
+        connection: 'can0',
+        src: '189',
+        deviceInstance: 0,
+        pgns: { '65284': '' }
+      }),
+      makeDevice({
+        sourceRef: 'can0.169',
+        connection: 'can0',
+        src: '169',
+        deviceInstance: 0,
+        pgns: { '65284': '' }
+      })
+    ]
+    expect(detectInstanceConflicts(devices)).toHaveLength(0)
+  })
+
+  it('excludes proprietary PGNs from sharedPGNs but still reports real conflicts', () => {
+    const devices: N2kDeviceEntry[] = [
+      makeDevice({
+        sourceRef: 'can0.1',
+        connection: 'can0',
+        src: '1',
+        deviceInstance: 0,
+        pgns: { '65284': '', '127488': '' }
+      }),
+      makeDevice({
+        sourceRef: 'can0.2',
+        connection: 'can0',
+        src: '2',
+        deviceInstance: 0,
+        pgns: { '65284': '', '127488': '' }
+      })
+    ]
+    const conflicts = detectInstanceConflicts(devices)
+    expect(conflicts).toHaveLength(1)
+    expect(conflicts[0].sharedPGNs).toEqual(['127488'])
+  })
+})
+
+describe('isProprietaryPGN', () => {
+  it('recognises the single-frame addressed slot', () => {
+    expect(isProprietaryPGN(61184)).toBe(true)
+    expect(isProprietaryPGN(61183)).toBe(false)
+    expect(isProprietaryPGN(61185)).toBe(false)
+  })
+
+  it('recognises the single-frame non-addressed range', () => {
+    expect(isProprietaryPGN(65279)).toBe(false)
+    expect(isProprietaryPGN(65280)).toBe(true)
+    expect(isProprietaryPGN(65284)).toBe(true)
+    expect(isProprietaryPGN(65535)).toBe(true)
+    expect(isProprietaryPGN(65536)).toBe(false)
+  })
+
+  it('recognises the fast-packet addressed slot', () => {
+    expect(isProprietaryPGN(126720)).toBe(true)
+    expect(isProprietaryPGN(126719)).toBe(false)
+    expect(isProprietaryPGN(126721)).toBe(false)
+  })
+
+  it('recognises the fast-packet non-addressed range', () => {
+    expect(isProprietaryPGN(130815)).toBe(false)
+    expect(isProprietaryPGN(130816)).toBe(true)
+    expect(isProprietaryPGN(131071)).toBe(true)
+    expect(isProprietaryPGN(131072)).toBe(false)
+  })
+
+  it('accepts string input', () => {
+    expect(isProprietaryPGN('65284')).toBe(true)
+    expect(isProprietaryPGN('127488')).toBe(false)
+  })
+
+  it('rejects non-numeric input', () => {
+    expect(isProprietaryPGN('not-a-number')).toBe(false)
   })
 })
