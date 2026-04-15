@@ -193,6 +193,15 @@ export const getToPreferredDelta = (
     const latestKnown = isKnownSource(path, latest.sourceRef)
     const incomingKnown = isKnownSource(path, sourceRef)
 
+    // A configured source must always outrank an unconfigured one:
+    // if the user ranked source X for this path, X should displace
+    // any unranked competitor that happens to be publishing the same
+    // path — otherwise the unknown incumbent keeps its HIGHESTPRECEDENCE
+    // and the ranked source (with precedence >= 0) can never take over.
+    if (incomingKnown && !latestKnown) {
+      return true
+    }
+
     // A source updating its own value is always accepted — but only if
     // the currently-latest source is actually configured. Otherwise an
     // unknown source that briefly won (e.g. because the configured
