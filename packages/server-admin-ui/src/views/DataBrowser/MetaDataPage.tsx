@@ -129,6 +129,7 @@ const MetaDataPage: React.FC = () => {
                     id="metadata-search"
                     name="search"
                     autoComplete="off"
+                    placeholder="e.g. pos wind (space = OR)"
                     onChange={handleSearch}
                     value={search}
                   />
