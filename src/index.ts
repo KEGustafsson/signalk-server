@@ -299,8 +299,7 @@ class Server {
     app.activateSourcePriorities = () => {
       try {
         toPreferredDelta = getToPreferredDelta(
-          app.config.settings.sourcePriorities,
-          app.config.settings.sourceRanking
+          app.config.settings.sourcePriorities
         )
       } catch (e) {
         console.error(`getToPreferredDelta failed: ${(e as any).message}`)

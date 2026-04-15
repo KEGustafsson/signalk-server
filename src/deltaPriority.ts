@@ -12,11 +12,6 @@ export interface SourcePrioritiesData {
   [path: string]: SourcePriority[]
 }
 
-export interface SourceRankingEntry {
-  sourceRef: SourceRef
-  timeout: number
-}
-
 interface PathValue {
   path: string
   value: any
@@ -56,17 +51,6 @@ const toPrecedences = (sourcePrioritiesMap: {
     new Map<Path, PathPrecedences>()
   )
 
-const toRankingPrecedences = (
-  ranking: SourceRankingEntry[]
-): Map<SourceRef, SourcePrecedenceData> =>
-  ranking.reduce<Map<SourceRef, SourcePrecedenceData>>(
-    (acc, { sourceRef, timeout }, i) => {
-      acc.set(sourceRef, { precedence: i, timeout })
-      return acc
-    },
-    new Map<SourceRef, SourcePrecedenceData>()
-  )
-
 export type ToPreferredDelta = (
   delta: any,
   now: Date,
@@ -75,20 +59,13 @@ export type ToPreferredDelta = (
 
 export const getToPreferredDelta = (
   sourcePrioritiesData: SourcePrioritiesData,
-  sourceRanking?: SourceRankingEntry[],
   unknownSourceTimeout = 10000
 ): ToPreferredDelta => {
-  if (!sourcePrioritiesData && (!sourceRanking || sourceRanking.length === 0)) {
-    debug('No priorities data and no source ranking')
+  if (!sourcePrioritiesData || Object.keys(sourcePrioritiesData).length === 0) {
+    debug('No priorities data')
     return (delta: any, _now: Date, _selfContext: string) => delta
   }
-  const precedences = sourcePrioritiesData
-    ? toPrecedences(sourcePrioritiesData)
-    : new Map<Path, PathPrecedences>()
-  const rankingPrecedences =
-    sourceRanking && sourceRanking.length > 0
-      ? toRankingPrecedences(sourceRanking)
-      : null
+  const precedences = toPrecedences(sourcePrioritiesData)
 
   const contextPathTimestamps = new Map<Context, PathLatestTimestamps>()
 
@@ -139,34 +116,18 @@ export const getToPreferredDelta = (
     sourceRef: SourceRef,
     isLatest: boolean
   ): SourcePrecedenceData => {
-    // Path-level config takes priority
     const pathPrecedences = precedences.get(path)
-    if (pathPrecedences) {
-      const p = pathPrecedences.get(sourceRef)
-      if (p) return p
-      // Source not in path config — check if globally disabled before
-      // falling back to unknown-source handling
-      if (rankingPrecedences) {
-        const rp = rankingPrecedences.get(sourceRef)
-        if (rp && rp.timeout < 0) return rp
-      }
-      return isLatest ? HIGHESTPRECEDENCE : LOWESTPRECEDENCE
+    if (!pathPrecedences) {
+      // No config for this path — accept everything
+      return HIGHESTPRECEDENCE
     }
-    // Fall back to source-level ranking
-    if (rankingPrecedences) {
-      const p = rankingPrecedences.get(sourceRef)
-      if (p) return p
-      return isLatest ? HIGHESTPRECEDENCE : LOWESTPRECEDENCE
-    }
-    // No config at all — accept everything
-    return HIGHESTPRECEDENCE
+    const p = pathPrecedences.get(sourceRef)
+    if (p) return p
+    return isLatest ? HIGHESTPRECEDENCE : LOWESTPRECEDENCE
   }
 
   const isKnownSource = (path: Path, sourceRef: SourceRef): boolean => {
-    const pathPrecedences = precedences.get(path)
-    if (pathPrecedences?.has(sourceRef)) return true
-    if (rankingPrecedences?.has(sourceRef)) return true
-    return false
+    return precedences.get(path)?.has(sourceRef) ?? false
   }
 
   const isPreferredValue = (
@@ -177,8 +138,8 @@ export const getToPreferredDelta = (
   ) => {
     const pathPrecedences = precedences.get(path)
 
-    // No path-level config AND no source ranking → accept all
-    if (!pathPrecedences && !rankingPrecedences) {
+    // No path-level config → accept all
+    if (!pathPrecedences) {
       return true
     }
 
@@ -220,10 +181,10 @@ export const getToPreferredDelta = (
     //
     // Additional constraint when a known source is winning and an
     // unknown source tries to take over: the unknown source must also
-    // outwait the winner's own timeout. Otherwise a ranked source
-    // configured with a long timeout (e.g. the user's 60s preference
-    // for a plugin) can still be stolen after just unknownSourceTimeout
-    // by any random source that happens to publish the same path.
+    // outwait the winner's own timeout. Otherwise a configured source
+    // with a long timeout can still be stolen after just
+    // unknownSourceTimeout by any random source that publishes the
+    // same path.
     const holdTimeout =
       latestKnown && !incomingKnown
         ? Math.max(latestPrecedence.timeout, incomingPrecedence.timeout)

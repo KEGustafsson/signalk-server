@@ -9,8 +9,7 @@ import {
   useLoginStatus,
   useSourcesData,
   useMultiSourcePaths,
-  useSourcePriorities,
-  useSourceRanking
+  useSourcePriorities
 } from '../../store'
 import {
   extractN2kDevices,
@@ -66,34 +65,19 @@ export default function Sidebar({ location }: SidebarProps) {
 
   const multiSourcePaths = useMultiSourcePaths()
   const sourcePrioritiesData = useSourcePriorities()
-  const sourceRankingData = useSourceRanking()
 
   const unconfiguredPriorityCount = useMemo(() => {
-    const configuredSourcesByPath = new Map<string, Set<string>>()
+    const configuredPaths = new Set<string>()
     for (const pp of sourcePrioritiesData.sourcePriorities) {
-      if (pp.path) {
-        configuredSourcesByPath.set(
-          pp.path,
-          new Set(pp.priorities.map((p) => p.sourceRef))
-        )
-      }
+      if (pp.path) configuredPaths.add(pp.path)
     }
-    const rankedRefs = new Set(
-      sourceRankingData.ranking.map((r) => r.sourceRef)
-    )
 
     let count = 0
-    for (const [path, sources] of Object.entries(multiSourcePaths)) {
-      const configuredRefs = configuredSourcesByPath.get(path)
-      const hasUncoveredSource = sources.some((ref) => {
-        if (configuredRefs?.has(ref)) return false
-        if (rankedRefs.has(ref)) return false
-        return true
-      })
-      if (hasUncoveredSource) count++
+    for (const path of Object.keys(multiSourcePaths)) {
+      if (!configuredPaths.has(path)) count++
     }
     return count
-  }, [multiSourcePaths, sourcePrioritiesData, sourceRankingData])
+  }, [multiSourcePaths, sourcePrioritiesData])
 
   const nowMs = Date.now() // eslint-disable-line react-hooks/purity -- expired status is stable
   const expiredDeviceCount = devices.filter(

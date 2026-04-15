@@ -94,10 +94,6 @@ export function useSourcePriorities() {
   return useStore((s) => s.sourcePrioritiesData)
 }
 
-export function useSourceRanking() {
-  return useStore((s) => s.sourceRankingData)
-}
-
 export function useWebapps() {
   return useStore((s) => s.webapps)
 }
@@ -196,18 +192,16 @@ export function useConfiguredPriorityPaths(): Set<string> {
 }
 
 /**
- * Returns a Map from path → Set of configured sourceRefs for that path.
- * Includes both Path-Level Overrides and global Ranking sources.
+ * Returns a Map from path → Set of configured sourceRefs for that path,
+ * as configured via path-level source priorities.
  */
 export function useConfiguredSourcesByPath(): Map<string, Set<string>> {
   const serialized = useStore((s) => {
     const entries: string[] = []
-    const globalRefs = s.sourceRankingData.ranking.map((r) => r.sourceRef)
     for (const pp of s.sourcePrioritiesData.sourcePriorities) {
       if (pp.path) {
         const pathRefs = pp.priorities.map((p) => p.sourceRef)
-        const allRefs = [...new Set([...pathRefs, ...globalRefs])]
-        entries.push(`${pp.path}\t${allRefs.join(',')}`)
+        entries.push(`${pp.path}\t${pathRefs.join(',')}`)
       }
     }
     return entries.sort().join('\0')

@@ -11,14 +11,8 @@ import { faArrowDown } from '@fortawesome/free-solid-svg-icons/faArrowDown'
 import { faTrash } from '@fortawesome/free-solid-svg-icons/faTrash'
 import { faFloppyDisk } from '@fortawesome/free-solid-svg-icons/faFloppyDisk'
 import Creatable from 'react-select/creatable'
-import Select from 'react-select'
 import { useSearchParams } from 'react-router-dom'
-import {
-  useStore,
-  useSourcePriorities,
-  useSourceRanking,
-  useMultiSourcePaths
-} from '../../store'
+import { useStore, useSourcePriorities, useMultiSourcePaths } from '../../store'
 import { type SourcesData } from '../../utils/sourceLabels'
 import { useSourceAliases } from '../../hooks/useSourceAliases'
 
@@ -78,7 +72,7 @@ const PrefsEditor: React.FC<PrefsEditorProps> = ({
     }
     const hasUnassigned = sourceRefs.some((ref) => !assigned.has(ref))
     if (hasUnassigned) {
-      return [...priorities, { sourceRef: '', timeout: 60000 }]
+      return [...priorities, { sourceRef: '', timeout: 5000 }]
     }
     return priorities
   }, [priorities, sourceRefs])
@@ -95,7 +89,7 @@ const PrefsEditor: React.FC<PrefsEditorProps> = ({
         <tr>
           <td style={{ width: '30px' }}>#</td>
           <td>Source Reference (see DataBrowser for details)</td>
-          <td style={{ width: '120px' }}>Timeout (ms)</td>
+          <td style={{ width: '140px' }}>Fallback after (ms)</td>
           <td style={{ width: '70px' }}>Enabled</td>
           <td style={{ width: '80px' }}>Order</td>
           <td></td>
@@ -154,7 +148,7 @@ const PrefsEditor: React.FC<PrefsEditorProps> = ({
                       pathIndex,
                       index,
                       sourceRef,
-                      e.target.checked ? (index === 0 ? 0 : 60000) : -1
+                      e.target.checked ? (index === 0 ? 0 : 5000) : -1
                     )
                   }
                 />
@@ -208,237 +202,128 @@ function fetchAvailablePaths(cb: (paths: string[]) => void) {
     .then(cb)
 }
 
-// ─── Source Ranking Section ─────────────────────────────────────────────────
+// ─── Fallback Timeline Diagram ──────────────────────────────────────────────
+//
+// Two sources over time. The Preferred source is sending then goes silent;
+// the Backup source waits for "Fallback after" milliseconds of silence
+// before it's allowed to take over.
 
-const SourceRankingSection: React.FC<{
-  sourcesData: SourcesData | null
-  multiSourcePaths: Record<string, string[]>
-}> = ({ sourcesData, multiSourcePaths }) => {
-  const rankingData = useSourceRanking()
-  const addRankedSource = useStore((s) => s.addRankedSource)
-  const removeRankedSource = useStore((s) => s.removeRankedSource)
-  const moveRankedSource = useStore((s) => s.moveRankedSource)
-  const changeRankedTimeout = useStore((s) => s.changeRankedTimeout)
-  const setRankingSaving = useStore((s) => s.setRankingSaving)
-  const setRankingSaved = useStore((s) => s.setRankingSaved)
-  const setRankingSaveFailed = useStore((s) => s.setRankingSaveFailed)
-  const clearRankingSaveFailed = useStore((s) => s.clearRankingSaveFailed)
-  const { getDisplayName } = useSourceAliases()
+const TimelineDiagram: React.FC = () => (
+  <svg
+    viewBox="0 0 560 170"
+    xmlns="http://www.w3.org/2000/svg"
+    style={{ maxWidth: '560px', width: '100%', height: 'auto' }}
+    role="img"
+    aria-label="Fallback timeline: the backup source takes over only after the preferred source has been silent for the configured threshold."
+  >
+    <defs>
+      <marker
+        id="arrow"
+        viewBox="0 0 10 10"
+        refX="9"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto-start-reverse"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#555" />
+      </marker>
+    </defs>
 
-  const { ranking, saveState } = rankingData
+    {/* Track labels */}
+    <text x="0" y="55" fontSize="12" fill="#333">
+      Preferred
+    </text>
+    <text x="0" y="120" fontSize="12" fill="#333">
+      Backup
+    </text>
 
-  // Sources that share at least one path with another source
-  const allSourceRefs = useMemo(() => {
-    const overlapping = new Set<string>()
-    for (const sources of Object.values(multiSourcePaths)) {
-      for (const ref of sources) overlapping.add(ref)
-    }
-    return Array.from(overlapping).sort()
-  }, [multiSourcePaths])
+    {/* Preferred source: activity bars then silence */}
+    <rect x="80" y="42" width="30" height="16" fill="#2e7d32" rx="2" />
+    <rect x="118" y="42" width="30" height="16" fill="#2e7d32" rx="2" />
+    <rect x="156" y="42" width="30" height="16" fill="#2e7d32" rx="2" />
+    <rect x="194" y="42" width="30" height="16" fill="#2e7d32" rx="2" />
+    {/* last bar, then silence */}
+    <rect x="232" y="42" width="30" height="16" fill="#2e7d32" rx="2" />
 
-  // Sources not yet in the ranking
-  const rankedRefs = useMemo(
-    () => new Set(ranking.map((r) => r.sourceRef)),
-    [ranking]
-  )
-  const unrankedOptions: SelectOption[] = useMemo(
-    () =>
-      allSourceRefs
-        .filter((ref) => !rankedRefs.has(ref))
-        .map((ref) => ({
-          label: getDisplayName(ref, sourcesData),
-          value: ref
-        })),
-    [allSourceRefs, rankedRefs, getDisplayName, sourcesData]
-  )
+    {/* Silence gap annotation on preferred track */}
+    <line
+      x1="262"
+      y1="50"
+      x2="442"
+      y2="50"
+      stroke="#b71c1c"
+      strokeWidth="1.5"
+      strokeDasharray="4 3"
+    />
+    <text x="352" y="40" fontSize="11" fill="#b71c1c" textAnchor="middle">
+      (silent)
+    </text>
 
-  const handleAdd = useCallback(
-    (option: SelectOption | null) => {
-      if (option) {
-        addRankedSource(option.value, 60000)
-      }
-    },
-    [addRankedSource]
-  )
+    {/* Backup source: idle while preferred is active, then activity after threshold */}
+    <rect x="80" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="118" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="156" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="194" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="232" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="270" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="308" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="346" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="384" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
+    {/* takes over */}
+    <rect x="442" y="107" width="30" height="16" fill="#1565c0" rx="2" />
+    <rect x="480" y="107" width="30" height="16" fill="#1565c0" rx="2" />
 
-  const handleSave = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault()
-      setRankingSaving()
-      fetch(`${window.serverRoutesPrefix}/sourceRanking`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(
-          ranking.map(({ sourceRef, timeout }) => ({
-            sourceRef,
-            timeout: Number(timeout)
-          }))
-        )
-      })
-        .then((response) => {
-          if (response.status === 200) {
-            setRankingSaved()
-          } else {
-            throw new Error()
-          }
-        })
-        .catch(() => {
-          setRankingSaveFailed()
-          setTimeout(() => clearRankingSaveFailed(), 5000)
-        })
-    },
-    [
-      ranking,
-      setRankingSaving,
-      setRankingSaved,
-      setRankingSaveFailed,
-      clearRankingSaveFailed
-    ]
-  )
+    {/* Threshold marker: vertical dashed line + label */}
+    <line
+      x1="442"
+      y1="25"
+      x2="442"
+      y2="140"
+      stroke="#555"
+      strokeWidth="1"
+      strokeDasharray="3 3"
+    />
+    <line
+      x1="262"
+      y1="150"
+      x2="442"
+      y2="150"
+      stroke="#555"
+      strokeWidth="1"
+      markerStart="url(#arrow)"
+      markerEnd="url(#arrow)"
+    />
+    <text x="352" y="164" fontSize="11" fill="#333" textAnchor="middle">
+      Fallback after (ms)
+    </text>
 
-  return (
-    <Card className="mb-3">
-      <Card.Header>Source Ranking</Card.Header>
-      <Card.Body>
-        <Alert>
-          <p>
-            Rank your sources globally. This applies to{' '}
-            <b>all paths where multiple ranked sources overlap</b>. Path-level
-            overrides below take precedence over this ranking.
-          </p>
-          <p>
-            Sources not listed here are unranked and treated as lowest priority
-            with a 120 second timeout. Uncheck <b>Enabled</b> to block a source
-            entirely.
-          </p>
-        </Alert>
-        {ranking.length > 0 && (
-          <Table responsive bordered striped size="sm">
-            <thead>
-              <tr>
-                <th style={{ width: '30px' }}>#</th>
-                <th>Source</th>
-                <th style={{ width: '120px' }}>Timeout (ms)</th>
-                <th style={{ width: '70px' }}>Enabled</th>
-                <th style={{ width: '80px' }}>Order</th>
-                <th style={{ width: '30px' }}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {ranking.map(({ sourceRef, timeout }, index) => {
-                const isDisabled = Number(timeout) === -1
-                return (
-                  <tr key={sourceRef}>
-                    <td>{index + 1}.</td>
-                    <td>{getDisplayName(sourceRef, sourcesData)}</td>
-                    <td>
-                      {index === 0 && !isDisabled ? (
-                        <span className="text-muted small">preferred</span>
-                      ) : (
-                        <Form.Control
-                          type="number"
-                          value={isDisabled ? '' : timeout}
-                          disabled={isDisabled}
-                          onChange={(e) =>
-                            changeRankedTimeout(index, e.target.value)
-                          }
-                        />
-                      )}
-                    </td>
-                    <td className="text-center">
-                      <Form.Check
-                        type="checkbox"
-                        checked={!isDisabled}
-                        onChange={(e) =>
-                          changeRankedTimeout(
-                            index,
-                            e.target.checked ? (index === 0 ? 0 : 60000) : -1
-                          )
-                        }
-                      />
-                    </td>
-                    <td>
-                      {index > 0 && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            !saveState.isSaving && moveRankedSource(index, -1)
-                          }
-                        >
-                          <FontAwesomeIcon icon={faArrowUp} />
-                        </button>
-                      )}
-                      {index < ranking.length - 1 && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            !saveState.isSaving && moveRankedSource(index, 1)
-                          }
-                        >
-                          <FontAwesomeIcon icon={faArrowDown} />
-                        </button>
-                      )}
-                    </td>
-                    <td>
-                      <FontAwesomeIcon
-                        icon={faTrash}
-                        style={{ cursor: 'pointer' }}
-                        onClick={() =>
-                          !saveState.isSaving && removeRankedSource(index)
-                        }
-                      />
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </Table>
-        )}
-        {unrankedOptions.length > 0 && (
-          <div style={{ maxWidth: '400px' }}>
-            <Select
-              menuPortalTarget={document.body}
-              options={unrankedOptions}
-              value={null}
-              placeholder="Add source to ranking..."
-              onChange={handleAdd}
-              isClearable
-            />
-          </div>
-        )}
-        {ranking.length > 0 && unrankedOptions.length === 0 && (
-          <p className="text-muted small">All known sources are ranked.</p>
-        )}
-      </Card.Body>
-      <Card.Footer>
-        <Button
-          size="sm"
-          variant="primary"
-          disabled={
-            !saveState.dirty || saveState.isSaving || !saveState.timeoutsOk
-          }
-          onClick={handleSave}
-        >
-          <FontAwesomeIcon icon={faFloppyDisk} /> Save Ranking
-        </Button>
-        {saveState.saveFailed && ' Saving ranking failed!'}
-        {!saveState.timeoutsOk && (
-          <span style={{ paddingLeft: '10px' }}>
-            <Badge bg="danger">Error</Badge>
-            {' Timeout values must be positive numbers (milliseconds).'}
-          </span>
-        )}
-      </Card.Footer>
-    </Card>
-  )
-}
+    {/* Legend */}
+    <rect x="0" y="0" width="10" height="10" fill="#2e7d32" rx="2" />
+    <text x="16" y="9" fontSize="10" fill="#555">
+      preferred active
+    </text>
+    <rect x="130" y="0" width="10" height="10" fill="#bdbdbd" rx="2" />
+    <text x="146" y="9" fontSize="10" fill="#555">
+      backup ignored
+    </text>
+    <rect x="240" y="0" width="10" height="10" fill="#1565c0" rx="2" />
+    <text x="256" y="9" fontSize="10" fill="#555">
+      backup accepted
+    </text>
+
+    {/* Time axis */}
+    <line x1="80" y1="140" x2="540" y2="140" stroke="#ccc" strokeWidth="1" />
+    <text x="540" y="140" fontSize="10" fill="#999" textAnchor="end" dy="12">
+      time →
+    </text>
+  </svg>
+)
 
 // ─── Main Page ──────────────────────────────────────────────────────────────
 
 const SourcePriorities: React.FC = () => {
   const sourcePrioritiesData = useSourcePriorities()
-  const sourceRankingData = useSourceRanking()
   const changePath = useStore((s) => s.changePath)
   const deletePath = useStore((s) => s.deletePath)
   const setSaving = useStore((s) => s.setSaving)
@@ -456,39 +341,22 @@ const SourcePriorities: React.FC = () => {
 
   // Compute unconfigured multi-source paths for warning banner
   const unconfiguredPaths = useMemo(() => {
-    const configuredSourcesByPath = new Map<string, Set<string>>()
+    const configuredPaths = new Set<string>()
     for (const pp of sourcePriorities) {
-      if (pp.path) {
-        configuredSourcesByPath.set(
-          pp.path,
-          new Set(pp.priorities.map((p) => p.sourceRef))
-        )
-      }
+      if (pp.path) configuredPaths.add(pp.path)
     }
-    const rankedRefs = new Set(
-      sourceRankingData.ranking.map((r) => r.sourceRef)
-    )
 
     const result: string[] = []
-    for (const [path, sources] of Object.entries(multiSourcePaths)) {
+    for (const path of Object.keys(multiSourcePaths)) {
       // Notifications bypass source priority server-side, so configuring
       // them here would be a no-op. Hide them from the warning banner.
       if (path === 'notifications' || path.startsWith('notifications.')) {
         continue
       }
-      // A path is considered configured as soon as any one of its
-      // sources is covered by per-path priorities or global ranking:
-      // the user's intent ("prefer this source") is expressed, and
-      // listing the path here would be noise.
-      const hasCoveredSource = sources.some((ref) => {
-        if (configuredSourcesByPath.get(path)?.has(ref)) return true
-        if (rankedRefs.has(ref)) return true
-        return false
-      })
-      if (!hasCoveredSource) result.push(path)
+      if (!configuredPaths.has(path)) result.push(path)
     }
     return result.sort()
-  }, [multiSourcePaths, sourcePriorities, sourceRankingData])
+  }, [multiSourcePaths, sourcePriorities])
 
   const pathParam = searchParams.get('path')
   useEffect(() => {
@@ -587,28 +455,34 @@ const SourcePriorities: React.FC = () => {
 
   return (
     <>
-      <SourceRankingSection
-        sourcesData={sourcesData}
-        multiSourcePaths={multiSourcePaths}
-      />
-
       <Card>
-        <Card.Header>Path-Level Overrides</Card.Header>
+        <Card.Header>Source Priorities</Card.Header>
         <Card.Body>
           <Alert>
             <p>
-              Override source ranking for specific paths. Path-level overrides
-              take precedence over the global source ranking above.
+              For each path, list the sources that may provide it in order of
+              preference. The top source wins while it is sending. Each other
+              row has a <b>Fallback after</b> value — how many milliseconds the
+              higher-priority source must be silent before this row is allowed
+              to take over.
+            </p>
+            <div style={{ margin: '12px 0' }}>
+              <TimelineDiagram />
+            </div>
+            <p>
+              <b>Example:</b> two GPS receivers, both publishing{' '}
+              <code>navigation.position</code>. Preferred = Furuno, Backup =
+              Garmin with <b>Fallback after 5000</b> (5s). Garmin data is
+              dropped while Furuno is sending, and only starts passing through
+              once Furuno has been silent for 5s. When Furuno returns, it
+              immediately takes over again.
             </p>
             <p>
-              Incoming data is not handled if the{' '}
-              <b>
-                latest value for a path is from a higher priority source and it
-                is not older than the timeout
-              </b>{' '}
-              specified for the source of the incoming data. Timeout for data
-              from unlisted sources is 120 seconds. Uncheck <b>Enabled</b> to
-              block a source for a specific path.
+              The top row is always &quot;preferred&quot; — it has no Fallback
+              value because nothing ranks higher. Uncheck <b>Enabled</b> to
+              block a source on this path entirely. Data from unlisted sources
+              can only take over after a default of 10 seconds of silence from
+              every listed source.
             </p>
             <p>
               You can debug the settings by saving them and activating debug key{' '}

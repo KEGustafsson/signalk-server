@@ -256,15 +256,6 @@ export class WebSocketService {
             )
         })
         break
-      case 'SOURCERANKING':
-        import('../store').then(({ useStore }) => {
-          useStore
-            .getState()
-            .setSourceRanking(
-              data as { sourceRef: string; timeout: string | number }[]
-            )
-        })
-        break
       case 'SOURCEALIASES':
         import('../store').then(({ useStore }) => {
           useStore.getState().setSourceAliases(data as Record<string, string>)

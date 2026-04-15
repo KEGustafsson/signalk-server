@@ -1281,33 +1281,6 @@ module.exports = function (
   )
 
   app.securityStrategy.addAdminWriteMiddleware(
-    `${SERVERROUTESPREFIX}/sourceRanking`
-  )
-
-  app.get(
-    `${SERVERROUTESPREFIX}/sourceRanking`,
-    (req: Request, res: Response) => {
-      res.json(app.config.settings.sourceRanking || [])
-    }
-  )
-
-  app.put(
-    `${SERVERROUTESPREFIX}/sourceRanking`,
-    (req: Request, res: Response) => {
-      app.config.settings.sourceRanking = req.body
-      app.activateSourcePriorities()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      writeSettingsFile(app, app.config.settings, (err: any) => {
-        if (err) {
-          res.status(500).send('Unable to save sourceRanking in settings file')
-        } else {
-          res.json({ result: 'ok' })
-        }
-      })
-    }
-  )
-
-  app.securityStrategy.addAdminWriteMiddleware(
     `${SERVERROUTESPREFIX}/sourceAliases`
   )
 

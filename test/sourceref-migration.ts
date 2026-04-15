@@ -59,22 +59,6 @@ function createMockApp(
 }
 
 describe('migrateSourceRef', () => {
-  it('updates sourceRanking entry', () => {
-    const app = createMockApp({
-      sourceRanking: [
-        { sourceRef: OLD_REF, timeout: 60000 },
-        { sourceRef: 'canhat.other', timeout: 30000 }
-      ]
-    })
-    migrateSourceRef(app, OLD_REF, NEW_REF)
-
-    const ranking = app.config.settings.sourceRanking as Array<{
-      sourceRef: string
-    }>
-    expect(ranking[0].sourceRef).to.equal(NEW_REF)
-    expect(ranking[1].sourceRef).to.equal('canhat.other')
-  })
-
   it('updates sourcePriorities entries across paths', () => {
     const app = createMockApp({
       sourcePriorities: {
@@ -167,33 +151,24 @@ describe('migrateSourceRef', () => {
     expect(app._activateCalled).to.be.true
   })
 
-  it('emits SOURCERANKING event when ranking is migrated', () => {
-    const ranking = [{ sourceRef: OLD_REF, timeout: 60000 }]
-    const app = createMockApp({ sourceRanking: ranking })
-    migrateSourceRef(app, OLD_REF, NEW_REF)
-
-    const rankingEvent = app._emittedEvents.find((e) => {
-      const d = e.data as Record<string, unknown> | undefined
-      return e.event === 'serverevent' && d?.type === 'SOURCERANKING'
-    })
-    expect(rankingEvent).to.exist
-    expect(
-      (app.config.settings.sourceRanking as Array<{ sourceRef: string }>)[0]
-        .sourceRef
-    ).to.equal(NEW_REF)
-  })
-
   it('does not write settings when nothing matches', () => {
     const app = createMockApp({
-      sourceRanking: [{ sourceRef: 'canhat.other', timeout: 60000 }]
+      sourcePriorities: {
+        'navigation.speedOverGround': [
+          { sourceRef: 'canhat.other', timeout: 60000 }
+        ]
+      }
     })
     migrateSourceRef(app, OLD_REF, NEW_REF)
 
-    // Ranking entry should be unchanged
-    const ranking = app.config.settings.sourceRanking as Array<{
-      sourceRef: string
-    }>
-    expect(ranking[0].sourceRef).to.equal('canhat.other')
+    // Priority entry should be unchanged
+    const prios = app.config.settings.sourcePriorities as Record<
+      string,
+      Array<{ sourceRef: string }>
+    >
+    expect(prios['navigation.speedOverGround'][0].sourceRef).to.equal(
+      'canhat.other'
+    )
   })
 
   it('handles missing channel labels file gracefully', () => {

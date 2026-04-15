@@ -1,10 +1,6 @@
 import { SourceRef } from '@signalk/server-api'
 import assert from 'assert'
-import {
-  getToPreferredDelta,
-  SourcePrioritiesData,
-  SourceRankingEntry
-} from '../src/deltaPriority'
+import { getToPreferredDelta, SourcePrioritiesData } from '../src/deltaPriority'
 import chai from 'chai'
 chai.should()
 
@@ -29,11 +25,7 @@ function accepted(result: any): boolean {
 describe('toPreferredDelta logic', () => {
   it('handles undefined values', () => {
     const sourcePreferences: SourcePrioritiesData = {}
-    const toPreferredDelta = getToPreferredDelta(
-      sourcePreferences,
-      undefined,
-      200
-    )
+    const toPreferredDelta = getToPreferredDelta(sourcePreferences, 200)
 
     const delta = toPreferredDelta(
       {
@@ -72,11 +64,7 @@ describe('toPreferredDelta logic', () => {
         }
       ]
     }
-    const toPreferredDelta = getToPreferredDelta(
-      sourcePreferences,
-      undefined,
-      200
-    )
+    const toPreferredDelta = getToPreferredDelta(sourcePreferences, 200)
 
     let totalDelay = 0
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -146,224 +134,17 @@ describe('toPreferredDelta logic', () => {
   })
 })
 
-describe('source ranking', () => {
-  const PATH = 'environment.wind.speedApparent'
-
-  it('preferred ranked source wins over lower-ranked source', () => {
-    const ranking: SourceRankingEntry[] = [
-      { sourceRef: 'a' as SourceRef, timeout: 0 },
-      { sourceRef: 'b' as SourceRef, timeout: 10000 }
-    ]
-    const toPreferred = getToPreferredDelta({}, ranking)
-    const t = 1000000
-
-    const r1 = toPreferred(makeDelta('a', PATH, 1), new Date(t), 'self')
-    assert(accepted(r1), 'preferred source a should be accepted')
-
-    const r2 = toPreferred(makeDelta('b', PATH, 2), new Date(t + 1), 'self')
-    assert(!accepted(r2), 'lower-ranked source b should be rejected')
-  })
-
-  it('lower-ranked source wins when higher-ranked source times out', () => {
-    const ranking: SourceRankingEntry[] = [
-      { sourceRef: 'a' as SourceRef, timeout: 0 },
-      { sourceRef: 'b' as SourceRef, timeout: 10000 }
-    ]
-    const toPreferred = getToPreferredDelta({}, ranking)
-    const t = 1000000
-
-    toPreferred(makeDelta('a', PATH, 1), new Date(t), 'self')
-    const r = toPreferred(makeDelta('b', PATH, 2), new Date(t + 10001), 'self')
-    assert(accepted(r), 'b should be accepted after timeout')
-  })
-
-  it('unranked source is treated as lowest priority with default timeout', () => {
-    const ranking: SourceRankingEntry[] = [
-      { sourceRef: 'a' as SourceRef, timeout: 0 }
-    ]
-    const toPreferred = getToPreferredDelta({}, ranking, 200)
-    const t = 1000000
-
-    toPreferred(makeDelta('a', PATH, 1), new Date(t), 'self')
-
-    const r1 = toPreferred(makeDelta('c', PATH, 2), new Date(t + 1), 'self')
-    assert(!accepted(r1), 'unranked c should be rejected within timeout')
-
-    const r2 = toPreferred(makeDelta('c', PATH, 3), new Date(t + 201), 'self')
-    assert(accepted(r2), 'unranked c should be accepted after default timeout')
-  })
-
-  it('ranking applies across multiple paths', () => {
-    const ranking: SourceRankingEntry[] = [
-      { sourceRef: 'a' as SourceRef, timeout: 0 },
-      { sourceRef: 'b' as SourceRef, timeout: 5000 }
-    ]
-    const toPreferred = getToPreferredDelta({}, ranking)
-    const t = 1000000
-
-    // path1: a wins
-    toPreferred(makeDelta('a', 'path1', 1), new Date(t), 'self')
-    const r1 = toPreferred(makeDelta('b', 'path1', 2), new Date(t + 1), 'self')
-    assert(!accepted(r1), 'b rejected on path1')
-
-    // path2: a also wins (ranking is global)
-    toPreferred(makeDelta('a', 'path2', 3), new Date(t), 'self')
-    const r2 = toPreferred(makeDelta('b', 'path2', 4), new Date(t + 1), 'self')
-    assert(!accepted(r2), 'b rejected on path2')
-  })
-
-  it('first update for a path is always accepted regardless of ranking', () => {
-    const ranking: SourceRankingEntry[] = [
-      { sourceRef: 'a' as SourceRef, timeout: 0 },
-      { sourceRef: 'b' as SourceRef, timeout: 5000 }
-    ]
-    const toPreferred = getToPreferredDelta({}, ranking)
-
-    const r = toPreferred(makeDelta('b', PATH, 1), new Date(1000000), 'self')
-    assert(
-      accepted(r),
-      'first update from lower-ranked source should be accepted'
-    )
-  })
-
-  it('unranked source can update its own value repeatedly', () => {
-    const ranking: SourceRankingEntry[] = [
-      { sourceRef: 'a' as SourceRef, timeout: 0 }
-    ]
-    const toPreferred = getToPreferredDelta({}, ranking)
-    const t = 1000000
-
-    const r1 = toPreferred(makeDelta('unranked', PATH, 1), new Date(t), 'self')
-    assert(accepted(r1), 'first update from unranked source should be accepted')
-
-    const r2 = toPreferred(
-      makeDelta('unranked', PATH, 2),
-      new Date(t + 1),
-      'self'
-    )
-    assert(
-      accepted(r2),
-      'same unranked source updating its own value should be accepted'
-    )
-  })
-
-  it('ranked source can update its own value repeatedly', () => {
-    const ranking: SourceRankingEntry[] = [
-      { sourceRef: 'a' as SourceRef, timeout: 0 },
-      { sourceRef: 'b' as SourceRef, timeout: 5000 }
-    ]
-    const toPreferred = getToPreferredDelta({}, ranking)
-    const t = 1000000
-
-    const r1 = toPreferred(makeDelta('b', PATH, 1), new Date(t), 'self')
-    assert(accepted(r1), 'first update from b accepted')
-
-    const r2 = toPreferred(makeDelta('b', PATH, 2), new Date(t + 1), 'self')
-    assert(accepted(r2), 'b updating its own value should be accepted')
-  })
-
-  it("ranked source's timeout holds off unknown competitors", () => {
-    // User ranks a plugin source and sets a 60s timeout, expecting
-    // "hold this source for 60s of silence before anyone else wins".
-    // An unknown NMEA 2000 source publishing the same path must not
-    // steal the slot after the default unknownSourceTimeout.
-    const ranking: SourceRankingEntry[] = [
-      { sourceRef: 'plugin' as SourceRef, timeout: 60000 }
-    ]
-    const toPreferred = getToPreferredDelta({}, ranking, 10000)
-    const t = 1000000
-
-    toPreferred(makeDelta('plugin', PATH, 1), new Date(t), 'self')
-
-    const r1 = toPreferred(
-      makeDelta('n2k', PATH, 2),
-      new Date(t + 11000),
-      'self'
-    )
-    assert(
-      !accepted(r1),
-      'unknown n2k rejected within ranked source timeout even past unknownSourceTimeout'
-    )
-
-    const r2 = toPreferred(
-      makeDelta('n2k', PATH, 3),
-      new Date(t + 60001),
-      'self'
-    )
-    assert(accepted(r2), 'unknown n2k accepted after ranked source timeout')
-  })
-
-  it('ranked source displaces an unknown incumbent immediately', () => {
-    // Scott's scenario: an unknown (unranked) N2K source publishes
-    // the path first and becomes 'latest'. When the user's ranked
-    // source arrives, it must win immediately — otherwise every
-    // lower-ranked-but-still-configured source gets permanently
-    // shadowed by the unconfigured N2K device.
-    const ranking: SourceRankingEntry[] = [
-      { sourceRef: 'venus' as SourceRef, timeout: 60000 }
-    ]
-    const toPreferred = getToPreferredDelta({}, ranking)
-    const t = 1000000
-
-    // Unranked N2K source arrives first
-    const r1 = toPreferred(makeDelta('n2k', PATH, 1), new Date(t), 'self')
-    assert(accepted(r1), 'first n2k delta accepted (nothing else seen yet)')
-
-    // Ranked venus arrives — must win immediately
-    const r2 = toPreferred(
-      makeDelta('venus', PATH, 2),
-      new Date(t + 100),
-      'self'
-    )
-    assert(accepted(r2), 'ranked venus displaces unranked n2k')
-
-    // Subsequent n2k deltas must be rejected (venus holds the slot)
-    const r3 = toPreferred(makeDelta('n2k', PATH, 3), new Date(t + 200), 'self')
-    assert(!accepted(r3), 'n2k rejected while ranked venus is winning')
-  })
-
-  it('unknown source that briefly won does not self-renew forever', () => {
-    // If the configured source goes silent for just long enough that
-    // an unknown source squeezes in, the unknown source must not then
-    // hold the slot via the "latest.sourceRef === sourceRef" rule —
-    // otherwise a transient gap permanently shadows the user's
-    // configured preference.
-    const ranking: SourceRankingEntry[] = [
-      { sourceRef: 'plugin' as SourceRef, timeout: 1000 }
-    ]
-    const toPreferred = getToPreferredDelta({}, ranking, 500)
-    const t = 1000000
-
-    toPreferred(makeDelta('plugin', PATH, 1), new Date(t), 'self')
-
-    // Unknown n2k waits past both timeouts and becomes latest
-    const r1 = toPreferred(
-      makeDelta('n2k', PATH, 2),
-      new Date(t + 1500),
-      'self'
-    )
-    assert(accepted(r1), 'n2k accepted after plugin goes silent')
-
-    // Plugin comes back — should be accepted immediately because it
-    // outranks the unknown incumbent
-    const r2 = toPreferred(
-      makeDelta('plugin', PATH, 3),
-      new Date(t + 1501),
-      'self'
-    )
-    assert(accepted(r2), 'plugin reclaims the slot from unknown incumbent')
-  })
-})
-
 describe('disabled source (timeout=-1)', () => {
   const PATH = 'environment.wind.speedApparent'
 
-  it('disabled source in ranking is always rejected', () => {
-    const ranking: SourceRankingEntry[] = [
-      { sourceRef: 'a' as SourceRef, timeout: 0 },
-      { sourceRef: 'b' as SourceRef, timeout: -1 }
-    ]
-    const toPreferred = getToPreferredDelta({}, ranking)
+  it('disabled source in path-level config is always rejected', () => {
+    const pathConfig: SourcePrioritiesData = {
+      [PATH]: [
+        { sourceRef: 'a' as SourceRef, timeout: 0 },
+        { sourceRef: 'b' as SourceRef, timeout: -1 }
+      ]
+    }
+    const toPreferred = getToPreferredDelta(pathConfig)
     const t = 1000000
 
     const r1 = toPreferred(makeDelta('b', PATH, 1), new Date(t), 'self')
@@ -377,27 +158,15 @@ describe('disabled source (timeout=-1)', () => {
     assert(!accepted(r2), 'disabled b rejected even after long delay')
   })
 
-  it('disabled source in path-level config is always rejected', () => {
+  it('enabled siblings still work when a source is disabled', () => {
     const pathConfig: SourcePrioritiesData = {
       [PATH]: [
         { sourceRef: 'a' as SourceRef, timeout: 0 },
-        { sourceRef: 'b' as SourceRef, timeout: -1 }
+        { sourceRef: 'b' as SourceRef, timeout: -1 },
+        { sourceRef: 'c' as SourceRef, timeout: 5000 }
       ]
     }
-    const toPreferred = getToPreferredDelta(pathConfig, undefined)
-    const t = 1000000
-
-    const r = toPreferred(makeDelta('b', PATH, 1), new Date(t), 'self')
-    assert(!accepted(r), 'disabled b rejected via path-level config')
-  })
-
-  it('enabled siblings still work when a source is disabled', () => {
-    const ranking: SourceRankingEntry[] = [
-      { sourceRef: 'a' as SourceRef, timeout: 0 },
-      { sourceRef: 'b' as SourceRef, timeout: -1 },
-      { sourceRef: 'c' as SourceRef, timeout: 5000 }
-    ]
-    const toPreferred = getToPreferredDelta({}, ranking)
+    const toPreferred = getToPreferredDelta(pathConfig)
     const t = 1000000
 
     toPreferred(makeDelta('a', PATH, 1), new Date(t), 'self')
@@ -410,11 +179,13 @@ describe('disabled source (timeout=-1)', () => {
   })
 
   it('disabled preferred source allows next source to win', () => {
-    const ranking: SourceRankingEntry[] = [
-      { sourceRef: 'a' as SourceRef, timeout: -1 },
-      { sourceRef: 'b' as SourceRef, timeout: 0 }
-    ]
-    const toPreferred = getToPreferredDelta({}, ranking)
+    const pathConfig: SourcePrioritiesData = {
+      [PATH]: [
+        { sourceRef: 'a' as SourceRef, timeout: -1 },
+        { sourceRef: 'b' as SourceRef, timeout: 0 }
+      ]
+    }
+    const toPreferred = getToPreferredDelta(pathConfig)
     const t = 1000000
 
     const r1 = toPreferred(makeDelta('a', PATH, 1), new Date(t), 'self')
@@ -428,82 +199,119 @@ describe('disabled source (timeout=-1)', () => {
   })
 })
 
-describe('path-level overrides source ranking', () => {
+describe('path-level displaces unknown incumbent', () => {
   const PATH = 'environment.wind.speedApparent'
 
-  it('path-level config takes precedence over source ranking', () => {
-    const ranking: SourceRankingEntry[] = [
-      { sourceRef: 'a' as SourceRef, timeout: 0 },
-      { sourceRef: 'b' as SourceRef, timeout: 5000 }
-    ]
+  it('configured source displaces unknown incumbent immediately', () => {
+    // An unknown (unconfigured) source publishes the path first and
+    // becomes 'latest'. When the user's configured source arrives, it
+    // must win immediately — otherwise the configured source gets
+    // permanently shadowed by the unconfigured one.
     const pathConfig: SourcePrioritiesData = {
-      [PATH]: [
-        { sourceRef: 'b' as SourceRef, timeout: 0 },
-        { sourceRef: 'a' as SourceRef, timeout: 5000 }
-      ]
+      [PATH]: [{ sourceRef: 'venus' as SourceRef, timeout: 60000 }]
     }
-    const toPreferred = getToPreferredDelta(pathConfig, ranking)
+    const toPreferred = getToPreferredDelta(pathConfig)
     const t = 1000000
 
-    // b is preferred for this path (path-level), even though a is preferred globally
-    toPreferred(makeDelta('b', PATH, 1), new Date(t), 'self')
-    const r1 = toPreferred(makeDelta('a', PATH, 2), new Date(t + 1), 'self')
-    assert(!accepted(r1), 'a rejected because path-level prefers b')
+    const r1 = toPreferred(makeDelta('n2k', PATH, 1), new Date(t), 'self')
+    assert(accepted(r1), 'first n2k delta accepted (nothing else seen yet)')
 
-    // On a different path without path-level config, ranking applies: a > b
-    toPreferred(makeDelta('a', 'other.path', 3), new Date(t), 'self')
     const r2 = toPreferred(
-      makeDelta('b', 'other.path', 4),
-      new Date(t + 1),
+      makeDelta('venus', PATH, 2),
+      new Date(t + 100),
       'self'
     )
-    assert(!accepted(r2), 'b rejected on other path because ranking prefers a')
+    assert(accepted(r2), 'configured venus displaces unconfigured n2k')
+
+    const r3 = toPreferred(makeDelta('n2k', PATH, 3), new Date(t + 200), 'self')
+    assert(!accepted(r3), 'n2k rejected while configured venus is winning')
   })
 
-  it('path-level disabled overrides ranking enabled', () => {
-    const ranking: SourceRankingEntry[] = [
-      { sourceRef: 'a' as SourceRef, timeout: 0 }
-    ]
+  it("configured source's timeout holds off unknown competitors", () => {
+    // With a 60s timeout configured, an unknown source must not steal
+    // the slot after just unknownSourceTimeout.
     const pathConfig: SourcePrioritiesData = {
-      [PATH]: [{ sourceRef: 'a' as SourceRef, timeout: -1 }]
+      [PATH]: [{ sourceRef: 'plugin' as SourceRef, timeout: 60000 }]
     }
-    const toPreferred = getToPreferredDelta(pathConfig, ranking)
+    const toPreferred = getToPreferredDelta(pathConfig, 10000)
     const t = 1000000
 
-    // a is disabled for this specific path
-    const r1 = toPreferred(makeDelta('a', PATH, 1), new Date(t), 'self')
-    assert(!accepted(r1), 'a rejected on path where it is disabled')
+    toPreferred(makeDelta('plugin', PATH, 1), new Date(t), 'self')
 
-    // a is still enabled on other paths via ranking
-    const r2 = toPreferred(makeDelta('a', 'other.path', 2), new Date(t), 'self')
-    assert(accepted(r2), 'a accepted on other path via ranking')
+    const r1 = toPreferred(
+      makeDelta('n2k', PATH, 2),
+      new Date(t + 11000),
+      'self'
+    )
+    assert(
+      !accepted(r1),
+      'unknown n2k rejected within configured timeout even past unknownSourceTimeout'
+    )
+
+    const r2 = toPreferred(
+      makeDelta('n2k', PATH, 3),
+      new Date(t + 60001),
+      'self'
+    )
+    assert(accepted(r2), 'unknown n2k accepted after configured timeout')
+  })
+
+  it('unknown source that briefly won does not self-renew forever', () => {
+    // If the configured source goes silent just long enough for an
+    // unknown source to squeeze in, the unknown source must not then
+    // self-renew via the "latest.sourceRef === sourceRef" rule —
+    // otherwise a transient gap permanently shadows the configured
+    // preference.
+    const pathConfig: SourcePrioritiesData = {
+      [PATH]: [{ sourceRef: 'plugin' as SourceRef, timeout: 1000 }]
+    }
+    const toPreferred = getToPreferredDelta(pathConfig, 500)
+    const t = 1000000
+
+    toPreferred(makeDelta('plugin', PATH, 1), new Date(t), 'self')
+
+    const r1 = toPreferred(
+      makeDelta('n2k', PATH, 2),
+      new Date(t + 1500),
+      'self'
+    )
+    assert(accepted(r1), 'n2k accepted after plugin goes silent')
+
+    const r2 = toPreferred(
+      makeDelta('plugin', PATH, 3),
+      new Date(t + 1501),
+      'self'
+    )
+    assert(accepted(r2), 'plugin reclaims the slot from unknown incumbent')
   })
 })
 
 describe('notifications bypass priority', () => {
   const NOTI = 'notifications.instrument.NoFix'
 
-  it('notification from low-ranked source is accepted even when higher-ranked source is latest', () => {
-    const ranking: SourceRankingEntry[] = [
-      { sourceRef: 'plotter' as SourceRef, timeout: 5000 },
-      { sourceRef: 'i70' as SourceRef, timeout: 5000 }
-    ]
-    const toPreferred = getToPreferredDelta({}, ranking)
+  it('notification from low-priority source is accepted', () => {
+    const pathConfig: SourcePrioritiesData = {
+      [NOTI]: [
+        { sourceRef: 'plotter' as SourceRef, timeout: 5000 },
+        { sourceRef: 'i70' as SourceRef, timeout: 5000 }
+      ]
+    }
+    const toPreferred = getToPreferredDelta(pathConfig)
     const t = 1000000
 
     toPreferred(makeDelta('plotter', NOTI, 1), new Date(t), 'self')
     const r = toPreferred(makeDelta('i70', NOTI, 2), new Date(t + 1), 'self')
     assert(
       accepted(r),
-      'i70 notification accepted despite plotter being higher ranked'
+      'i70 notification accepted despite plotter being higher priority'
     )
   })
 
-  it('notification from globally-disabled source is still accepted', () => {
-    const ranking: SourceRankingEntry[] = [
-      { sourceRef: 'i70' as SourceRef, timeout: -1 }
-    ]
-    const toPreferred = getToPreferredDelta({}, ranking)
+  it('notification from disabled source is still accepted', () => {
+    const pathConfig: SourcePrioritiesData = {
+      [NOTI]: [{ sourceRef: 'i70' as SourceRef, timeout: -1 }]
+    }
+    const toPreferred = getToPreferredDelta(pathConfig)
     const r = toPreferred(makeDelta('i70', NOTI, 1), new Date(1000000), 'self')
     assert(accepted(r), 'disabled source notification still accepted')
   })
@@ -512,20 +320,22 @@ describe('notifications bypass priority', () => {
     const pathConfig: SourcePrioritiesData = {
       [NOTI]: [{ sourceRef: 'plotter' as SourceRef, timeout: 5000 }]
     }
-    const toPreferred = getToPreferredDelta(pathConfig, undefined)
+    const toPreferred = getToPreferredDelta(pathConfig)
     const t = 1000000
 
     toPreferred(makeDelta('plotter', NOTI, 1), new Date(t), 'self')
     const r = toPreferred(makeDelta('i70', NOTI, 2), new Date(t + 1), 'self')
-    assert(accepted(r), 'unranked source still wins on notification path')
+    assert(accepted(r), 'unconfigured source still wins on notification path')
   })
 
   it('non-notification path in same scenario still respects priority', () => {
-    const ranking: SourceRankingEntry[] = [
-      { sourceRef: 'plotter' as SourceRef, timeout: 5000 },
-      { sourceRef: 'i70' as SourceRef, timeout: 5000 }
-    ]
-    const toPreferred = getToPreferredDelta({}, ranking)
+    const pathConfig: SourcePrioritiesData = {
+      'environment.wind.speedApparent': [
+        { sourceRef: 'plotter' as SourceRef, timeout: 5000 },
+        { sourceRef: 'i70' as SourceRef, timeout: 5000 }
+      ]
+    }
+    const toPreferred = getToPreferredDelta(pathConfig)
     const PATH = 'environment.wind.speedApparent'
     const t = 1000000
 
@@ -533,18 +343,20 @@ describe('notifications bypass priority', () => {
     const r = toPreferred(makeDelta('i70', PATH, 2), new Date(t + 1), 'self')
     assert(
       !accepted(r),
-      'i70 rejected on regular path because plotter is higher ranked'
+      'i70 rejected on regular path because plotter is higher priority'
     )
   })
 })
 
 describe('non-self context', () => {
   it('non-self context deltas pass through unchanged', () => {
-    const ranking: SourceRankingEntry[] = [
-      { sourceRef: 'a' as SourceRef, timeout: 0 },
-      { sourceRef: 'b' as SourceRef, timeout: -1 }
-    ]
-    const toPreferred = getToPreferredDelta({}, ranking)
+    const pathConfig: SourcePrioritiesData = {
+      'environment.wind.speedApparent': [
+        { sourceRef: 'a' as SourceRef, timeout: 0 },
+        { sourceRef: 'b' as SourceRef, timeout: -1 }
+      ]
+    }
+    const toPreferred = getToPreferredDelta(pathConfig)
     const PATH = 'environment.wind.speedApparent'
 
     // Even disabled source b passes through for non-self context

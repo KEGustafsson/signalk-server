@@ -101,7 +101,7 @@ The _Data_ menu provides tools for viewing, inspecting, and managing your Signal
 
 - **Source Discovery** — View all data sources connected to the server. For NMEA 2000, this shows a detailed table of every device on the bus with manufacturer, model, and instance information. Includes instance conflict detection. See [NMEA 2000 Device Management](./n2k-device-management.md) for details.
 
-- **Source Priority** _(admin only)_ — Configure which source the server prefers when multiple sources provide the same data path. Includes global Source Ranking and per-path overrides. See [Source Priority](./source-priority.md) for details.
+- **Source Priority** _(admin only)_ — Configure which source the server prefers when multiple sources provide the same data path, on a per-path basis. See [Source Priority](./source-priority.md) for details.
 
 - **Unit Preferences** — Configure automatic unit conversions (e.g. Kelvin to Celsius, m/s to knots) for the admin UI and WebSocket subscribers.
 

@@ -78,10 +78,6 @@ export function startServerEvents(
     data: app.config.settings.sourcePriorities || {}
   })
   spark.write({
-    type: 'SOURCERANKING',
-    data: app.config.settings.sourceRanking || []
-  })
-  spark.write({
     type: 'SOURCEALIASES',
     data: app.config.settings.sourceAliases || {}
   })

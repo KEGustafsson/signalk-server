@@ -4,7 +4,7 @@ title: Source Priority
 
 # Source Priority
 
-When multiple data sources provide the same Signal K path (e.g. two GPS devices both providing `navigation.position`), Signal K Server needs to decide which source to use. The Source Priority system lets you control this.
+When multiple data sources provide the same Signal K path (e.g. two GPS devices both providing `navigation.position`), Signal K Server needs to decide which source to use. The Source Priority system lets you control this on a per-path basis.
 
 These features are available in the Admin UI under _Data -> Source Priority_.
 
@@ -22,70 +22,59 @@ Multi-source paths are not errors — they are a normal part of a multi-device i
 
 The sidebar shows a yellow warning badge on the _Data_ menu item when there are multi-source paths that have no priority configuration. The number indicates how many such paths exist. As you configure priorities, this count decreases. The badge updates in real time as sources come and go.
 
-## Source Ranking
+## How It Works
 
-Source Ranking is a **global** priority list that applies to all paths where the listed sources overlap. This is the simplest way to configure priorities and covers the most common case: "always prefer GPS A over GPS B for everything they both provide".
+For each path, you list the sources that may provide it, in order of preference. The top row is the **preferred** source — while it is publishing data, its values always win. Every other row has a **Fallback after** value: the number of milliseconds the higher-priority source must be silent before this row is allowed to take over.
 
-### How It Works
+![Fallback timeline showing the backup source taking over only after the preferred source is silent for the configured threshold](../img/source-priority-timeline.svg)
 
-Sources are ordered by priority — source #1 is preferred over source #2, and so on. Each non-preferred source has a **timeout** (in milliseconds) that controls how long the server waits before falling back to it when a higher-ranked source stops sending data. Default is 60000ms (60 seconds).
+- Green bars: the preferred source is publishing data — its values are delivered.
+- Grey bars: the backup source is publishing too, but its data is dropped because the preferred source is still active.
+- Dashed red section: the preferred source has gone silent.
+- Blue bars: once that silence has lasted as long as the backup's _Fallback after_, the backup starts winning and its values are delivered.
+- When the preferred source returns, it immediately takes over again — no "Fallback after" wait applies to the preferred source.
 
-A source can be **disabled** to block its data entirely for all paths, without removing it from the ranking.
+### A Worked Example
 
-Sources not listed in the ranking are unranked and treated as lowest priority with a default timeout.
+Two GPS receivers on the boat both publish `navigation.position`:
 
-### Example
+| Row | Source            | Fallback after |
+| --- | ----------------- | -------------- |
+| 1   | `can0.Furuno-SCX` | _preferred_    |
+| 2   | `can0.Garmin-GPS` | `5000` (5 s)   |
+| 3   | `serial0.GP`      | `30000` (30 s) |
 
-A boat has three GPS devices: Furuno SCX-20 (CAN), Furuno GP-330B (CAN), and an NMEA 0183 GPS on serial0. All three provide `navigation.position`, `navigation.speedOverGround`, and `navigation.courseOverGroundTrue`.
+- While Furuno is publishing, only Furuno values reach subscribers.
+- If Furuno goes quiet for 5 seconds, Garmin values start being accepted.
+- If Garmin is also silent for 30 seconds _from when Furuno went silent_, the NMEA 0183 GPS takes over as a last resort.
+- The moment Furuno sends again, it wins again.
 
-Ranking them as:
+### Disabling a Source on a Path
 
-1. `can0.SCX-20` (preferred)
-2. `can0.GP-330B` (timeout: 60000ms)
-3. `serial0.GP` (timeout: 60000ms)
+Uncheck **Enabled** on a row (internally, _Fallback after_ = `-1`) to block that source on this path entirely, no matter how silent the others become.
 
-means the server always uses SCX-20 data when available. If SCX-20 stops sending data for 60 seconds, the server falls back to GP-330B. If GP-330B also stops, it falls back to serial0.GP.
+### Sources Not Listed
 
-## Path-Level Overrides
+Data from a source that is not listed in the priority table for a path is allowed to take over only after **every listed source has been silent for a default of 10 seconds**. This is a safety fallback so an unconfigured new device on the bus doesn't suddenly hijack a path you have not thought about.
 
-For individual paths where you need different priority than the global ranking, use **Path-Level Overrides**. These take precedence over the Source Ranking for the specified path only.
-
-### When to Use Path-Level Overrides
-
-- You want a different GPS for position than for speed over ground
-- A specific sensor is more accurate for one measurement but not others
-- You want to use a plugin's calculated true wind instead of the hardware sensor's
-
-## How Priority Resolution Works
-
-When a new data value arrives, the server decides whether to accept or reject it based on:
-
-1. **Path-level override** — if configured for this path, it controls which sources are accepted and in what order
-2. **Source Ranking** — if no path-level override exists, the global ranking applies
-3. **No configuration** — if neither exists, all sources are accepted equally (no filtering)
-
-The priority engine uses a timeout-based fallback mechanism:
-
-- The preferred source (rank #1) always wins when it is actively sending data
-- If the preferred source stops sending, lower-ranked sources are accepted after their timeout expires
-- When the preferred source resumes, it immediately takes over again
-
-All source data is preserved in the server's data model regardless of priority configuration. Priority filtering only affects which source's values are delivered to subscribers by default. See [Source Priority in the Data Browser](#source-priority-in-the-data-browser) for how to view all sources.
+### What is Not Filtered
 
 `notifications.*` paths bypass source priority entirely — every source's notifications are delivered unchanged. Notifications are events, not measurements, so suppressing one source's alarm because another source is "preferred" is never the right behaviour.
+
+All source data is preserved in the server's data model regardless of priority configuration. Priority only affects which source's values are delivered to subscribers by default. See [Source Priority in the Data Browser](#source-priority-in-the-data-browser) for how to view every source's data.
 
 ## Source Priority in the Data Browser
 
 The Data Browser (_Data -> Data Browser_) includes a **Source Priority** toggle that controls which source's data is displayed:
 
-- **On** (default): Shows only the preferred source's data for each path, respecting your priority configuration
-- **Off**: Shows data from all sources, regardless of priority
+- **On** (default): shows only the preferred source's data for each path, respecting your priority configuration.
+- **Off**: shows data from every source, regardless of priority.
 
-This is useful for:
+Use the **Off** mode to:
 
-- Verifying that priority configuration is working correctly
-- Comparing values from different sources
-- Debugging sensor issues by seeing all incoming data
+- Verify that priority configuration is working correctly
+- Compare values from different sources
+- Debug sensor issues by seeing all incoming data
 
 ## Source Identification
 
@@ -120,35 +109,15 @@ Returns the current path-level priority configuration.
 {
   "navigation.position": [
     { "sourceRef": "can0.SCX-20", "timeout": 0 },
-    { "sourceRef": "can0.GP-330B", "timeout": 60000 }
+    { "sourceRef": "can0.GP-330B", "timeout": 5000 }
   ]
 }
 ```
 
+The JSON field name is still `timeout` for backwards-compatibility; semantically it is the _Fallback after_ value — milliseconds of silence from higher-priority sources required before this entry is allowed to take over. The first entry's value is ignored (it is the preferred source). A value of `-1` disables the source on that path.
+
 ### PUT /skServer/sourcePriorities
 
 Saves a new path-level priority configuration. Requires admin access.
-
-**Request body:** Same format as the GET response.
-
-### GET /skServer/sourceRanking
-
-Returns the current global source ranking.
-
-**Response:**
-
-```json
-[
-  { "sourceRef": "can0.SCX-20", "timeout": 0 },
-  { "sourceRef": "can0.GP-330B", "timeout": 60000 },
-  { "sourceRef": "serial0.GP", "timeout": 60000 }
-]
-```
-
-A timeout of `-1` means the source is disabled (blocked).
-
-### PUT /skServer/sourceRanking
-
-Saves a new global source ranking. Requires admin access.
 
 **Request body:** Same format as the GET response.

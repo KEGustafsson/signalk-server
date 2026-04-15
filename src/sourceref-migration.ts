@@ -12,7 +12,6 @@ interface MigrationApp {
   config: {
     configPath: string
     settings: {
-      sourceRanking?: Array<{ sourceRef: string; timeout: number }>
       sourcePriorities?: Record<
         string,
         Array<{ sourceRef: string; timeout: number }>
@@ -37,32 +36,7 @@ export function migrateSourceRef(
   let settingsChanged = false
   const migrated: string[] = []
 
-  // 1. sourceRanking — merge if newRef already present
-  if (settings.sourceRanking) {
-    const hasNewRef = settings.sourceRanking.some((e) => e.sourceRef === newRef)
-    if (hasNewRef) {
-      const before = settings.sourceRanking.length
-      settings.sourceRanking = settings.sourceRanking.filter(
-        (e) => e.sourceRef !== oldRef
-      )
-      if (settings.sourceRanking.length !== before) {
-        settingsChanged = true
-        migrated.push('sourceRanking')
-      }
-    } else {
-      let rankingChanged = false
-      for (const entry of settings.sourceRanking) {
-        if (entry.sourceRef === oldRef) {
-          entry.sourceRef = newRef
-          settingsChanged = true
-          rankingChanged = true
-        }
-      }
-      if (rankingChanged) migrated.push('sourceRanking')
-    }
-  }
-
-  // 2. sourcePriorities (path-level) — dedupe per path if newRef already present
+  // 1. sourcePriorities (path-level) — dedupe per path if newRef already present
   if (settings.sourcePriorities) {
     for (const [, entries] of Object.entries(settings.sourcePriorities)) {
       if (!Array.isArray(entries)) continue
@@ -92,7 +66,7 @@ export function migrateSourceRef(
     }
   }
 
-  // 3. sourceAliases — keep existing newRef alias if present
+  // 2. sourceAliases — keep existing newRef alias if present
   if (settings.sourceAliases && oldRef in settings.sourceAliases) {
     if (!(newRef in settings.sourceAliases)) {
       settings.sourceAliases[newRef] = settings.sourceAliases[oldRef]
@@ -102,7 +76,7 @@ export function migrateSourceRef(
     migrated.push('sourceAliases')
   }
 
-  // 4. ignoredInstanceConflicts (keys are "refA+refB" sorted pairs)
+  // 3. ignoredInstanceConflicts (keys are "refA+refB" sorted pairs)
   if (settings.ignoredInstanceConflicts) {
     const updates: Array<{ oldKey: string; newKey: string; value: string }> = []
     for (const [key, value] of Object.entries(
@@ -127,7 +101,7 @@ export function migrateSourceRef(
     }
   }
 
-  // 5. Channel labels file
+  // 4. Channel labels file
   const labelsPath = path.join(app.config.configPath, LABELS_FILENAME)
   try {
     const raw = fs.readFileSync(labelsPath, 'utf-8')
@@ -156,11 +130,11 @@ export function migrateSourceRef(
     }
   }
 
-  // 6. Clean up deltaCache for old sourceRef
+  // 5. Clean up deltaCache for old sourceRef
   app.deltaCache.removeSource(oldRef as SourceRef)
   migrated.push('deltaCache')
 
-  // 7. Persist settings
+  // 6. Persist settings
   if (settingsChanged) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     writeSettingsFile(app as any, settings, (err: Error) => {
@@ -170,16 +144,10 @@ export function migrateSourceRef(
     })
   }
 
-  // 8. Recompile priority engine
+  // 7. Recompile priority engine
   app.activateSourcePriorities()
 
-  // 9. Notify clients (only for sections that were actually migrated)
-  if (migrated.includes('sourceRanking') && settings.sourceRanking) {
-    app.emit('serverevent', {
-      type: 'SOURCERANKING',
-      data: settings.sourceRanking
-    })
-  }
+  // 8. Notify clients (only for sections that were actually migrated)
   if (migrated.includes('sourcePriorities') && settings.sourcePriorities) {
     app.emit('serverevent', {
       type: 'SOURCEPRIORITIES',
