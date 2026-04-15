@@ -134,21 +134,27 @@ export default function Sidebar({ location }: SidebarProps) {
       !loginStatus.authenticationRequired || loginStatus.userLevel === 'admin'
 
     const dataChildren: NavItemData[] = [
-      { name: 'Data Browser', url: '/data/browser' },
-      { name: 'Meta Data', url: '/data/meta' },
-      {
-        name: 'NMEA Discovery',
-        url: '/data/sources',
-        badge:
-          conflictCount > 0
-            ? { variant: 'warning', text: `${conflictCount}` }
-            : null
-      }
+      { name: 'Browser', url: '/data/browser' },
+      { name: 'Metadata', url: '/data/meta' }
     ]
+    if (isAdmin) {
+      dataChildren.push({
+        name: 'Connections',
+        url: '/data/connections/-'
+      })
+    }
+    dataChildren.push({
+      name: 'NMEA Discovery',
+      url: '/data/sources',
+      badge:
+        conflictCount > 0
+          ? { variant: 'warning', text: `${conflictCount}` }
+          : null
+    })
     if (isAdmin) {
       dataChildren.push(
         {
-          name: 'Source Priority',
+          name: 'Priorities',
           url: '/data/priorities',
           badge:
             unconfiguredPriorityCount > 0
@@ -159,8 +165,7 @@ export default function Sidebar({ location }: SidebarProps) {
               : null
         },
         { name: 'Unit Preferences', url: '/data/units' },
-        { name: 'Data Fiddler', url: '/data/fiddler' },
-        { name: 'Data Connections', url: '/data/connections/-' }
+        { name: 'Fiddler', url: '/data/fiddler' }
       )
     }
 
