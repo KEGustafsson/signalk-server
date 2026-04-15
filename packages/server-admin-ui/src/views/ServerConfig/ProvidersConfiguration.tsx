@@ -116,10 +116,6 @@ const ProvidersConfiguration: React.FC = () => {
     [selectedProvider]
   )
 
-  const handleProviderPropChange = useCallback(() => {
-    setSelectedProvider((prev) => (prev ? { ...prev } : null))
-  }, [])
-
   const handleAddProvider = useCallback(() => {
     const newProvider: Provider = {
       type: 'NMEA2000',
@@ -338,7 +334,7 @@ const ProvidersConfiguration: React.FC = () => {
                 <BasicProvider
                   value={selectedProvider}
                   onChange={handleProviderChange}
-                  onPropChange={handleProviderPropChange}
+                  onPropChange={handleProviderChange}
                 />
               ) : (
                 <Form.Control
