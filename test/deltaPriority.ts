@@ -293,6 +293,35 @@ describe('source ranking', () => {
     assert(accepted(r2), 'unknown n2k accepted after ranked source timeout')
   })
 
+  it('ranked source displaces an unknown incumbent immediately', () => {
+    // Scott's scenario: an unknown (unranked) N2K source publishes
+    // the path first and becomes 'latest'. When the user's ranked
+    // source arrives, it must win immediately — otherwise every
+    // lower-ranked-but-still-configured source gets permanently
+    // shadowed by the unconfigured N2K device.
+    const ranking: SourceRankingEntry[] = [
+      { sourceRef: 'venus' as SourceRef, timeout: 60000 }
+    ]
+    const toPreferred = getToPreferredDelta({}, ranking)
+    const t = 1000000
+
+    // Unranked N2K source arrives first
+    const r1 = toPreferred(makeDelta('n2k', PATH, 1), new Date(t), 'self')
+    assert(accepted(r1), 'first n2k delta accepted (nothing else seen yet)')
+
+    // Ranked venus arrives — must win immediately
+    const r2 = toPreferred(
+      makeDelta('venus', PATH, 2),
+      new Date(t + 100),
+      'self'
+    )
+    assert(accepted(r2), 'ranked venus displaces unranked n2k')
+
+    // Subsequent n2k deltas must be rejected (venus holds the slot)
+    const r3 = toPreferred(makeDelta('n2k', PATH, 3), new Date(t + 200), 'self')
+    assert(!accepted(r3), 'n2k rejected while ranked venus is winning')
+  })
+
   it('unknown source that briefly won does not self-renew forever', () => {
     // If the configured source goes silent for just long enough that
     // an unknown source squeezes in, the unknown source must not then
