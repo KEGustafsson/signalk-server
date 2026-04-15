@@ -153,7 +153,7 @@ export default function Sidebar({ location }: SidebarProps) {
       { name: 'Data Browser', url: '/data/browser' },
       { name: 'Meta Data', url: '/data/meta' },
       {
-        name: 'Source Discovery',
+        name: 'NMEA Discovery',
         url: '/data/sources',
         badge:
           conflictCount > 0
