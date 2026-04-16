@@ -217,4 +217,28 @@ export function useConfiguredSourcesByPath(): Map<string, Set<string>> {
   }, [serialized])
 }
 
+/**
+ * Returns a Map from path → preferred (first) sourceRef for that path.
+ */
+export function usePreferredSourceByPath(): Map<string, string> {
+  const serialized = useStore((s) => {
+    const entries: string[] = []
+    for (const pp of s.sourcePrioritiesData.sourcePriorities) {
+      if (pp.path && pp.priorities.length > 0 && pp.priorities[0].sourceRef) {
+        entries.push(`${pp.path}\t${pp.priorities[0].sourceRef}`)
+      }
+    }
+    return entries.sort().join('\0')
+  })
+  return useMemo(() => {
+    const map = new Map<string, string>()
+    if (!serialized) return map
+    for (const entry of serialized.split('\0')) {
+      const [path, ref] = entry.split('\t')
+      if (path && ref) map.set(path, ref)
+    }
+    return map
+  }, [serialized])
+}
+
 export * from './types'

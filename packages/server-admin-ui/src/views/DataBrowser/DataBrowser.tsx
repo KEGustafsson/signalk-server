@@ -17,11 +17,10 @@ import Form from 'react-bootstrap/Form'
 import Row from 'react-bootstrap/Row'
 import dayjs from 'dayjs'
 import VirtualizedDataTable from './VirtualizedDataTable'
-import SourceView from './SourceView'
 import type { PathData, MetaData } from '../../store'
 import type { SourcesData } from '../../utils/sourceLabels'
 import granularSubscriptionManager from './GranularSubscriptionManager'
-import { getPath$SourceKey } from './pathUtils'
+import { getPath$SourceKey, getPathFromKey } from './pathUtils'
 import {
   useWebSocket,
   useDeltaMessages,
@@ -31,10 +30,10 @@ import {
   useStore,
   useShallow,
   useUnitPrefsLoaded,
-  useConfiguredPriorityPaths
+  useConfiguredPriorityPaths,
+  usePreferredSourceByPath
 } from '../../store'
 
-// Imperative accessor — avoids subscribing the component to every value change.
 const getSignalkData = () => useStore.getState().signalkData
 
 const TIMESTAMP_FORMAT = 'MM/DD HH:mm:ss'
@@ -46,6 +45,8 @@ const contextStorageKey = 'admin.v1.dataBrowser.context'
 const searchStorageKey = 'admin.v1.dataBrowser.search'
 const viewBySourceStorageKey = 'admin.v1.dataBrowser.viewBySource'
 const sourceFilterStorageKey = 'admin.v1.dataBrowser.sourceFilter'
+
+const HEADER_PREFIX = '__header__\0'
 
 function matchesSearch(key: string, search: string): boolean {
   if (!search || search.length === 0) return true
@@ -122,10 +123,8 @@ const DataBrowser: React.FC = () => {
   const deferredSearch = useDeferredValue(search)
   const isSearchStale = search !== deferredSearch
 
-  // dataVersion only increments when new paths appear, not on every value update.
   const dataVersion = useStore((s) => s.dataVersion)
 
-  // Only re-renders when the set of contexts changes (new vessel appears / disappears).
   const contextKeys = useStore(
     useShallow((s) => Object.keys(s.signalkData).sort())
   )
@@ -137,6 +136,7 @@ const DataBrowser: React.FC = () => {
   const unitPrefsLoaded = useUnitPrefsLoaded()
   const fetchUnitPreferences = useStore((s) => s.fetchUnitPreferences)
   const configuredPriorityPaths = useConfiguredPriorityPaths()
+  const preferredSourceByPath = usePreferredSourceByPath()
 
   const didSubscribeRef = useRef(false)
   const webSocketRef = useRef<WebSocket | null>(null)
@@ -155,7 +155,6 @@ const DataBrowser: React.FC = () => {
         return
       }
 
-      // Read from service directly to avoid stale closure
       const currentSkSelf = getWebSocketService().getSkSelf()
       const deltaMsg = msg as DeltaMessage
 
@@ -235,8 +234,6 @@ const DataBrowser: React.FC = () => {
   useDeltaMessages(handleMessage)
 
   const subscribeToDataIfNeeded = useCallback(() => {
-    // Wait for hello message (skSelf) before discovery — handleMessage needs
-    // the vessel's self identity to map contexts correctly.
     if (
       !pause &&
       webSocket &&
@@ -327,10 +324,6 @@ const DataBrowser: React.FC = () => {
   const handleContextChange = useCallback(
     (selectedOption: SingleValue<SelectOption>) => {
       const value = selectedOption ? selectedOption.value : 'none'
-
-      granularSubscriptionManager.cancelPending()
-      granularSubscriptionManager.startDiscovery()
-
       setContext(value)
       localStorage.setItem(contextStorageKey, value)
     },
@@ -351,11 +344,12 @@ const DataBrowser: React.FC = () => {
 
   const showContext = context === 'all'
 
+  // Build the path key list, optionally grouped by source with header rows
   const filteredPathKeys: string[] = useMemo(() => {
     const currentData = dataVersion >= 0 ? getSignalkData() : {}
     const contexts = context === 'all' ? Object.keys(currentData) : [context]
 
-    const filtered: string[] = []
+    let filtered: string[] = []
 
     for (const ctx of contexts) {
       const contextData = currentData[ctx] || {}
@@ -363,18 +357,98 @@ const DataBrowser: React.FC = () => {
         if (!matchesSearch(key, deferredSearch)) {
           continue
         }
-
         filtered.push(context === 'all' ? `${ctx}\0${key}` : key)
       }
     }
 
-    return filtered.sort((a, b) => a.localeCompare(b))
-  }, [context, deferredSearch, dataVersion])
+    // In "Priority filtered" mode, deduplicate by path — keep only the
+    // preferred source's entry (or the first one seen if no priority is
+    // configured for that path). The server's live delta stream already
+    // filters, but the initial cached-data dump may contain multiple
+    // sources for the same path.
+    if (sourceFilter) {
+      const seenPaths = new Map<string, string>()
+      const deduped: string[] = []
+      for (const compositeKey of filtered) {
+        const nullIdx = compositeKey.indexOf('\0')
+        const realKey =
+          nullIdx >= 0 ? compositeKey.slice(nullIdx + 1) : compositeKey
+        const path = getPathFromKey(realKey)
+        const ctxPrefix = nullIdx >= 0 ? compositeKey.slice(0, nullIdx) : ''
+        const dedupKey = ctxPrefix ? `${ctxPrefix}\0${path}` : path
 
-  const toggleRaw = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      setRaw(event.target.checked)
-      localStorage.setItem(rawStorageKey, String(event.target.checked))
+        if (!seenPaths.has(dedupKey)) {
+          seenPaths.set(dedupKey, compositeKey)
+          deduped.push(compositeKey)
+        } else {
+          // If this entry's source is the preferred one, replace
+          const pathData = currentData[ctxPrefix || context]?.[realKey] as
+            | PathData
+            | undefined
+          const src = pathData?.$source
+          if (src && preferredSourceByPath.get(path) === src) {
+            const oldIdx = deduped.indexOf(seenPaths.get(dedupKey)!)
+            if (oldIdx >= 0) deduped[oldIdx] = compositeKey
+            seenPaths.set(dedupKey, compositeKey)
+          }
+        }
+      }
+      filtered = deduped
+    }
+
+    if (!viewBySource) {
+      return filtered.sort((a, b) => a.localeCompare(b))
+    }
+
+    // Group by source: sort by $source then path, inject headers
+    const getSource = (compositeKey: string): string => {
+      const nullIdx = compositeKey.indexOf('\0')
+      const realKey =
+        nullIdx >= 0 ? compositeKey.slice(nullIdx + 1) : compositeKey
+      const ctx = nullIdx >= 0 ? compositeKey.slice(0, nullIdx) : context
+      const pathData = currentData[ctx]?.[realKey] as PathData | undefined
+      return pathData?.$source || 'unknown'
+    }
+
+    filtered.sort((a, b) => {
+      const srcA = getSource(a)
+      const srcB = getSource(b)
+      const srcCmp = srcA.localeCompare(srcB)
+      if (srcCmp !== 0) return srcCmp
+      return a.localeCompare(b)
+    })
+
+    // Inject header keys at source boundaries
+    const result: string[] = []
+    let lastSource = ''
+    const sourceCounts = new Map<string, number>()
+    for (const key of filtered) {
+      const src = getSource(key)
+      sourceCounts.set(src, (sourceCounts.get(src) || 0) + 1)
+    }
+    for (const key of filtered) {
+      const src = getSource(key)
+      if (src !== lastSource) {
+        result.push(`${HEADER_PREFIX}${src}\0${sourceCounts.get(src) || 0}`)
+        lastSource = src
+      }
+      result.push(key)
+    }
+    return result
+  }, [
+    context,
+    deferredSearch,
+    dataVersion,
+    viewBySource,
+    sourceFilter,
+    preferredSourceByPath
+  ])
+
+  const handleRawChange = useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      const newValue = event.target.value === 'raw'
+      setRaw(newValue)
+      localStorage.setItem(rawStorageKey, String(newValue))
     },
     []
   )
@@ -397,26 +471,26 @@ const DataBrowser: React.FC = () => {
     [loadSources, subscribeToDataIfNeeded]
   )
 
-  const toggleViewBySource = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const newValue = event.target.checked
+  const handleViewChange = useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      const newValue = event.target.value === 'bySource'
       setViewBySource(newValue)
       localStorage.setItem(viewBySourceStorageKey, String(newValue))
     },
     []
   )
 
-  const toggleSourceFilter = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const newValue = event.target.checked
+  const handleSourcesChange = useCallback(
+    (event: React.ChangeEvent<HTMLSelectElement>) => {
+      const newValue = event.target.value === 'filtered'
       setSourceFilter(newValue)
       localStorage.setItem(sourceFilterStorageKey, String(newValue))
-      // Clear stale rows from previous mode and resubscribe
-      useStore.getState().clearData()
-      granularSubscriptionManager.unsubscribeAll()
-      didSubscribeRef.current = false
+      if (!pause) {
+        granularSubscriptionManager.unsubscribeAll()
+        didSubscribeRef.current = false
+      }
     },
-    []
+    [pause]
   )
 
   return (
@@ -432,8 +506,8 @@ const DataBrowser: React.FC = () => {
               e.preventDefault()
             }}
           >
-            <Form.Group as={Row}>
-              <Col xs="12" md="4">
+            <Form.Group as={Row} className="mb-2 align-items-center g-2">
+              <Col xs="12" md="3">
                 <Select<SelectOption, false>
                   value={currentContext}
                   onChange={handleContextChange}
@@ -458,6 +532,33 @@ const DataBrowser: React.FC = () => {
                 />
               </Col>
               <Col xs="6" md="2">
+                <Form.Select
+                  value={viewBySource ? 'bySource' : 'paths'}
+                  onChange={handleViewChange}
+                >
+                  <option value="paths">By Path</option>
+                  <option value="bySource">By Source</option>
+                </Form.Select>
+              </Col>
+              <Col xs="6" md="2">
+                <Form.Select
+                  value={sourceFilter ? 'filtered' : 'all'}
+                  onChange={handleSourcesChange}
+                >
+                  <option value="filtered">Priority filtered</option>
+                  <option value="all">All sources</option>
+                </Form.Select>
+              </Col>
+              <Col xs="6" md="2">
+                <Form.Select
+                  value={raw ? 'raw' : 'value'}
+                  onChange={handleRawChange}
+                >
+                  <option value="value">As Value</option>
+                  <option value="raw">As Raw</option>
+                </Form.Select>
+              </Col>
+              <Col xs="6" md="auto" className="ms-md-auto">
                 <label className="switch switch-text switch-primary">
                   <input
                     type="checkbox"
@@ -472,69 +573,9 @@ const DataBrowser: React.FC = () => {
                 </label>{' '}
                 <label
                   htmlFor="databrowser-pause"
-                  style={{ cursor: 'pointer' }}
+                  style={{ whiteSpace: 'nowrap', cursor: 'pointer' }}
                 >
                   Pause
-                </label>
-              </Col>
-              <Col xs="6" md="2">
-                <label className="switch switch-text switch-primary">
-                  <input
-                    type="checkbox"
-                    id="databrowser-raw"
-                    name="raw"
-                    className="switch-input"
-                    onChange={toggleRaw}
-                    checked={raw}
-                  />
-                  <span className="switch-label" data-on="Yes" data-off="No" />
-                  <span className="switch-handle" />
-                </label>{' '}
-                <label
-                  htmlFor="databrowser-raw"
-                  style={{ whiteSpace: 'nowrap', cursor: 'pointer' }}
-                >
-                  Raw Values
-                </label>
-              </Col>
-              <Col xs="6" md="2">
-                <label className="switch switch-text switch-primary">
-                  <input
-                    type="checkbox"
-                    id="databrowser-by-source"
-                    name="bySource"
-                    className="switch-input"
-                    onChange={toggleViewBySource}
-                    checked={viewBySource}
-                  />
-                  <span className="switch-label" data-on="Yes" data-off="No" />
-                  <span className="switch-handle" />
-                </label>{' '}
-                <label
-                  htmlFor="databrowser-by-source"
-                  style={{ whiteSpace: 'nowrap', cursor: 'pointer' }}
-                >
-                  By Source
-                </label>
-              </Col>
-              <Col xs="6" md="2">
-                <label className="switch switch-text switch-primary">
-                  <input
-                    type="checkbox"
-                    id="databrowser-source-filter"
-                    name="sourceFilter"
-                    className="switch-input"
-                    onChange={toggleSourceFilter}
-                    checked={sourceFilter}
-                  />
-                  <span className="switch-label" data-on="Yes" data-off="No" />
-                  <span className="switch-handle" />
-                </label>{' '}
-                <label
-                  htmlFor="databrowser-source-filter"
-                  style={{ whiteSpace: 'nowrap', cursor: 'pointer' }}
-                >
-                  Source Priority
                 </label>
               </Col>
             </Form.Group>
@@ -557,7 +598,7 @@ const DataBrowser: React.FC = () => {
               </Form.Group>
             )}
 
-            {!viewBySource && context && context !== 'none' && (
+            {context && context !== 'none' && (
               <div
                 style={{
                   opacity: isSearchStale ? 0.7 : 1,
@@ -572,16 +613,11 @@ const DataBrowser: React.FC = () => {
                   showContext={showContext}
                   sourcesData={rawSourcesData}
                   configuredPriorityPaths={configuredPriorityPaths}
+                  preferredSourceByPath={
+                    !sourceFilter ? preferredSourceByPath : undefined
+                  }
                 />
               </div>
-            )}
-
-            {viewBySource && context && context !== 'none' && (
-              <SourceView
-                context={context}
-                search={deferredSearch}
-                sourcesData={rawSourcesData}
-              />
             )}
           </Form>
         </Card.Body>

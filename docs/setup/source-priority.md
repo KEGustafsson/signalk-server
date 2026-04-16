@@ -65,16 +65,18 @@ All source data is preserved in the server's data model regardless of priority c
 
 ## Source Priority in the Data Browser
 
-The Data Browser (_Data -> Data Browser_) includes a **Source Priority** toggle that controls which source's data is displayed:
+The Data Browser (_Data -> Browser_) has a **Sources** dropdown that controls which source's data is displayed:
 
-- **On** (default): shows only the preferred source's data for each path, respecting your priority configuration.
-- **Off**: shows data from every source, regardless of priority.
+- **Priority filtered** (default): shows only the preferred source's data for each path, respecting your priority configuration.
+- **All sources**: shows data from every source. The preferred source for each path is marked with a green checkmark (**&#10003;**) so you can see which one would win under filtering.
 
-Use the **Off** mode to:
+Use **All sources** to:
 
 - Verify that priority configuration is working correctly
 - Compare values from different sources
 - Debug sensor issues by seeing all incoming data
+
+The **View** dropdown lets you switch between a flat path listing (**Paths**) and a source-grouped view (**By Source**) that shows the same full table grouped under source headers.
 
 ## Source Identification
 

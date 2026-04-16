@@ -1,9 +1,12 @@
 import { useEffect, useMemo } from 'react'
 import DataRow from './DataRow'
+import SourceGroupHeader from './SourceGroupHeader'
 import { getPathFromKey } from './pathUtils'
 import granularSubscriptionManager from './GranularSubscriptionManager'
 import type { SourcesData } from '../../utils/sourceLabels'
 import './VirtualTable.css'
+
+const HEADER_PREFIX = '__header__\0'
 
 interface VirtualizedDataTableProps {
   path$SourceKeys: string[]
@@ -13,6 +16,7 @@ interface VirtualizedDataTableProps {
   showContext: boolean
   sourcesData: SourcesData | null
   configuredPriorityPaths: Set<string>
+  preferredSourceByPath?: Map<string, string>
 }
 
 function VirtualizedDataTable({
@@ -22,12 +26,13 @@ function VirtualizedDataTable({
   isPaused,
   showContext,
   sourcesData,
-  configuredPriorityPaths
+  configuredPriorityPaths,
+  preferredSourceByPath
 }: VirtualizedDataTableProps) {
   const sourceCountsByPath = useMemo(() => {
     const counts = new Map<string, number>()
     for (const key of path$SourceKeys) {
-      // In "all" context mode keys are "context\0path$source" — strip prefix
+      if (key.startsWith(HEADER_PREFIX)) continue
       const nullIdx = key.indexOf('\0')
       const pathKey = nullIdx >= 0 ? key.slice(nullIdx + 1) : key
       const path = getPathFromKey(pathKey)
@@ -36,18 +41,22 @@ function VirtualizedDataTable({
     return counts
   }, [path$SourceKeys])
 
-  // Subscribe to all paths at once
+  const dataKeys = useMemo(
+    () => path$SourceKeys.filter((k) => !k.startsWith(HEADER_PREFIX)),
+    [path$SourceKeys]
+  )
+
   useEffect(() => {
     if (isPaused) return
-    if (path$SourceKeys.length === 0) {
+    if (dataKeys.length === 0) {
       granularSubscriptionManager.requestPaths([], [])
       return
     }
 
-    granularSubscriptionManager.requestPaths(path$SourceKeys, path$SourceKeys)
-  }, [path$SourceKeys, isPaused])
+    granularSubscriptionManager.requestPaths(dataKeys, dataKeys)
+  }, [dataKeys, isPaused])
 
-  if (path$SourceKeys.length === 0) {
+  if (dataKeys.length === 0) {
     return (
       <div className="virtual-table">
         <div className="virtual-table-info">
@@ -73,25 +82,42 @@ function VirtualizedDataTable({
       </div>
 
       <div className="virtual-table-body">
-        {path$SourceKeys.map((key, index) => (
-          <DataRow
-            key={key}
-            path$SourceKey={key}
-            context={context}
-            index={index}
-            raw={raw}
-            isPaused={isPaused}
-            showContext={showContext}
-            sourceCountsByPath={sourceCountsByPath}
-            sourcesData={sourcesData}
-            configuredPriorityPaths={configuredPriorityPaths}
-          />
-        ))}
+        {path$SourceKeys.map((key, index) => {
+          if (key.startsWith(HEADER_PREFIX)) {
+            const rest = key.slice(HEADER_PREFIX.length)
+            const sepIdx = rest.indexOf('\0')
+            const sourceRef = sepIdx >= 0 ? rest.slice(0, sepIdx) : rest
+            const pathCount =
+              sepIdx >= 0 ? parseInt(rest.slice(sepIdx + 1), 10) || 0 : 0
+            return (
+              <SourceGroupHeader
+                key={key}
+                sourceRef={sourceRef}
+                pathCount={pathCount}
+                sourcesData={sourcesData}
+                showContext={showContext}
+              />
+            )
+          }
+          return (
+            <DataRow
+              key={key}
+              path$SourceKey={key}
+              context={context}
+              index={index}
+              raw={raw}
+              isPaused={isPaused}
+              showContext={showContext}
+              sourceCountsByPath={sourceCountsByPath}
+              sourcesData={sourcesData}
+              configuredPriorityPaths={configuredPriorityPaths}
+              preferredSourceByPath={preferredSourceByPath}
+            />
+          )
+        })}
       </div>
 
-      <div className="virtual-table-info">
-        Showing {path$SourceKeys.length} paths
-      </div>
+      <div className="virtual-table-info">Showing {dataKeys.length} paths</div>
     </div>
   )
 }

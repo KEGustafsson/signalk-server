@@ -24,6 +24,7 @@ interface DataRowProps {
   sourceCountsByPath: Map<string, number>
   sourcesData: SourcesData | null
   configuredPriorityPaths: Set<string>
+  preferredSourceByPath?: Map<string, string>
 }
 
 interface ValueRendererProps {
@@ -68,7 +69,8 @@ function DataRow({
   showContext,
   sourceCountsByPath,
   sourcesData,
-  configuredPriorityPaths
+  configuredPriorityPaths,
+  preferredSourceByPath
 }: DataRowProps) {
   // When showContext is true, path$SourceKey is a composite key: context\0realKey
   const nullIdx = showContext ? path$SourceKey.indexOf('\0') : -1
@@ -165,6 +167,10 @@ function DataRow({
   const source = data.$source ?? ''
   const timestamp = data.timestamp ?? ''
   const sourceCount = path ? sourceCountsByPath.get(path) || 1 : 1
+  const isPreferred =
+    preferredSourceByPath && path
+      ? preferredSourceByPath.get(path) === source
+      : false
 
   return (
     <div
@@ -199,6 +205,18 @@ function DataRow({
       <TimestampCell timestamp={timestamp} isPaused={isPaused} />
 
       <div className="virtual-table-cell source-cell" data-label="Source">
+        {isPreferred && (
+          <span
+            title="Preferred source"
+            style={{
+              color: '#2e7d32',
+              marginRight: '4px',
+              fontSize: '0.85em'
+            }}
+          >
+            &#10003;
+          </span>
+        )}
         <CopyToClipboardWithFade text={source}>
           <SourceLabel sourceRef={source} sourcesData={sourcesData} />{' '}
           <span className="copy-icon" aria-hidden="true" />
