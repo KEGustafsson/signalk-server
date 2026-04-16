@@ -11,6 +11,7 @@ import Select, {
   type OptionProps,
   type SingleValue
 } from 'react-select'
+import Button from 'react-bootstrap/Button'
 import Card from 'react-bootstrap/Card'
 import Col from 'react-bootstrap/Col'
 import Form from 'react-bootstrap/Form'
@@ -506,6 +507,22 @@ const DataBrowser: React.FC = () => {
     })
   }, [])
 
+  const collapseAllSources = useCallback(() => {
+    const all = new Set<string>()
+    for (const key of filteredPathKeys) {
+      if (key.startsWith(HEADER_PREFIX)) {
+        const rest = key.slice(HEADER_PREFIX.length)
+        const sepIdx = rest.indexOf('\0')
+        all.add(sepIdx >= 0 ? rest.slice(0, sepIdx) : rest)
+      }
+    }
+    setCollapsedSources(all)
+  }, [filteredPathKeys])
+
+  const expandAllSources = useCallback(() => {
+    setCollapsedSources(new Set())
+  }, [])
+
   const handleRawChange = useCallback(
     (event: React.ChangeEvent<HTMLSelectElement>) => {
       const newValue = event.target.value === 'raw'
@@ -602,6 +619,25 @@ const DataBrowser: React.FC = () => {
                   <option value="bySource">By Source</option>
                 </Form.Select>
               </Col>
+              {viewBySource && (
+                <Col xs="auto">
+                  <Button
+                    size="sm"
+                    variant="outline-secondary"
+                    onClick={expandAllSources}
+                    style={{ marginRight: '4px' }}
+                  >
+                    Expand All
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline-secondary"
+                    onClick={collapseAllSources}
+                  >
+                    Collapse All
+                  </Button>
+                </Col>
+              )}
               <Col xs="6" md="2">
                 <Form.Select
                   value={sourceFilter ? 'filtered' : 'all'}

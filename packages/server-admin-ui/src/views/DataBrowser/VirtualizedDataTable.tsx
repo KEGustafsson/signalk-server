@@ -60,7 +60,7 @@ function VirtualizedDataTable({
     granularSubscriptionManager.requestPaths(dataKeys, dataKeys)
   }, [dataKeys, isPaused])
 
-  if (dataKeys.length === 0) {
+  if (path$SourceKeys.length === 0) {
     return (
       <div className="virtual-table">
         <div className="virtual-table-info">
