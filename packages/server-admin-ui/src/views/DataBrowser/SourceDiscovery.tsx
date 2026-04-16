@@ -374,7 +374,16 @@ const SourceDiscovery: React.FC = () => {
 
   return (
     <div className="animated fadeIn">
-      {allWsProxied && (
+      {devices.length === 0 && nmea0183.length === 0 && (
+        <Alert variant="info" style={{ fontSize: '0.9rem' }}>
+          No NMEA devices detected yet. Check your{' '}
+          <a href="./#/data/connections/-" className="text-decoration-none">
+            Connections
+          </a>{' '}
+          to configure a data source.
+        </Alert>
+      )}
+      {devices.length > 0 && allWsProxied && (
         <Alert
           variant="info"
           style={{ fontSize: '0.9rem', marginBottom: '16px' }}
@@ -385,216 +394,220 @@ const SourceDiscovery: React.FC = () => {
           bus connection. Configure these devices on the remote server.
         </Alert>
       )}
-      <Card>
-        <Card.Header
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            flexWrap: 'wrap'
-          }}
-        >
-          <span style={{ fontWeight: 500 }}>N2K Devices</span>
-          <Badge bg="secondary">{devices.length}</Badge>
-          {discoveredAddresses && devices.length > 0 && !allWsProxied && (
-            <>
-              <Badge bg="success" style={{ fontSize: '0.75em' }}>
-                {
-                  devices.filter(
-                    (d) =>
-                      !wsConnectionIds.has(d.connection) &&
-                      discoveredAddresses.has(Number(d.src))
-                  ).length
-                }{' '}
-                online
-              </Badge>
-              <Badge bg="secondary" style={{ fontSize: '0.75em' }}>
-                {
-                  devices.filter(
-                    (d) =>
-                      !wsConnectionIds.has(d.connection) &&
-                      !discoveredAddresses.has(Number(d.src))
-                  ).length
-                }{' '}
-                offline
-              </Badge>
-            </>
-          )}
-          <Button
-            size="sm"
-            variant="primary"
-            onClick={handleDiscover}
-            disabled={isDiscovering || allWsProxied}
-            title={
-              allWsProxied
-                ? 'Discovery requires a direct CAN bus connection'
-                : undefined
-            }
+      {devices.length > 0 && (
+        <Card>
+          <Card.Header
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              flexWrap: 'wrap'
+            }}
           >
-            {isDiscovering ? (
+            <span style={{ fontWeight: 500 }}>N2K Devices</span>
+            <Badge bg="secondary">{devices.length}</Badge>
+            {discoveredAddresses && devices.length > 0 && !allWsProxied && (
               <>
-                <Spinner size="sm" animation="border" /> Discovering...
+                <Badge bg="success" style={{ fontSize: '0.75em' }}>
+                  {
+                    devices.filter(
+                      (d) =>
+                        !wsConnectionIds.has(d.connection) &&
+                        discoveredAddresses.has(Number(d.src))
+                    ).length
+                  }{' '}
+                  online
+                </Badge>
+                <Badge bg="secondary" style={{ fontSize: '0.75em' }}>
+                  {
+                    devices.filter(
+                      (d) =>
+                        !wsConnectionIds.has(d.connection) &&
+                        !discoveredAddresses.has(Number(d.src))
+                    ).length
+                  }{' '}
+                  offline
+                </Badge>
               </>
-            ) : (
-              'Discover Devices'
             )}
-          </Button>
-          <Button size="sm" variant="outline-secondary" onClick={loadSources}>
-            Refresh
-          </Button>
-          <Button size="sm" variant="outline-secondary" onClick={expandAll}>
-            Expand All
-          </Button>
-          <Button size="sm" variant="outline-secondary" onClick={collapseAll}>
-            Collapse All
-          </Button>
-        </Card.Header>
-        {activeConflicts.length > 0 && (
-          <Alert
-            variant="warning"
-            style={{ margin: '8px 12px', fontSize: '0.9rem' }}
-          >
-            <FontAwesomeIcon icon={faTriangleExclamation} />{' '}
-            <strong>
-              {activeConflicts.length} instance conflict
-              {activeConflicts.length > 1 ? 's' : ''} detected.
-            </strong>{' '}
-            Devices sharing the same device instance and overlapping data PGNs
-            may confuse instruments. Temperature/humidity sensors are excluded
-            (their unique key is instance + source).
-            {conflictFilter && (
-              <Button
-                size="sm"
-                variant="outline-warning"
-                onClick={() => setConflictFilter(null)}
-                style={{ marginLeft: '8px', fontSize: '0.85em' }}
-              >
-                Show all devices
-              </Button>
-            )}
-            {activeConflicts.map((c) => (
-              <ConflictDetail
-                key={`${c.deviceA.sourceRef}-${c.deviceB.sourceRef}`}
-                conflict={c}
-                onFilter={setConflictFilter}
-                onIgnore={handleIgnoreConflict}
-                isActive={
-                  conflictFilter !== null &&
-                  conflictFilter.has(c.deviceA.sourceRef) &&
-                  conflictFilter.has(c.deviceB.sourceRef)
-                }
-              />
-            ))}
-          </Alert>
-        )}
-        <Card.Body style={{ padding: 0 }}>
-          {devices.length === 0 ? (
-            <div style={{ padding: '20px', textAlign: 'center' }}>
-              No N2K devices found. Click &quot;Discover Devices&quot; after the
-              N2K bus has connected.
-            </div>
-          ) : (
-            <Table
-              responsive
-              bordered
-              striped
+            <Button
               size="sm"
-              style={{ marginBottom: 0 }}
+              variant="primary"
+              onClick={handleDiscover}
+              disabled={isDiscovering || allWsProxied}
+              title={
+                allWsProxied
+                  ? 'Discovery requires a direct CAN bus connection'
+                  : undefined
+              }
             >
-              <thead>
-                <tr>
-                  <th></th>
-                  <SortableTh
-                    label="Name"
-                    sortKey="sourceRef"
-                    currentSort={sort}
-                    onToggle={toggleSort}
-                  />
-                  <SortableTh
-                    label="Manufacturer"
-                    sortKey="manufacturerCode"
-                    currentSort={sort}
-                    onToggle={toggleSort}
-                  />
-                  <SortableTh
-                    label="Model"
-                    sortKey="modelId"
-                    currentSort={sort}
-                    onToggle={toggleSort}
-                  />
-                  <SortableTh
-                    label="Serial"
-                    sortKey="modelSerialCode"
-                    currentSort={sort}
-                    onToggle={toggleSort}
-                  />
-                  <SortableTh
-                    label="Software"
-                    sortKey="softwareVersionCode"
-                    currentSort={sort}
-                    onToggle={toggleSort}
-                  />
-                  <SortableTh
-                    label="Class"
-                    sortKey="deviceClass"
-                    currentSort={sort}
-                    onToggle={toggleSort}
-                  />
-                  <SortableTh
-                    label="Dev Instance"
-                    sortKey="deviceInstance"
-                    currentSort={sort}
-                    onToggle={toggleSort}
-                  />
-                  <SortableTh
-                    label="Data Instance"
-                    sortKey="deviceInstanceLower"
-                    currentSort={sort}
-                    onToggle={toggleSort}
-                  />
-                  <SortableTh
-                    label="Installation"
-                    sortKey="installationDescription1"
-                    currentSort={sort}
-                    onToggle={toggleSort}
-                  />
-                  <SortableTh
-                    label="Address"
-                    sortKey="src"
-                    currentSort={sort}
-                    onToggle={toggleSort}
-                  />
-                </tr>
-              </thead>
-              <tbody>
-                {sortedDevices.map((device) => {
-                  const isExpanded = expandedDevices.has(device.sourceRef)
-                  return (
-                    <DeviceRows
-                      key={device.sourceRef}
-                      device={device}
-                      isExpanded={isExpanded}
-                      onToggle={toggleDevice}
-                      sourcesData={sourcesData}
-                      hasConflict={conflictSourceRefs.has(device.sourceRef)}
-                      conflictPGNs={conflictPGNsByDevice.get(device.sourceRef)}
-                      isOnline={
-                        wsConnectionIds.has(device.connection)
-                          ? null
-                          : discoveredAddresses
-                            ? discoveredAddresses.has(Number(device.src))
-                            : null
-                      }
-                      onRemove={handleRemoveDevice}
-                      readOnly={wsConnectionIds.has(device.connection)}
-                    />
-                  )
-                })}
-              </tbody>
-            </Table>
+              {isDiscovering ? (
+                <>
+                  <Spinner size="sm" animation="border" /> Discovering...
+                </>
+              ) : (
+                'Discover Devices'
+              )}
+            </Button>
+            <Button size="sm" variant="outline-secondary" onClick={loadSources}>
+              Refresh
+            </Button>
+            <Button size="sm" variant="outline-secondary" onClick={expandAll}>
+              Expand All
+            </Button>
+            <Button size="sm" variant="outline-secondary" onClick={collapseAll}>
+              Collapse All
+            </Button>
+          </Card.Header>
+          {activeConflicts.length > 0 && (
+            <Alert
+              variant="warning"
+              style={{ margin: '8px 12px', fontSize: '0.9rem' }}
+            >
+              <FontAwesomeIcon icon={faTriangleExclamation} />{' '}
+              <strong>
+                {activeConflicts.length} instance conflict
+                {activeConflicts.length > 1 ? 's' : ''} detected.
+              </strong>{' '}
+              Devices sharing the same device instance and overlapping data PGNs
+              may confuse instruments. Temperature/humidity sensors are excluded
+              (their unique key is instance + source).
+              {conflictFilter && (
+                <Button
+                  size="sm"
+                  variant="outline-warning"
+                  onClick={() => setConflictFilter(null)}
+                  style={{ marginLeft: '8px', fontSize: '0.85em' }}
+                >
+                  Show all devices
+                </Button>
+              )}
+              {activeConflicts.map((c) => (
+                <ConflictDetail
+                  key={`${c.deviceA.sourceRef}-${c.deviceB.sourceRef}`}
+                  conflict={c}
+                  onFilter={setConflictFilter}
+                  onIgnore={handleIgnoreConflict}
+                  isActive={
+                    conflictFilter !== null &&
+                    conflictFilter.has(c.deviceA.sourceRef) &&
+                    conflictFilter.has(c.deviceB.sourceRef)
+                  }
+                />
+              ))}
+            </Alert>
           )}
-        </Card.Body>
-      </Card>
+          <Card.Body style={{ padding: 0 }}>
+            {devices.length === 0 ? (
+              <div style={{ padding: '20px', textAlign: 'center' }}>
+                No N2K devices found. Click &quot;Discover Devices&quot; after
+                the N2K bus has connected.
+              </div>
+            ) : (
+              <Table
+                responsive
+                bordered
+                striped
+                size="sm"
+                style={{ marginBottom: 0 }}
+              >
+                <thead>
+                  <tr>
+                    <th></th>
+                    <SortableTh
+                      label="Name"
+                      sortKey="sourceRef"
+                      currentSort={sort}
+                      onToggle={toggleSort}
+                    />
+                    <SortableTh
+                      label="Manufacturer"
+                      sortKey="manufacturerCode"
+                      currentSort={sort}
+                      onToggle={toggleSort}
+                    />
+                    <SortableTh
+                      label="Model"
+                      sortKey="modelId"
+                      currentSort={sort}
+                      onToggle={toggleSort}
+                    />
+                    <SortableTh
+                      label="Serial"
+                      sortKey="modelSerialCode"
+                      currentSort={sort}
+                      onToggle={toggleSort}
+                    />
+                    <SortableTh
+                      label="Software"
+                      sortKey="softwareVersionCode"
+                      currentSort={sort}
+                      onToggle={toggleSort}
+                    />
+                    <SortableTh
+                      label="Class"
+                      sortKey="deviceClass"
+                      currentSort={sort}
+                      onToggle={toggleSort}
+                    />
+                    <SortableTh
+                      label="Dev Instance"
+                      sortKey="deviceInstance"
+                      currentSort={sort}
+                      onToggle={toggleSort}
+                    />
+                    <SortableTh
+                      label="Data Instance"
+                      sortKey="deviceInstanceLower"
+                      currentSort={sort}
+                      onToggle={toggleSort}
+                    />
+                    <SortableTh
+                      label="Installation"
+                      sortKey="installationDescription1"
+                      currentSort={sort}
+                      onToggle={toggleSort}
+                    />
+                    <SortableTh
+                      label="Address"
+                      sortKey="src"
+                      currentSort={sort}
+                      onToggle={toggleSort}
+                    />
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedDevices.map((device) => {
+                    const isExpanded = expandedDevices.has(device.sourceRef)
+                    return (
+                      <DeviceRows
+                        key={device.sourceRef}
+                        device={device}
+                        isExpanded={isExpanded}
+                        onToggle={toggleDevice}
+                        sourcesData={sourcesData}
+                        hasConflict={conflictSourceRefs.has(device.sourceRef)}
+                        conflictPGNs={conflictPGNsByDevice.get(
+                          device.sourceRef
+                        )}
+                        isOnline={
+                          wsConnectionIds.has(device.connection)
+                            ? null
+                            : discoveredAddresses
+                              ? discoveredAddresses.has(Number(device.src))
+                              : null
+                        }
+                        onRemove={handleRemoveDevice}
+                        readOnly={wsConnectionIds.has(device.connection)}
+                      />
+                    )
+                  })}
+                </tbody>
+              </Table>
+            )}
+          </Card.Body>
+        </Card>
+      )}
 
       {ignoredConflictList.length > 0 && (
         <Card style={{ marginTop: '8px' }}>
