@@ -9,11 +9,13 @@ import {
   useLoginStatus,
   useSourcesData,
   useMultiSourcePaths,
-  useSourcePriorities
+  useSourcePriorities,
+  useIgnoredInstanceConflicts
 } from '../../store'
 import {
   extractN2kDevices,
-  detectInstanceConflicts
+  detectInstanceConflicts,
+  conflictKey
 } from '../../utils/sourceLabels'
 import classNames from 'classnames'
 import SidebarFooter from './../SidebarFooter/SidebarFooter'
@@ -57,11 +59,17 @@ export default function Sidebar({ location }: SidebarProps) {
   const loginStatus = useLoginStatus()
   const sourcesData = useSourcesData()
 
+  const ignoredConflicts = useIgnoredInstanceConflicts()
+
   const conflictCount = useMemo(() => {
     if (!sourcesData) return 0
     const n2kDevices = extractN2kDevices(sourcesData)
-    return detectInstanceConflicts(n2kDevices).length
-  }, [sourcesData])
+    const all = detectInstanceConflicts(n2kDevices)
+    return all.filter(
+      (c) =>
+        !ignoredConflicts[conflictKey(c.deviceA.sourceRef, c.deviceB.sourceRef)]
+    ).length
+  }, [sourcesData, ignoredConflicts])
 
   const multiSourcePaths = useMultiSourcePaths()
   const sourcePrioritiesData = useSourcePriorities()

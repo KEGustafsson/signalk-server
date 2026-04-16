@@ -174,6 +174,10 @@ export function useSourceAliasesData() {
   return useStore((s) => s.sourceAliases)
 }
 
+export function useIgnoredInstanceConflicts() {
+  return useStore((s) => s.ignoredInstanceConflicts)
+}
+
 export function useMultiSourcePaths() {
   return useStore((s) => s.multiSourcePaths)
 }
