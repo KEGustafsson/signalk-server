@@ -36,13 +36,13 @@ For each path, you list the sources that may provide it, in order of preference.
 
 ### A Worked Example
 
-Two GPS receivers on the boat both publish `navigation.position`:
+Two GPS receivers on the boat both publish `navigation.position`. In the Admin UI they appear with human-readable labels; the underlying `$source` values are CAN Names:
 
-| Row | Source            | Fallback after |
-| --- | ----------------- | -------------- |
-| 1   | `can0.Furuno-SCX` | _preferred_    |
-| 2   | `can0.Garmin-GPS` | `5000` (5 s)   |
-| 3   | `serial0.GP`      | `30000` (30 s) |
+| Row | Shown as                         | `$source` (CAN Name)    | Fallback after |
+| --- | -------------------------------- | ----------------------- | -------------- |
+| 1   | Furuno (`can0.c0788c00e7e04312`) | `can0.c0788c00e7e04312` | _preferred_    |
+| 2   | Garmin (`can0.c0328400e7e00a86`) | `can0.c0328400e7e00a86` | `5000` (5 s)   |
+| 3   | serial0.GP                       | `serial0.GP`            | `30000` (30 s) |
 
 - While Furuno is publishing, only Furuno values reach subscribers.
 - If Furuno goes quiet for 5 seconds, Garmin values start being accepted.
@@ -84,7 +84,13 @@ Signal K Server identifies sources differently depending on the connection type:
 
 ### NMEA 2000 Sources
 
-N2K sources are identified by their **CAN Name** — a globally unique 64-bit identifier derived from the ISO Address Claim (PGN 60928). This is more reliable than the source address (which can change when devices are added or removed from the bus). The `$source` field for N2K devices looks like `can0.Furuno_SCX-20` rather than `can0.22`. See [NMEA 2000 Device Management](./n2k-device-management.md) for details.
+N2K sources are identified by their **CAN Name** — a globally unique 64-bit identifier derived from the ISO Address Claim (PGN 60928). Each device on the bus has a unique NAME even if the manufacturer and model are identical (the NAME includes a per-device unique number). This is more reliable than the source address (which can change when devices are added or removed from the bus).
+
+The `$source` field contains the hex-encoded CAN Name, e.g. `can0.c0788c00e7e04312`, not the source address. If the Address Claim has not been received yet, the server falls back to the address, e.g. `can0.22`.
+
+The Admin UI shows a human-readable label derived from the manufacturer and model (PGN 60928 + 126996), e.g. _Furuno (can0.c0788c00e7e04312)_. You can set a custom alias via the pencil icon next to any source label. Two identical devices (same manufacturer and model) have different CAN Names, so aliases help distinguish them — e.g. "Bow GPS" and "Stern GPS".
+
+See [NMEA 2000 Device Management](./n2k-device-management.md) for details.
 
 ### NMEA 0183 Sources
 
@@ -110,8 +116,8 @@ Returns the current path-level priority configuration.
 ```json
 {
   "navigation.position": [
-    { "sourceRef": "can0.SCX-20", "timeout": 0 },
-    { "sourceRef": "can0.GP-330B", "timeout": 5000 }
+    { "sourceRef": "can0.c0788c00e7e04312", "timeout": 0 },
+    { "sourceRef": "can0.c0328400e7e00a86", "timeout": 5000 }
   ]
 }
 ```

@@ -58,8 +58,10 @@ NMEA 2000 sources are now identified by their **CAN Name** instead of the N2K so
 
 | Before                                                | After                                         |
 | ----------------------------------------------------- | --------------------------------------------- |
-| `$source = "can0.22"`                                 | `$source = "can0.Furuno_SCX-20"`              |
+| `$source = "can0.22"`                                 | `$source = "can0.c0788c00e7e04312"`           |
 | Source address changes when devices are added/removed | CAN Name is stable regardless of bus topology |
+
+The Admin UI shows human-readable labels like _Furuno (can0.c0788c00e7e04312)_ derived from PGN 60928 + 126996.
 
 ### Impact
 

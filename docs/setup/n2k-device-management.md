@@ -22,11 +22,11 @@ _Note: Discovery requires a bidirectional connection to the NMEA 2000 bus (e.g. 
 
 ### Device Identification: CAN Name
 
-Signal K Server identifies NMEA 2000 devices by their **CAN Name** — a globally unique 64-bit identifier from the ISO Address Claim (PGN 60928). The CAN Name is derived from the device's manufacturer code, unique ID, and device class, producing a stable identifier like `Furuno_SCX-20` or `Garmin_GPS_19x_HVS`.
+Signal K Server identifies NMEA 2000 devices by their **CAN Name** — a globally unique 64-bit identifier from the ISO Address Claim (PGN 60928). The CAN Name encodes the manufacturer code, a per-device unique number, and the device class into a hex string like `c0788c00e7e04312`. Two devices of the same model have different CAN Names because the unique number differs.
 
 This is more reliable than the N2K source address (e.g. `22`), which can change when devices are added or removed from the bus. Using CAN Name means your source priority configuration and other source-specific settings remain valid even if source addresses shift.
 
-The `$source` field for N2K devices uses the format `connectionName.canName`, e.g. `can0.Furuno_SCX-20`.
+The `$source` field for N2K devices uses the format `connectionName.canName`, e.g. `can0.c0788c00e7e04312`. The Admin UI shows a human-readable label derived from the manufacturer and model, e.g. _Furuno (can0.c0788c00e7e04312)_. You can set a custom alias via the pencil icon next to any source label.
 
 ### Device Table
 
@@ -34,7 +34,7 @@ The device table displays one row per NMEA 2000 device with the following column
 
 | Column              | Description                                                           |
 | ------------------- | --------------------------------------------------------------------- |
-| **Source**          | The connection name and CAN Name (e.g. `can0.Furuno_SCX-20`)          |
+| **Source**          | The connection name and CAN Name (e.g. `can0.c0788c00e7e04312`)       |
 | **Manufacturer**    | Manufacturer name from ISO Address Claim (PGN 60928)                  |
 | **Model**           | Model identifier from Product Information (PGN 126996)                |
 | **Serial**          | Serial number from Product Information                                |
