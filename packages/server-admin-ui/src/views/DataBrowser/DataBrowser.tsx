@@ -389,33 +389,54 @@ const DataBrowser: React.FC = () => {
     // filters, but the initial cached-data dump may contain multiple
     // sources for the same path.
     if (sourceFilter) {
-      const seenPaths = new Map<string, string>()
-      const deduped: string[] = []
-      for (const compositeKey of filtered) {
-        const nullIdx = compositeKey.indexOf('\0')
-        const realKey =
-          nullIdx >= 0 ? compositeKey.slice(nullIdx + 1) : compositeKey
-        const path = getPathFromKey(realKey)
-        const ctxPrefix = nullIdx >= 0 ? compositeKey.slice(0, nullIdx) : ''
-        const dedupKey = ctxPrefix ? `${ctxPrefix}\0${path}` : path
-
-        if (!seenPaths.has(dedupKey)) {
-          seenPaths.set(dedupKey, compositeKey)
-          deduped.push(compositeKey)
-        } else {
-          // If this entry's source is the preferred one, replace
+      if (viewBySource) {
+        // By Source + Priority filtered: remove entries where a different
+        // source is configured as preferred for this path. Paths without
+        // priority config keep all sources (server sends first-wins).
+        filtered = filtered.filter((compositeKey) => {
+          const nullIdx = compositeKey.indexOf('\0')
+          const realKey =
+            nullIdx >= 0 ? compositeKey.slice(nullIdx + 1) : compositeKey
+          const path = getPathFromKey(realKey)
+          const preferred = preferredSourceByPath.get(path)
+          if (!preferred) return true
+          const ctxPrefix = nullIdx >= 0 ? compositeKey.slice(0, nullIdx) : ''
           const pathData = currentData[ctxPrefix || context]?.[realKey] as
             | PathData
             | undefined
-          const src = pathData?.$source
-          if (src && preferredSourceByPath.get(path) === src) {
-            const oldIdx = deduped.indexOf(seenPaths.get(dedupKey)!)
-            if (oldIdx >= 0) deduped[oldIdx] = compositeKey
+          return pathData?.$source === preferred
+        })
+      } else {
+        // By Path + Priority filtered: deduplicate by path, keeping
+        // only the preferred source's entry (or first seen if no
+        // priority is configured).
+        const seenPaths = new Map<string, string>()
+        const deduped: string[] = []
+        for (const compositeKey of filtered) {
+          const nullIdx = compositeKey.indexOf('\0')
+          const realKey =
+            nullIdx >= 0 ? compositeKey.slice(nullIdx + 1) : compositeKey
+          const path = getPathFromKey(realKey)
+          const ctxPrefix = nullIdx >= 0 ? compositeKey.slice(0, nullIdx) : ''
+          const dedupKey = ctxPrefix ? `${ctxPrefix}\0${path}` : path
+
+          if (!seenPaths.has(dedupKey)) {
             seenPaths.set(dedupKey, compositeKey)
+            deduped.push(compositeKey)
+          } else {
+            const pathData = currentData[ctxPrefix || context]?.[realKey] as
+              | PathData
+              | undefined
+            const src = pathData?.$source
+            if (src && preferredSourceByPath.get(path) === src) {
+              const oldIdx = deduped.indexOf(seenPaths.get(dedupKey)!)
+              if (oldIdx >= 0) deduped[oldIdx] = compositeKey
+              seenPaths.set(dedupKey, compositeKey)
+            }
           }
         }
+        filtered = deduped
       }
-      filtered = deduped
     }
 
     if (!viewBySource) {
@@ -473,11 +494,9 @@ const DataBrowser: React.FC = () => {
     const allSources = [...allSourceCounts.keys()].sort()
     const result: string[] = []
     for (const src of allSources) {
-      const matched = matchedSourceCounts.get(src) || 0
-      const total = allSourceCounts.get(src) || 0
-      const countLabel = deferredSearch ? matched : total
-      if (countLabel === 0 && !collapsedSources.has(src)) continue
-      result.push(`${HEADER_PREFIX}${src}\0${countLabel}`)
+      const visibleCount = matchedSourceCounts.get(src) || 0
+      if (visibleCount === 0 && !collapsedSources.has(src)) continue
+      result.push(`${HEADER_PREFIX}${src}\0${visibleCount}`)
       if (!collapsedSources.has(src)) {
         const paths = bySource.get(src)
         if (paths) result.push(...paths)
