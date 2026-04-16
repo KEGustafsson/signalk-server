@@ -107,25 +107,6 @@ const SourceDiscovery: React.FC = () => {
       .catch(() => {})
   }, [])
 
-  useEffect(() => {
-    fetch(`${window.serverRoutesPrefix}/n2kDeviceStatus`, {
-      credentials: 'include'
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.discoveredAddresses) {
-          setDiscoveredAddresses(new Set(data.discoveredAddresses))
-        }
-        if (data.pgnDataInstances) {
-          setPgnDataInstances(data.pgnDataInstances)
-        }
-        if (data.pgnSourceKeys) {
-          setPgnSourceKeys(data.pgnSourceKeys)
-        }
-      })
-      .catch(() => {})
-  }, [])
-
   const loadSources = useCallback(async () => {
     const response = await fetch('/signalk/v1/api/sources', {
       credentials: 'include'
@@ -287,6 +268,10 @@ const SourceDiscovery: React.FC = () => {
       })
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    loadDeviceStatus()
+  }, [loadDeviceStatus])
 
   // N2K address claim takes ~250ms per device; pad with base delay for safety
   const DISCOVERY_PER_DEVICE_MS = 1000

@@ -11,7 +11,10 @@ function TimestampCell({ timestamp, isPaused, className }: TimestampCellProps) {
   const [animate, setAnimate] = useState(false)
 
   useEffect(() => {
-    if (isPaused) return
+    if (isPaused) {
+      setAnimate(false)
+      return
+    }
     if (timestamp !== prevTimestampRef.current) {
       prevTimestampRef.current = timestamp
       setAnimate(true)

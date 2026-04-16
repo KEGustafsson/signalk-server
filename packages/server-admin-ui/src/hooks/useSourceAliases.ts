@@ -20,6 +20,7 @@ function migrateFromLocalStorage(
     if (
       !localAliases ||
       typeof localAliases !== 'object' ||
+      Array.isArray(localAliases) ||
       Object.keys(localAliases).length === 0
     ) {
       localStorage.removeItem(LEGACY_STORAGE_KEY)
@@ -52,6 +53,33 @@ function migrateFromLocalStorage(
   }
 }
 
+function persistAliases(
+  current: Record<string, string>,
+  prev: Record<string, string>
+): void {
+  const revertOnFailure = () => {
+    if (useStore.getState().sourceAliases === current) {
+      useStore.getState().setSourceAliases(prev)
+    }
+  }
+  fetch(`${window.serverRoutesPrefix}/sourceAliases`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(current)
+  })
+    .then((res) => {
+      if (!res.ok) {
+        console.error('Failed to save source aliases:', res.status)
+        revertOnFailure()
+      }
+    })
+    .catch((err) => {
+      console.error('Failed to save source aliases:', err)
+      revertOnFailure()
+    })
+}
+
 export function useSourceAliases() {
   const aliases = useStore((s) => s.sourceAliases)
   const loaded = useStore((s) => s.sourceAliasesLoaded)
@@ -69,54 +97,13 @@ export function useSourceAliases() {
       delete current[sourceRef]
     }
     useStore.getState().setSourceAliases(current)
-    fetch(`${window.serverRoutesPrefix}/sourceAliases`, {
-      method: 'PUT',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(current)
-    })
-      .then((res) => {
-        if (!res.ok) {
-          console.error('Failed to save source alias:', res.status)
-          if (useStore.getState().sourceAliases === current) {
-            useStore.getState().setSourceAliases(prev)
-          }
-        }
-      })
-      .catch((err) => {
-        console.error('Failed to save source alias:', err)
-        if (useStore.getState().sourceAliases === current) {
-          useStore.getState().setSourceAliases(prev)
-        }
-      })
+    persistAliases(current, prev)
   }, [])
 
-  const removeAlias = useCallback((sourceRef: string) => {
-    const prev = useStore.getState().sourceAliases
-    const current = { ...prev }
-    delete current[sourceRef]
-    useStore.getState().setSourceAliases(current)
-    fetch(`${window.serverRoutesPrefix}/sourceAliases`, {
-      method: 'PUT',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(current)
-    })
-      .then((res) => {
-        if (!res.ok) {
-          console.error('Failed to remove source alias:', res.status)
-          if (useStore.getState().sourceAliases === current) {
-            useStore.getState().setSourceAliases(prev)
-          }
-        }
-      })
-      .catch((err) => {
-        console.error('Failed to remove source alias:', err)
-        if (useStore.getState().sourceAliases === current) {
-          useStore.getState().setSourceAliases(prev)
-        }
-      })
-  }, [])
+  const removeAlias = useCallback(
+    (sourceRef: string) => setAlias(sourceRef, ''),
+    [setAlias]
+  )
 
   const getDisplayName = useCallback(
     (sourceRef: string, sourcesData?: SourcesData | null): string => {

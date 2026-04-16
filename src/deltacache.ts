@@ -320,6 +320,12 @@ export default class DeltaCache {
               existing.slice(existing.indexOf('.') + 1)
             )
             const thisAddr = Number(key.slice(dotIdx + 1))
+            // If addresses are not numeric (e.g. canName-based key), keep
+            // the existing entry to avoid NaN-driven nondeterministic choice
+            if (Number.isNaN(existingAddr) || Number.isNaN(thisAddr)) {
+              delete cached[key]
+              continue
+            }
             // Prefer non-254; if both non-254, prefer lower address
             const keepExisting =
               thisAddr === 254 ||

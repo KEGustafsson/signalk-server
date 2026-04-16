@@ -103,7 +103,7 @@ describe('NMEA0183 talker group integration', () => {
 
   after(() => stop())
 
-  it('rewrites $source for deltas with NMEA0183 source and configured talkerGroups', async function () {
+  it('preserves $source talker ID for deltas when NMEA0183 provider has no talkerGroups configured', async function () {
     // The test server uses nmeaFromFile provider which has no talkerGroups
     // configured, so we verify the default behavior: talker ID is preserved.
     const wsUrl =

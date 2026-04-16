@@ -50,7 +50,6 @@ const UnitPreferencesSettings: React.FC = () => {
   }, [
     fetchUnitPreferences,
     loginStatus.status,
-    loginStatus.username,
     loginStatus.authenticationRequired
   ])
 

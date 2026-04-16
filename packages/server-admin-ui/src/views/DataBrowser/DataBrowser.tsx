@@ -261,11 +261,13 @@ const DataBrowser: React.FC = () => {
   useEffect(() => {
     isMountedRef.current = true
 
-    loadSources().then((raw) => {
-      if (isMountedRef.current) {
-        setRawSourcesData(raw)
-      }
-    })
+    loadSources()
+      .then((sourcesData) => {
+        if (isMountedRef.current) {
+          setRawSourcesData(sourcesData)
+        }
+      })
+      .catch((err) => console.warn('Failed to load sources:', err))
 
     if (!unitPrefsLoaded) {
       fetchUnitPreferences()
@@ -560,9 +562,11 @@ const DataBrowser: React.FC = () => {
         granularSubscriptionManager.unsubscribeAll()
         didSubscribeRef.current = false
       } else {
-        loadSources().then((raw) => {
-          setRawSourcesData(raw)
-        })
+        loadSources()
+          .then((sourcesData) => {
+            setRawSourcesData(sourcesData)
+          })
+          .catch((err) => console.warn('Failed to load sources:', err))
         subscribeToDataIfNeeded()
       }
     },

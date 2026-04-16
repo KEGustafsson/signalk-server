@@ -24,7 +24,7 @@ const SourceLabel: React.FC<SourceLabelProps> = ({
     }
   }, [isEditing])
 
-  const handleStartEdit = (e: React.MouseEvent) => {
+  const handleStartEdit = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation()
     setEditValue(aliases[sourceRef] || '')
     isCancelRef.current = false
@@ -36,7 +36,10 @@ const SourceLabel: React.FC<SourceLabelProps> = ({
       isCancelRef.current = false
       return
     }
-    setAlias(sourceRef, editValue)
+    const currentAlias = aliases[sourceRef] || ''
+    if (editValue !== currentAlias) {
+      setAlias(sourceRef, editValue)
+    }
     setIsEditing(false)
   }
 
@@ -84,19 +87,29 @@ const SourceLabel: React.FC<SourceLabelProps> = ({
       <span style={hasAlias ? { fontStyle: 'italic' } : undefined}>
         {displayName}
       </span>
-      <span
+      <button
+        type="button"
         onClick={handleStartEdit}
         title={hasAlias ? `Edit alias (raw: ${sourceRef})` : 'Set alias'}
+        aria-label={
+          hasAlias
+            ? `Edit alias for ${sourceRef}`
+            : `Set alias for ${sourceRef}`
+        }
         style={{
           cursor: 'pointer',
           opacity: 0.4,
           fontSize: '0.85em',
-          lineHeight: 1
+          lineHeight: 1,
+          background: 'none',
+          border: 'none',
+          padding: 0,
+          color: 'inherit'
         }}
         className="source-alias-edit"
       >
         &#9998;
-      </span>
+      </button>
     </span>
   )
 }

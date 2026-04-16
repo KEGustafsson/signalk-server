@@ -81,10 +81,9 @@ export function startServerEvents(
     type: 'SOURCEALIASES',
     data: app.config.settings.sourceAliases || {}
   })
-  const multiSourcePaths = app.deltaCache.getMultiSourcePaths()
   spark.write({
     type: 'MULTISOURCEPATHS',
-    data: multiSourcePaths
+    data: app.deltaCache.getMultiSourcePaths() || {}
   })
 }
 

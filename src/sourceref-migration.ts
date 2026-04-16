@@ -34,7 +34,7 @@ export function migrateSourceRef(
 ): void {
   const settings = app.config.settings
   let settingsChanged = false
-  const migrated: string[] = []
+  const migrated = new Set<string>()
 
   // 1. sourcePriorities (path-level) — dedupe per path if newRef already present
   if (settings.sourcePriorities) {
@@ -48,18 +48,14 @@ export function migrateSourceRef(
           entries.length = 0
           entries.push(...filtered)
           settingsChanged = true
-          if (!migrated.includes('sourcePriorities')) {
-            migrated.push('sourcePriorities')
-          }
+          migrated.add('sourcePriorities')
         }
       } else {
         for (const entry of entries) {
           if (entry.sourceRef === oldRef) {
             entry.sourceRef = newRef
             settingsChanged = true
-            if (!migrated.includes('sourcePriorities')) {
-              migrated.push('sourcePriorities')
-            }
+            migrated.add('sourcePriorities')
           }
         }
       }
@@ -73,7 +69,7 @@ export function migrateSourceRef(
     }
     delete settings.sourceAliases[oldRef]
     settingsChanged = true
-    migrated.push('sourceAliases')
+    migrated.add('sourceAliases')
   }
 
   // 3. ignoredInstanceConflicts (keys are "refA+refB" sorted pairs)
@@ -97,7 +93,7 @@ export function migrateSourceRef(
       settingsChanged = true
     }
     if (updates.length > 0) {
-      migrated.push('ignoredInstanceConflicts')
+      migrated.add('ignoredInstanceConflicts')
     }
   }
 
@@ -122,7 +118,7 @@ export function migrateSourceRef(
         }
       }
       fs.writeFileSync(labelsPath, JSON.stringify(labels, null, 2))
-      migrated.push('channelLabels')
+      migrated.add('channelLabels')
     }
   } catch (e: unknown) {
     if ((e as NodeJS.ErrnoException).code !== 'ENOENT') {
@@ -130,9 +126,10 @@ export function migrateSourceRef(
     }
   }
 
-  // 5. Clean up deltaCache for old sourceRef
+  // 5. Clean up deltaCache for old sourceRef (always called, but we don't
+  // count it in migrated unless something else changed — it's a cleanup
+  // operation, not a config migration users care about logging).
   app.deltaCache.removeSource(oldRef as SourceRef)
-  migrated.push('deltaCache')
 
   // 6. Persist settings
   if (settingsChanged) {
@@ -148,28 +145,28 @@ export function migrateSourceRef(
   app.activateSourcePriorities()
 
   // 8. Notify clients (only for sections that were actually migrated)
-  if (migrated.includes('sourcePriorities') && settings.sourcePriorities) {
+  if (migrated.has('sourcePriorities') && settings.sourcePriorities) {
     app.emit('serverevent', {
       type: 'SOURCEPRIORITIES',
       data: settings.sourcePriorities
     })
   }
-  if (migrated.includes('sourceAliases') && settings.sourceAliases) {
+  if (migrated.has('sourceAliases') && settings.sourceAliases) {
     app.emit('serverAdminEvent', {
       type: 'SOURCEALIASES',
       data: settings.sourceAliases
     })
   }
 
-  if (migrated.length > 0) {
+  if (migrated.size > 0) {
     console.log(
-      `sourceRef migrated ${oldRef} -> ${newRef}: ${migrated.join(', ')}`
+      `sourceRef migrated ${oldRef} -> ${newRef}: ${[...migrated].join(', ')}`
     )
   }
   debug(
     'Migration complete: %s -> %s (%s)',
     oldRef,
     newRef,
-    migrated.join(', ')
+    [...migrated].join(', ')
   )
 }

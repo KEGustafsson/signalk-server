@@ -96,17 +96,18 @@ class GranularSubscriptionManager {
     if (!this.webSocket) return
 
     const uniquePaths = this._extractUniquePaths(newPaths)
-    if (uniquePaths.length === 0) {
-      this.currentPaths = new Set()
-      return
-    }
 
-    // Unsubscribe existing paths first — the server accumulates
+    // Always unsubscribe existing paths first — the server accumulates
     // listeners so a new subscribe message does not replace the old one.
     this._send({
       context: '*',
       unsubscribe: [{ path: '*' }]
     })
+
+    if (uniquePaths.length === 0) {
+      this.currentPaths = new Set()
+      return
+    }
 
     this._send({
       context: '*',
@@ -125,16 +126,14 @@ class GranularSubscriptionManager {
     if (currentPaths.size === 0 && newPaths.size === 0) return true
     if (currentPaths.size === 0 || newPaths.size === 0) return false
 
+    // All new paths must already be subscribed
     for (const path of newPaths) {
       if (!currentPaths.has(path)) return false
     }
 
-    let overlap = 0
-    for (const path of newPaths) {
-      if (currentPaths.has(path)) overlap++
-    }
-
-    const overlapPercent = overlap / Math.max(currentPaths.size, newPaths.size)
+    // Loop above guarantees full overlap, so overlap = newPaths.size
+    const overlapPercent =
+      newPaths.size / Math.max(currentPaths.size, newPaths.size)
     return overlapPercent >= this.SIMILARITY_THRESHOLD
   }
 

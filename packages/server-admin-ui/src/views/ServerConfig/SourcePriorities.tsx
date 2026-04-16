@@ -416,7 +416,7 @@ const SourcePriorities: React.FC = () => {
     fetch('/signalk/v1/api/sources', { credentials: 'include' })
       .then((r) => r.json())
       .then(setSourcesData)
-      .catch(() => {})
+      .catch((err) => console.warn('Failed to load sources data:', err))
   }, [])
 
   // Check for incomplete entries (paths with empty sourceRef in priorities)

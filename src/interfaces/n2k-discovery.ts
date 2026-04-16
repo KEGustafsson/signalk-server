@@ -641,11 +641,12 @@ module.exports = (app: N2kDiscoveryApp) => {
             writeSettingsFile(app as any, app.config.settings, (err: Error) => {
               if (err) {
                 debug('Failed to save settings after alias cleanup: %s', err)
+                return
               }
-            })
-            app.emit('serverAdminEvent', {
-              type: 'SOURCEALIASES',
-              data: aliases
+              app.emit('serverAdminEvent', {
+                type: 'SOURCEALIASES',
+                data: aliases
+              })
             })
           }
         }

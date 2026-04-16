@@ -1,3 +1,4 @@
+import type { KeyboardEvent } from 'react'
 import Badge from 'react-bootstrap/Badge'
 import SourceLabel from './SourceLabel'
 import type { SourcesData } from '../../utils/sourceLabels'
@@ -20,10 +21,20 @@ function SourceGroupHeader({
   onToggle
 }: SourceGroupHeaderProps) {
   const colSpan = showContext ? 5 : 4
+  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (onToggle && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault()
+      onToggle(sourceRef)
+    }
+  }
   return (
     <div
       className="virtual-table-row source-group-header"
       onClick={onToggle ? () => onToggle(sourceRef) : undefined}
+      onKeyDown={onToggle ? handleKeyDown : undefined}
+      role={onToggle ? 'button' : undefined}
+      tabIndex={onToggle ? 0 : undefined}
+      aria-expanded={onToggle ? !isCollapsed : undefined}
       style={{
         gridColumn: `1 / span ${colSpan}`,
         display: 'flex',

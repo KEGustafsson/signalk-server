@@ -86,7 +86,10 @@ export interface Config {
     loggingDirectory?: string
     sourcePriorities?: any
 
-    sourceAliases?: Record<string, any>
+    /** Map of sourceRef → user-defined display alias for that source */
+    sourceAliases?: Record<string, string>
+    /** Map of "sourceRefA+sourceRefB" (sorted) → ISO timestamp when the
+     * conflict was dismissed by the user */
     ignoredInstanceConflicts?: Record<string, string>
     trustProxy?: boolean | string | number
     courseApi?: {

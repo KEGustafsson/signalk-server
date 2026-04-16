@@ -1294,12 +1294,14 @@ module.exports = function (
   app.put(
     `${SERVERROUTESPREFIX}/sourceAliases`,
     (req: Request, res: Response) => {
-      app.config.settings.sourceAliases = req.body
+      const updatedSettings = structuredClone(app.config.settings)
+      updatedSettings.sourceAliases = req.body
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      writeSettingsFile(app, app.config.settings, (err: any) => {
+      writeSettingsFile(app, updatedSettings, (err: any) => {
         if (err) {
           res.status(500).send('Unable to save sourceAliases in settings file')
         } else {
+          app.config.settings = updatedSettings
           app.emit('serverAdminEvent', {
             type: 'SOURCEALIASES',
             data: req.body
@@ -1324,14 +1326,16 @@ module.exports = function (
   app.put(
     `${SERVERROUTESPREFIX}/ignoredInstanceConflicts`,
     (req: Request, res: Response) => {
-      app.config.settings.ignoredInstanceConflicts = req.body
+      const updatedSettings = structuredClone(app.config.settings)
+      updatedSettings.ignoredInstanceConflicts = req.body
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      writeSettingsFile(app, app.config.settings, (err: any) => {
+      writeSettingsFile(app, updatedSettings, (err: any) => {
         if (err) {
           res
             .status(500)
             .send('Unable to save ignoredInstanceConflicts in settings file')
         } else {
+          app.config.settings = updatedSettings
           res.json({ result: 'ok' })
         }
       })

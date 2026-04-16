@@ -18,6 +18,7 @@ import {
   conflictKey
 } from '../../utils/sourceLabels'
 import classNames from 'classnames'
+import './Sidebar.css'
 import SidebarFooter from './../SidebarFooter/SidebarFooter'
 import SidebarForm from './../SidebarForm/SidebarForm'
 import SidebarHeader from './../SidebarHeader/SidebarHeader'
@@ -75,6 +76,7 @@ export default function Sidebar({ location }: SidebarProps) {
   const sourcePrioritiesData = useSourcePriorities()
 
   const unconfiguredPriorityCount = useMemo(() => {
+    if (!multiSourcePaths || !sourcePrioritiesData?.sourcePriorities) return 0
     const configuredPaths = new Set<string>()
     for (const pp of sourcePrioritiesData.sourcePriorities) {
       if (pp.path) configuredPaths.add(pp.path)
@@ -139,7 +141,8 @@ export default function Sidebar({ location }: SidebarProps) {
     }
 
     const isAdmin =
-      !loginStatus.authenticationRequired || loginStatus.userLevel === 'admin'
+      loginStatus.authenticationRequired === false ||
+      loginStatus.userLevel === 'admin'
 
     const dataChildren: NavItemData[] = [
       { name: 'Browser', url: '/data/browser' },
@@ -242,10 +245,7 @@ export default function Sidebar({ location }: SidebarProps) {
       )
     }
 
-    if (
-      loginStatus.authenticationRequired === false ||
-      loginStatus.userLevel === 'admin'
-    ) {
+    if (isAdmin) {
       const securityBadges: BadgeData[] = []
       if (accessRequestsBadge) securityBadges.push(accessRequestsBadge)
       if (expiredDevicesBadge) securityBadges.push(expiredDevicesBadge)
@@ -459,7 +459,6 @@ export default function Sidebar({ location }: SidebarProps) {
 
   return (
     <div className="sidebar">
-      <style>{`.nav-dropdown.open > .nav-dropdown-toggle > .badge { display: none; }`}</style>
       <SidebarHeader />
       <SidebarForm />
       <nav className="sidebar-nav">

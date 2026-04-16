@@ -13,10 +13,7 @@ function createMockApp(
   configPath?: string
 ) {
   const removedSources: string[] = []
-  const emittedEvents: Array<{ event: string; data: unknown }> = []
   let activateCalled = false
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let writeCallback: any = null
 
   const app = {
     argv: { s: 'settings.json' },
@@ -34,25 +31,15 @@ function createMockApp(
         removedSources.push(sourceRef)
       }
     },
-    emit(event: string, ...args: unknown[]) {
-      emittedEvents.push({ event, data: args[0] })
+    emit() {
       return true
     },
     // Test accessors
     get _removedSources() {
       return removedSources
     },
-    get _emittedEvents() {
-      return emittedEvents
-    },
     get _activateCalled() {
       return activateCalled
-    },
-    set _writeCallback(cb: unknown) {
-      writeCallback = cb
-    },
-    get _writeCallback() {
-      return writeCallback
     }
   }
   return app

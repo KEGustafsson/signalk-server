@@ -287,6 +287,8 @@ describe('Deltacache', () => {
     )
     // Should return exactly one delta for this path (the preferred source)
     magVarDeltas.length.should.equal(1)
+    // gps.backup wrote last and is the preferred source
+    magVarDeltas[0].updates[0].$source.should.equal('gps.backup')
   })
 
   it('buildFull includes all sources in values object', function () {

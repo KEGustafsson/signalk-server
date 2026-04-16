@@ -174,7 +174,7 @@ export function buildSourceLabelMap(
     if (!connData || typeof connData !== 'object') continue
 
     for (const [key, device] of Object.entries(connData)) {
-      if (key === 'type') continue
+      if (key === 'type' || key === 'label') continue
       if (!device || typeof device !== 'object') continue
 
       const d = device as SourceDevice

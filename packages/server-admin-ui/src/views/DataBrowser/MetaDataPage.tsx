@@ -83,9 +83,6 @@ const MetaDataPage: React.FC = () => {
       <Card>
         <Card.Body>
           <Form
-            action=""
-            method="post"
-            encType="multipart/form-data"
             className="form-horizontal"
             onSubmit={(e) => {
               e.preventDefault()
