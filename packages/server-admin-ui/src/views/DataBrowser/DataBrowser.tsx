@@ -18,7 +18,7 @@ import Row from 'react-bootstrap/Row'
 import dayjs from 'dayjs'
 import VirtualizedDataTable from './VirtualizedDataTable'
 import type { PathData, MetaData } from '../../store'
-import type { SourcesData } from '../../utils/sourceLabels'
+import { buildSourceLabel, type SourcesData } from '../../utils/sourceLabels'
 import granularSubscriptionManager from './GranularSubscriptionManager'
 import { getPath$SourceKey, getPathFromKey } from './pathUtils'
 import {
@@ -354,10 +354,28 @@ const DataBrowser: React.FC = () => {
 
     let filtered: string[] = []
 
+    // Build a cache of source display labels for search matching
+    const sourceLabels = new Map<string, string>()
+    const getLabel = (src: string): string => {
+      if (!src) return ''
+      let label = sourceLabels.get(src)
+      if (label === undefined) {
+        label = buildSourceLabel(src, rawSourcesData)
+        sourceLabels.set(src, label)
+      }
+      return label
+    }
+
     for (const ctx of contexts) {
       const contextData = currentData[ctx] || {}
       for (const key of Object.keys(contextData)) {
-        if (!matchesSearch(key, deferredSearch)) {
+        const pathData = contextData[key] as PathData | undefined
+        const source = pathData?.$source || ''
+        if (
+          !matchesSearch(key, deferredSearch) &&
+          !matchesSearch(source, deferredSearch) &&
+          !matchesSearch(getLabel(source), deferredSearch)
+        ) {
           continue
         }
         filtered.push(context === 'all' ? `${ctx}\0${key}` : key)
@@ -413,6 +431,25 @@ const DataBrowser: React.FC = () => {
       return pathData?.$source || 'unknown'
     }
 
+    // Build a map of ALL sources and their total path counts (before
+    // search filtering) so collapsed sources always show their header
+    // even when the search eliminates all their visible paths.
+    const allSourceCounts = new Map<string, number>()
+    for (const ctx of contexts) {
+      const contextData = currentData[ctx] || {}
+      for (const data of Object.values(contextData)) {
+        const src = (data as PathData)?.$source || 'unknown'
+        allSourceCounts.set(src, (allSourceCounts.get(src) || 0) + 1)
+      }
+    }
+
+    // Count how many search-matched paths per source
+    const matchedSourceCounts = new Map<string, number>()
+    for (const key of filtered) {
+      const src = getSource(key)
+      matchedSourceCounts.set(src, (matchedSourceCounts.get(src) || 0) + 1)
+    }
+
     filtered.sort((a, b) => {
       const srcA = getSource(a)
       const srcB = getSource(b)
@@ -421,22 +458,28 @@ const DataBrowser: React.FC = () => {
       return a.localeCompare(b)
     })
 
-    // Inject header keys at source boundaries
-    const result: string[] = []
-    let lastSource = ''
-    const sourceCounts = new Map<string, number>()
+    // Group matched paths by source
+    const bySource = new Map<string, string[]>()
     for (const key of filtered) {
       const src = getSource(key)
-      sourceCounts.set(src, (sourceCounts.get(src) || 0) + 1)
+      if (!bySource.has(src)) bySource.set(src, [])
+      bySource.get(src)!.push(key)
     }
-    for (const key of filtered) {
-      const src = getSource(key)
-      if (src !== lastSource) {
-        result.push(`${HEADER_PREFIX}${src}\0${sourceCounts.get(src) || 0}`)
-        lastSource = src
-      }
+
+    // Build result: include headers for ALL sources (even if search
+    // filtered out all their paths), so collapsed sources remain
+    // visible and can be re-expanded.
+    const allSources = [...allSourceCounts.keys()].sort()
+    const result: string[] = []
+    for (const src of allSources) {
+      const matched = matchedSourceCounts.get(src) || 0
+      const total = allSourceCounts.get(src) || 0
+      const countLabel = deferredSearch ? matched : total
+      if (countLabel === 0 && !collapsedSources.has(src)) continue
+      result.push(`${HEADER_PREFIX}${src}\0${countLabel}`)
       if (!collapsedSources.has(src)) {
-        result.push(key)
+        const paths = bySource.get(src)
+        if (paths) result.push(...paths)
       }
     }
     return result
@@ -447,7 +490,8 @@ const DataBrowser: React.FC = () => {
     viewBySource,
     sourceFilter,
     preferredSourceByPath,
-    collapsedSources
+    collapsedSources,
+    rawSourcesData
   ])
 
   const toggleSourceCollapse = useCallback((sourceRef: string) => {
@@ -608,7 +652,7 @@ const DataBrowser: React.FC = () => {
                     id="databrowser-search"
                     name="search"
                     autoComplete="off"
-                    placeholder="e.g. pos wind (space = OR)"
+                    placeholder="e.g. pos wind furuno (searches path and source, space = OR)"
                     onChange={handleSearch}
                     value={search}
                   />
