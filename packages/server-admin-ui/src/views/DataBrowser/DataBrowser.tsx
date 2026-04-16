@@ -119,6 +119,9 @@ const DataBrowser: React.FC = () => {
     () => localStorage.getItem(sourceFilterStorageKey) !== 'false'
   )
   const [rawSourcesData, setRawSourcesData] = useState<SourcesData | null>(null)
+  const [collapsedSources, setCollapsedSources] = useState<Set<string>>(
+    () => new Set()
+  )
 
   const deferredSearch = useDeferredValue(search)
   const isSearchStale = search !== deferredSearch
@@ -432,7 +435,9 @@ const DataBrowser: React.FC = () => {
         result.push(`${HEADER_PREFIX}${src}\0${sourceCounts.get(src) || 0}`)
         lastSource = src
       }
-      result.push(key)
+      if (!collapsedSources.has(src)) {
+        result.push(key)
+      }
     }
     return result
   }, [
@@ -441,8 +446,21 @@ const DataBrowser: React.FC = () => {
     dataVersion,
     viewBySource,
     sourceFilter,
-    preferredSourceByPath
+    preferredSourceByPath,
+    collapsedSources
   ])
+
+  const toggleSourceCollapse = useCallback((sourceRef: string) => {
+    setCollapsedSources((prev) => {
+      const next = new Set(prev)
+      if (next.has(sourceRef)) {
+        next.delete(sourceRef)
+      } else {
+        next.add(sourceRef)
+      }
+      return next
+    })
+  }, [])
 
   const handleRawChange = useCallback(
     (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -615,6 +633,10 @@ const DataBrowser: React.FC = () => {
                   configuredPriorityPaths={configuredPriorityPaths}
                   preferredSourceByPath={
                     !sourceFilter ? preferredSourceByPath : undefined
+                  }
+                  collapsedSources={viewBySource ? collapsedSources : undefined}
+                  onToggleSourceCollapse={
+                    viewBySource ? toggleSourceCollapse : undefined
                   }
                 />
               </div>

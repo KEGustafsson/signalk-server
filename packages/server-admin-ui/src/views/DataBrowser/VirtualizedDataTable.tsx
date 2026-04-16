@@ -17,6 +17,8 @@ interface VirtualizedDataTableProps {
   sourcesData: SourcesData | null
   configuredPriorityPaths: Set<string>
   preferredSourceByPath?: Map<string, string>
+  collapsedSources?: Set<string>
+  onToggleSourceCollapse?: (sourceRef: string) => void
 }
 
 function VirtualizedDataTable({
@@ -27,7 +29,9 @@ function VirtualizedDataTable({
   showContext,
   sourcesData,
   configuredPriorityPaths,
-  preferredSourceByPath
+  preferredSourceByPath,
+  collapsedSources,
+  onToggleSourceCollapse
 }: VirtualizedDataTableProps) {
   const sourceCountsByPath = useMemo(() => {
     const counts = new Map<string, number>()
@@ -96,6 +100,8 @@ function VirtualizedDataTable({
                 pathCount={pathCount}
                 sourcesData={sourcesData}
                 showContext={showContext}
+                isCollapsed={collapsedSources?.has(sourceRef) ?? false}
+                onToggle={onToggleSourceCollapse}
               />
             )
           }

@@ -7,18 +7,23 @@ interface SourceGroupHeaderProps {
   pathCount: number
   sourcesData: SourcesData | null
   showContext: boolean
+  isCollapsed: boolean
+  onToggle?: (sourceRef: string) => void
 }
 
 function SourceGroupHeader({
   sourceRef,
   pathCount,
   sourcesData,
-  showContext
+  showContext,
+  isCollapsed,
+  onToggle
 }: SourceGroupHeaderProps) {
   const colSpan = showContext ? 5 : 4
   return (
     <div
       className="virtual-table-row source-group-header"
+      onClick={onToggle ? () => onToggle(sourceRef) : undefined}
       style={{
         gridColumn: `1 / span ${colSpan}`,
         display: 'flex',
@@ -29,9 +34,16 @@ function SourceGroupHeader({
         borderBottom: '2px solid var(--bs-border-color, #c2cfd6)',
         borderTop: '1px solid var(--bs-border-color, #c2cfd6)',
         fontWeight: 700,
-        fontSize: '1rem'
+        fontSize: '1rem',
+        cursor: onToggle ? 'pointer' : undefined,
+        userSelect: 'none'
       }}
     >
+      {onToggle && (
+        <span style={{ width: '16px', textAlign: 'center', fontSize: '0.8em' }}>
+          {isCollapsed ? '\u25B6' : '\u25BC'}
+        </span>
+      )}
       <SourceLabel sourceRef={sourceRef} sourcesData={sourcesData} />
       <Badge bg="secondary" style={{ fontSize: '0.7em', fontWeight: 'normal' }}>
         {pathCount}
