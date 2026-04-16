@@ -101,6 +101,13 @@ class GranularSubscriptionManager {
       return
     }
 
+    // Unsubscribe existing paths first — the server accumulates
+    // listeners so a new subscribe message does not replace the old one.
+    this._send({
+      context: '*',
+      unsubscribe: [{ path: '*' }]
+    })
+
     this._send({
       context: '*',
       announceNewPaths: true,

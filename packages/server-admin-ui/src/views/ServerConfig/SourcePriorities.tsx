@@ -210,11 +210,11 @@ function fetchAvailablePaths(cb: (paths: string[]) => void) {
 
 const TimelineDiagram: React.FC = () => (
   <svg
-    viewBox="0 0 560 170"
+    viewBox="0 0 700 170"
     xmlns="http://www.w3.org/2000/svg"
-    style={{ maxWidth: '560px', width: '100%', height: 'auto' }}
+    style={{ maxWidth: '700px', width: '100%', height: 'auto' }}
     role="img"
-    aria-label="Fallback timeline: the backup source takes over only after the preferred source has been silent for the configured threshold."
+    aria-label="Fallback timeline: the backup source takes over after the preferred source is silent, then the preferred immediately wins when it returns."
   >
     <defs>
       <marker
@@ -238,15 +238,13 @@ const TimelineDiagram: React.FC = () => (
       Backup
     </text>
 
-    {/* Preferred source: activity bars then silence */}
+    {/* Preferred: active → silence → returns */}
     <rect x="80" y="42" width="30" height="16" fill="#2e7d32" rx="2" />
     <rect x="118" y="42" width="30" height="16" fill="#2e7d32" rx="2" />
     <rect x="156" y="42" width="30" height="16" fill="#2e7d32" rx="2" />
     <rect x="194" y="42" width="30" height="16" fill="#2e7d32" rx="2" />
-    {/* last bar, then silence */}
     <rect x="232" y="42" width="30" height="16" fill="#2e7d32" rx="2" />
-
-    {/* Silence gap annotation on preferred track */}
+    {/* silence */}
     <line
       x1="262"
       y1="50"
@@ -259,8 +257,12 @@ const TimelineDiagram: React.FC = () => (
     <text x="352" y="40" fontSize="11" fill="#b71c1c" textAnchor="middle">
       (silent)
     </text>
+    {/* returns — immediately wins again */}
+    <rect x="560" y="42" width="30" height="16" fill="#2e7d32" rx="2" />
+    <rect x="598" y="42" width="30" height="16" fill="#2e7d32" rx="2" />
+    <rect x="636" y="42" width="30" height="16" fill="#2e7d32" rx="2" />
 
-    {/* Backup source: idle while preferred is active, then activity after threshold */}
+    {/* Backup: ignored → accepted → ignored again when preferred returns */}
     <rect x="80" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
     <rect x="118" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
     <rect x="156" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
@@ -270,11 +272,16 @@ const TimelineDiagram: React.FC = () => (
     <rect x="308" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
     <rect x="346" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
     <rect x="384" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
-    {/* takes over */}
+    {/* accepted */}
     <rect x="442" y="107" width="30" height="16" fill="#1565c0" rx="2" />
     <rect x="480" y="107" width="30" height="16" fill="#1565c0" rx="2" />
+    <rect x="518" y="107" width="30" height="16" fill="#1565c0" rx="2" />
+    {/* ignored again */}
+    <rect x="560" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="598" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="636" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
 
-    {/* Threshold marker: vertical dashed line + label */}
+    {/* Threshold marker */}
     <line
       x1="442"
       y1="25"
@@ -298,6 +305,20 @@ const TimelineDiagram: React.FC = () => (
       Fallback after (ms)
     </text>
 
+    {/* Returns marker */}
+    <line
+      x1="560"
+      y1="25"
+      x2="560"
+      y2="140"
+      stroke="#2e7d32"
+      strokeWidth="1"
+      strokeDasharray="3 3"
+    />
+    <text x="560" y="18" fontSize="10" fill="#2e7d32" textAnchor="middle">
+      returns
+    </text>
+
     {/* Legend */}
     <rect x="0" y="0" width="10" height="10" fill="#2e7d32" rx="2" />
     <text x="16" y="9" fontSize="10" fill="#555">
@@ -313,8 +334,8 @@ const TimelineDiagram: React.FC = () => (
     </text>
 
     {/* Time axis */}
-    <line x1="80" y1="140" x2="540" y2="140" stroke="#ccc" strokeWidth="1" />
-    <text x="540" y="140" fontSize="10" fill="#999" textAnchor="end" dy="12">
+    <line x1="80" y1="140" x2="680" y2="140" stroke="#ccc" strokeWidth="1" />
+    <text x="680" y="140" fontSize="10" fill="#999" textAnchor="end" dy="12">
       time →
     </text>
   </svg>

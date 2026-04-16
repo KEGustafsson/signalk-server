@@ -24,11 +24,12 @@ function SourceGroupHeader({
         display: 'flex',
         alignItems: 'center',
         gap: '8px',
-        padding: '6px 10px',
-        backgroundColor: 'var(--bs-tertiary-bg, #f0f3f5)',
-        borderBottom: '1px solid var(--bs-border-color, #c2cfd6)',
-        fontWeight: 500,
-        fontSize: '0.875rem'
+        padding: '8px 10px',
+        backgroundColor: 'var(--bs-secondary-bg, #e2e6ea)',
+        borderBottom: '2px solid var(--bs-border-color, #c2cfd6)',
+        borderTop: '1px solid var(--bs-border-color, #c2cfd6)',
+        fontWeight: 700,
+        fontSize: '1rem'
       }}
     >
       <SourceLabel sourceRef={sourceRef} sourcesData={sourcesData} />
