@@ -79,6 +79,10 @@ class GranularSubscriptionManager {
       subscribe: [] // Empty initially, will be populated by requestPaths
     })
 
+    // Reset currentPaths so the next requestPaths() re-sends subscriptions
+    // on this (possibly new) WebSocket connection, even if the path set
+    // hasn't changed.
+    this.currentPaths = new Set()
     this.state = STATE.SUBSCRIBED
 
     // If there are pending paths from before WebSocket was ready, apply them now
