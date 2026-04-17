@@ -1326,9 +1326,7 @@ function CamelCaseCompatInput({
             name="options.useCamelCompat"
             className="switch-input"
             onChange={(event) => onChange(event)}
-            checked={
-              value.useCamelCompat !== undefined ? value.useCamelCompat : true
-            }
+            checked={value.useCamelCompat === true}
           />
           <span className="switch-label" data-on="Yes" data-off="No" />
           <span className="switch-handle" />
