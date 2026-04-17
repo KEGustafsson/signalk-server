@@ -82,6 +82,10 @@ export function startServerEvents(
     data: app.config.settings.sourceAliases || {}
   })
   spark.write({
+    type: 'PRIORITYGROUPS',
+    data: app.config.settings.priorityGroups || []
+  })
+  spark.write({
     type: 'MULTISOURCEPATHS',
     data: app.deltaCache.getMultiSourcePaths() || {}
   })

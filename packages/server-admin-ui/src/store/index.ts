@@ -94,6 +94,10 @@ export function useSourcePriorities() {
   return useStore((s) => s.sourcePrioritiesData)
 }
 
+export function usePriorityGroups() {
+  return useStore((s) => s.priorityGroupsData)
+}
+
 export function useWebapps() {
   return useStore((s) => s.webapps)
 }

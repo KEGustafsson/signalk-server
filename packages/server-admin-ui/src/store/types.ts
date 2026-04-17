@@ -126,6 +126,16 @@ export interface SourcePrioritiesData {
   saveState: SaveState
 }
 
+export interface PriorityGroup {
+  id: string
+  sources: string[]
+}
+
+export interface PriorityGroupsData {
+  groups: PriorityGroup[]
+  saveState: SaveState
+}
+
 export interface BackpressureWarning {
   accumulated: number
   duration: number

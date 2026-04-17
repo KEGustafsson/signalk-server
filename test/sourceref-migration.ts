@@ -165,4 +165,35 @@ describe('migrateSourceRef', () => {
     migrateSourceRef(app, OLD_REF, NEW_REF)
     fs.rmdirSync(tmpDir)
   })
+
+  it('rewrites sourceRef inside priorityGroups[].sources', () => {
+    const app = createMockApp({
+      priorityGroups: [
+        { id: 'g1', sources: [OLD_REF, 'canhat.other'] },
+        { id: 'g2', sources: ['unrelated'] }
+      ]
+    })
+    migrateSourceRef(app, OLD_REF, NEW_REF)
+
+    const groups = app.config.settings.priorityGroups as Array<{
+      id: string
+      sources: string[]
+    }>
+    expect(groups[0].sources[0]).to.equal(NEW_REF)
+    expect(groups[0].sources[1]).to.equal('canhat.other')
+    expect(groups[1].sources[0]).to.equal('unrelated')
+  })
+
+  it('dedupes priorityGroups when newRef already present', () => {
+    const app = createMockApp({
+      priorityGroups: [{ id: 'g1', sources: [OLD_REF, NEW_REF, 'canhat.z'] }]
+    })
+    migrateSourceRef(app, OLD_REF, NEW_REF)
+
+    const groups = app.config.settings.priorityGroups as Array<{
+      id: string
+      sources: string[]
+    }>
+    expect(groups[0].sources).to.deep.equal([NEW_REF, 'canhat.z'])
+  })
 })

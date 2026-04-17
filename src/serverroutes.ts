@@ -1313,6 +1313,38 @@ module.exports = function (
   )
 
   app.securityStrategy.addAdminWriteMiddleware(
+    `${SERVERROUTESPREFIX}/priorityGroups`
+  )
+
+  app.get(
+    `${SERVERROUTESPREFIX}/priorityGroups`,
+    (req: Request, res: Response) => {
+      res.json(app.config.settings.priorityGroups || [])
+    }
+  )
+
+  app.put(
+    `${SERVERROUTESPREFIX}/priorityGroups`,
+    (req: Request, res: Response) => {
+      const updatedSettings = structuredClone(app.config.settings)
+      updatedSettings.priorityGroups = req.body
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      writeSettingsFile(app, updatedSettings, (err: any) => {
+        if (err) {
+          res.status(500).send('Unable to save priorityGroups in settings file')
+        } else {
+          app.config.settings = updatedSettings
+          app.emit('serverAdminEvent', {
+            type: 'PRIORITYGROUPS',
+            data: req.body
+          })
+          res.json({ result: 'ok' })
+        }
+      })
+    }
+  )
+
+  app.securityStrategy.addAdminWriteMiddleware(
     `${SERVERROUTESPREFIX}/ignoredInstanceConflicts`
   )
 

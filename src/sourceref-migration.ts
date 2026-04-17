@@ -18,6 +18,7 @@ interface MigrationApp {
       >
       sourceAliases?: Record<string, string>
       ignoredInstanceConflicts?: Record<string, string>
+      priorityGroups?: Array<{ id: string; sources: string[] }>
     }
   }
   activateSourcePriorities: () => void
@@ -97,7 +98,30 @@ export function migrateSourceRef(
     }
   }
 
-  // 4. Channel labels file
+  // 4. priorityGroups — rewrite or dedupe sourceRef inside each group
+  if (settings.priorityGroups) {
+    for (const group of settings.priorityGroups) {
+      const hasNewRef = group.sources.includes(newRef)
+      if (hasNewRef) {
+        const before = group.sources.length
+        const filtered = group.sources.filter((ref) => ref !== oldRef)
+        if (filtered.length !== before) {
+          group.sources = filtered
+          settingsChanged = true
+          migrated.add('priorityGroups')
+        }
+      } else {
+        const idx = group.sources.indexOf(oldRef)
+        if (idx !== -1) {
+          group.sources[idx] = newRef
+          settingsChanged = true
+          migrated.add('priorityGroups')
+        }
+      }
+    }
+  }
+
+  // 5. Channel labels file
   const labelsPath = path.join(app.config.configPath, LABELS_FILENAME)
   try {
     const raw = fs.readFileSync(labelsPath, 'utf-8')
@@ -126,10 +150,10 @@ export function migrateSourceRef(
     }
   }
 
-  // 5. Clean up deltaCache for old sourceRef
+  // 6. Clean up deltaCache for old sourceRef
   app.deltaCache.removeSource(oldRef as SourceRef)
 
-  // 6. Persist settings
+  // 7. Persist settings
   if (settingsChanged) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     writeSettingsFile(app as any, settings, (err: Error) => {
@@ -139,10 +163,10 @@ export function migrateSourceRef(
     })
   }
 
-  // 7. Recompile priority engine
+  // 8. Recompile priority engine
   app.activateSourcePriorities()
 
-  // 8. Notify clients (only for sections that were actually migrated)
+  // 9. Notify clients (only for sections that were actually migrated)
   if (migrated.has('sourcePriorities') && settings.sourcePriorities) {
     app.emit('serverevent', {
       type: 'SOURCEPRIORITIES',
@@ -153,6 +177,12 @@ export function migrateSourceRef(
     app.emit('serverAdminEvent', {
       type: 'SOURCEALIASES',
       data: settings.sourceAliases
+    })
+  }
+  if (migrated.has('priorityGroups') && settings.priorityGroups) {
+    app.emit('serverAdminEvent', {
+      type: 'PRIORITYGROUPS',
+      data: settings.priorityGroups
     })
   }
 

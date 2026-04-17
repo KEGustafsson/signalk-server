@@ -4,64 +4,76 @@ title: Source Priority
 
 # Source Priority
 
-When multiple data sources provide the same Signal K path (e.g. two GPS devices both providing `navigation.position`), Signal K Server needs to decide which source to use. The Source Priority system lets you control this on a per-path basis.
+When multiple data sources publish the same Signal K paths (e.g. two GPS devices both providing `navigation.position`), Signal K Server needs to decide which source to use. The Source Priority system organises sources into **Priority Groups** and lets you set a ranking per group, with optional per-path overrides.
 
 These features are available in the Admin UI under _Data -> Source Priority_.
 
-## Understanding Multi-Source Paths
+## Priority Groups
 
-A **multi-source path** is any Signal K path that receives data from two or more sources. This is common on boats with:
+A **Priority Group** is a set of sources that share at least one published path. Groups are derived automatically: whenever two sources publish the same path, they land in the same group. Chains extend transitively — if A and B share a path and B and C share another, A, B and C are all in the same group.
 
-- Multiple GPS receivers (e.g. a chartplotter GPS and a standalone GPS antenna)
-- NMEA 0183 and NMEA 2000 devices providing the same data (e.g. depth from both buses)
-- Plugins that derive or calculate values also provided by hardware (e.g. true wind)
+Typical groups you will see on a real boat:
 
-Multi-source paths are not errors — they are a normal part of a multi-device installation. The Source Priority system helps you choose which source should be preferred for each path.
+- A **GPS group**: all devices publishing `navigation.position`, `navigation.courseOverGroundTrue`, `navigation.speedOverGround`, etc.
+- A **wind group**: masthead transducer, AIS wind reports, derived-data plugin output, etc.
+- A **depth group**, **heading group**, and so on.
+
+For each group you set a **source ranking** by dragging the sources into order. The top source is preferred across every shared path in the group, the second source is the first backup, and so on. In most installations, ranking groups is all you need — per-path tweaks are the exception, not the rule.
 
 ### Sidebar Badge
 
-The sidebar shows a yellow warning badge on the _Data_ menu item when there are multi-source paths that have no priority configuration. The number indicates how many such paths exist. As you configure priorities, this count decreases. The badge updates in real time as sources come and go.
+The sidebar shows a yellow warning badge on the _Data_ menu item while any group lacks a saved ranking. The number reflects how many groups are still unranked; it drops to zero once every group has an order saved.
 
-## How It Works
+## How Rankings Work
 
-For each path, you list the sources that may provide it, in order of preference. The top row is the **preferred** source — while it is publishing data, its values always win. Every other row has a **Fallback after** value: the number of milliseconds the **currently-winning** source must be silent before this row is allowed to take over.
+Within a group, the top-ranked source is **preferred** — while it is publishing data, its values always win on every shared path. Every other rank has a **Fallback after** value: the number of milliseconds the **currently-winning** source must be silent before that rank is allowed to take over.
 
 ![Fallback timeline with three sources showing the cascade behaviour](../img/source-priority-timeline.svg)
 
-The important subtlety: each row's timer is measured against whichever source is **currently winning**, not against row 1.
+The important subtlety: each rank's timer is measured against whichever source is **currently winning**, not against rank 1.
 
-- When the preferred source goes silent, the second row's Fallback clock starts.
-- If and when the second row takes over, it becomes the winner. From that moment, the **third** row's Fallback clock starts ticking against the **second row**, not against row 1.
-- So if Backup 1 keeps actively sending after taking over, Backup 2 never wins — the chain cascades one step at a time.
+- When the preferred source goes silent, rank 2's Fallback clock starts.
+- If and when rank 2 takes over, it becomes the winner. From that moment, rank 3's Fallback clock starts ticking against rank 2, not against rank 1.
+- So if rank 2 keeps actively sending after taking over, rank 3 never wins — the chain cascades one step at a time.
 
 The preferred source has no Fallback value because nothing ranks higher. When it returns after any silence, it immediately resumes winning — the backups do not "hold" their position.
 
 ### A Worked Example
 
-Three GPS sources on the boat all publish `navigation.position`. In the Admin UI they appear with human-readable labels; the underlying `$source` values are CAN Names:
+Three GPS devices on the boat all publish `navigation.position` and related paths. Signal K places them in one group. In the Admin UI the sources appear with human-readable labels; the underlying `$source` values are CAN Names:
 
-| Row | Shown as                         | `$source` (CAN Name)    | Fallback after |
-| --- | -------------------------------- | ----------------------- | -------------- |
-| 1   | Furuno (`can0.c0788c00e7e04312`) | `can0.c0788c00e7e04312` | _preferred_    |
-| 2   | Garmin (`can0.c0328400e7e00a86`) | `can0.c0328400e7e00a86` | `5000` (5 s)   |
-| 3   | serial0.GP                       | `serial0.GP`            | `30000` (30 s) |
+| Rank | Shown as                         | `$source` (CAN Name)    | Fallback after |
+| ---- | -------------------------------- | ----------------------- | -------------- |
+| 1    | Furuno (`can0.c0788c00e7e04312`) | `can0.c0788c00e7e04312` | _preferred_    |
+| 2    | Garmin (`can0.c0328400e7e00a86`) | `can0.c0328400e7e00a86` | `5000` (5 s)   |
+| 3    | serial0.GP                       | `serial0.GP`            | `30000` (30 s) |
 
 Scenarios:
 
-- **Furuno is healthy:** only Furuno values reach subscribers. Garmin and serial0.GP are ignored even though they publish continuously.
+- **Furuno is healthy:** only Furuno values reach subscribers on every shared GPS path. Garmin and serial0.GP are ignored even though they publish continuously.
 - **Furuno unplugged, Garmin healthy:** after 5 s of Furuno silence, Garmin takes over and keeps winning as long as it keeps publishing. serial0.GP is still ignored — its 30 s clock is measured against Garmin, but Garmin is never silent.
 - **Furuno unplugged AND Garmin unplugged:** after 5 s of Furuno silence, Garmin takes over. 30 s later (measured from Garmin's last value), serial0.GP takes over.
 - **Furuno returns:** it immediately wins again, regardless of which backup was winning.
 
+## Path-Level Overrides
+
+A path-level override tells Signal K to use a **different** ranking for one specific path than the group's ranking would imply. Overrides sit inside the group card — they are the exception, not the rule.
+
+A common example: two GPS units land in one group, Furuno is ranked first overall, but the Garmin has a better magnetic-variation (WMM) model. An override on `environment.wind.directionMagnetic` prefers Garmin on that one path while every other shared path still prefers Furuno.
+
 ### Disabling a Source on a Path
 
-Uncheck **Enabled** on a row (internally, _Fallback after_ = `-1`) to block that source on this path entirely, no matter how silent the others become.
+Inside an override, unchecking **Enabled** on a row (internally, _Fallback after_ = `-1`) blocks that source on this path entirely, no matter how silent the others become.
 
-### Sources Not Listed
+### Ungrouped Overrides
+
+If a path only has a single publisher today, no group is created for it. You can still add an ungrouped override for that path — useful for pre-configuring ranking before a second source arrives, or for disabling a plugin-only path.
+
+## Sources Not Listed
 
 Data from a source that is not listed in the priority table for a path is allowed to take over only after **every listed source has been silent for a default of 10 seconds**. This is a safety fallback so an unconfigured new device on the bus doesn't suddenly hijack a path you have not thought about.
 
-### What is Not Filtered
+## What is Not Filtered
 
 `notifications.*` paths bypass source priority entirely — every source's notifications are delivered unchanged. Notifications are events, not measurements, so suppressing one source's alarm because another source is "preferred" is never the right behaviour.
 
@@ -106,6 +118,11 @@ Plugin sources use the plugin ID as their `$source`, e.g. `derived-data` or `sig
 
 ## REST API
 
-The configuration is read and written via `GET` / `PUT /skServer/sourcePriorities` (admin write). For the request and response shapes, see the route handlers in [`src/serverroutes.ts`](https://github.com/SignalK/signalk-server/blob/master/src/serverroutes.ts).
+Two admin-write endpoints back this page:
 
-The persisted JSON keeps the field name `timeout` for backwards compatibility; it carries the _Fallback after_ value described above. A `timeout` of `-1` on a source disables it for that path.
+- `GET` / `PUT /skServer/priorityGroups` — the ordered source list per group.
+- `GET` / `PUT /skServer/sourcePriorities` — the per-path priority table consumed by the delta engine. The Admin UI fans a saved group ranking out to every shared path in the group (skipping paths that have an explicit override).
+
+For the request and response shapes, see the route handlers in [`src/serverroutes.ts`](https://github.com/SignalK/signalk-server/blob/master/src/serverroutes.ts).
+
+The persisted JSON keeps the field name `timeout`; it carries the _Fallback after_ value described above. A `timeout` of `-1` on a source disables it for that path.

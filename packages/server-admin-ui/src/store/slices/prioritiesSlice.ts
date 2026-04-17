@@ -3,7 +3,9 @@ import remove from 'lodash.remove'
 import type {
   SourcePrioritiesData,
   SourcePriority,
-  PathPriority
+  PathPriority,
+  PriorityGroup,
+  PriorityGroupsData
 } from '../types'
 
 function checkTimeouts(priorities: SourcePriority[]): boolean {
@@ -19,6 +21,7 @@ function checkTimeouts(priorities: SourcePriority[]): boolean {
 
 export interface PrioritiesSliceState {
   sourcePrioritiesData: SourcePrioritiesData
+  priorityGroupsData: PriorityGroupsData
 }
 
 export interface PrioritiesSliceActions {
@@ -37,6 +40,14 @@ export interface PrioritiesSliceActions {
   setSaved: () => void
   setSaveFailed: () => void
   clearSaveFailed: () => void
+  setPriorityGroups: (groups: PriorityGroup[]) => void
+  setPriorityGroupsFromServer: (groups: PriorityGroup[]) => void
+  reorderGroupSources: (groupId: string, from: number, to: number) => void
+  setGroupSources: (groupId: string, sources: string[]) => void
+  setGroupsSaving: () => void
+  setGroupsSaved: () => void
+  setGroupsSaveFailed: () => void
+  clearGroupsSaveFailed: () => void
 }
 
 export type PrioritiesSlice = PrioritiesSliceState & PrioritiesSliceActions
@@ -44,6 +55,13 @@ export type PrioritiesSlice = PrioritiesSliceState & PrioritiesSliceActions
 const initialPrioritiesState: PrioritiesSliceState = {
   sourcePrioritiesData: {
     sourcePriorities: [],
+    saveState: {
+      dirty: false,
+      timeoutsOk: true
+    }
+  },
+  priorityGroupsData: {
+    groups: [],
     saveState: {
       dirty: false,
       timeoutsOk: true
@@ -246,6 +264,125 @@ export const createPrioritiesSlice: StateCreator<
         ...state.sourcePrioritiesData,
         saveState: {
           ...state.sourcePrioritiesData.saveState,
+          saveFailed: false
+        }
+      }
+    }))
+  },
+
+  setPriorityGroups: (groups) => {
+    set((state) => ({
+      priorityGroupsData: {
+        ...state.priorityGroupsData,
+        groups,
+        saveState: { ...state.priorityGroupsData.saveState, dirty: true }
+      }
+    }))
+  },
+
+  setPriorityGroupsFromServer: (groups) => {
+    set({
+      priorityGroupsData: {
+        groups,
+        saveState: { dirty: false, timeoutsOk: true }
+      }
+    })
+  },
+
+  reorderGroupSources: (groupId, from, to) => {
+    set((state) => {
+      const groups = state.priorityGroupsData.groups.map((g) => {
+        if (g.id !== groupId) return g
+        if (
+          from < 0 ||
+          to < 0 ||
+          from >= g.sources.length ||
+          to >= g.sources.length ||
+          from === to
+        ) {
+          return g
+        }
+        const sources = [...g.sources]
+        const [moved] = sources.splice(from, 1)
+        sources.splice(to, 0, moved)
+        return { ...g, sources }
+      })
+      return {
+        priorityGroupsData: {
+          ...state.priorityGroupsData,
+          groups,
+          saveState: { ...state.priorityGroupsData.saveState, dirty: true }
+        }
+      }
+    })
+  },
+
+  setGroupSources: (groupId, sources) => {
+    set((state) => {
+      const existing = state.priorityGroupsData.groups.find(
+        (g) => g.id === groupId
+      )
+      const groups = existing
+        ? state.priorityGroupsData.groups.map((g) =>
+            g.id === groupId ? { ...g, sources } : g
+          )
+        : [...state.priorityGroupsData.groups, { id: groupId, sources }]
+      return {
+        priorityGroupsData: {
+          ...state.priorityGroupsData,
+          groups,
+          saveState: { ...state.priorityGroupsData.saveState, dirty: true }
+        }
+      }
+    })
+  },
+
+  setGroupsSaving: () => {
+    set((state) => ({
+      priorityGroupsData: {
+        ...state.priorityGroupsData,
+        saveState: {
+          ...state.priorityGroupsData.saveState,
+          isSaving: true,
+          saveFailed: false
+        }
+      }
+    }))
+  },
+
+  setGroupsSaved: () => {
+    set((state) => ({
+      priorityGroupsData: {
+        ...state.priorityGroupsData,
+        saveState: {
+          ...state.priorityGroupsData.saveState,
+          dirty: false,
+          isSaving: false,
+          saveFailed: false
+        }
+      }
+    }))
+  },
+
+  setGroupsSaveFailed: () => {
+    set((state) => ({
+      priorityGroupsData: {
+        ...state.priorityGroupsData,
+        saveState: {
+          ...state.priorityGroupsData.saveState,
+          isSaving: false,
+          saveFailed: true
+        }
+      }
+    }))
+  },
+
+  clearGroupsSaveFailed: () => {
+    set((state) => ({
+      priorityGroupsData: {
+        ...state.priorityGroupsData,
+        saveState: {
+          ...state.priorityGroupsData.saveState,
           saveFailed: false
         }
       }

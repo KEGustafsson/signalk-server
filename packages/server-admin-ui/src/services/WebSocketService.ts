@@ -254,6 +254,15 @@ export class WebSocketService {
             >
           )
         break
+      case 'PRIORITYGROUPS':
+        useStore
+          .getState()
+          .setPriorityGroupsFromServer(
+            msg.data as unknown as Parameters<
+              SignalKStore['setPriorityGroupsFromServer']
+            >[0]
+          )
+        break
       case 'SOURCEALIASES':
         useStore.getState().setSourceAliases(data as Record<string, string>)
         break

@@ -3,208 +3,26 @@ import Alert from 'react-bootstrap/Alert'
 import Badge from 'react-bootstrap/Badge'
 import Button from 'react-bootstrap/Button'
 import Card from 'react-bootstrap/Card'
-import Form from 'react-bootstrap/Form'
-import Table from 'react-bootstrap/Table'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faArrowUp } from '@fortawesome/free-solid-svg-icons/faArrowUp'
-import { faArrowDown } from '@fortawesome/free-solid-svg-icons/faArrowDown'
-import { faTrash } from '@fortawesome/free-solid-svg-icons/faTrash'
 import { faFloppyDisk } from '@fortawesome/free-solid-svg-icons/faFloppyDisk'
-import Creatable from 'react-select/creatable'
 import { useSearchParams } from 'react-router-dom'
-import { useStore, useSourcePriorities, useMultiSourcePaths } from '../../store'
-import { type SourcesData } from '../../utils/sourceLabels'
-import { useSourceAliases } from '../../hooks/useSourceAliases'
 
-// Types
-interface Priority {
-  sourceRef: string
-  timeout: string | number
-}
-
-interface PathPriority {
-  path: string
-  priorities: Priority[]
-}
-
-interface SelectOption {
-  label: string
-  value: string
-}
-
-interface PrefsEditorProps {
-  path: string
-  priorities: Priority[]
-  pathIndex: number
-  isSaving: boolean
-  sourcesData: SourcesData | null
-  multiSourcePaths: Record<string, string[]>
-}
-
-const PrefsEditor: React.FC<PrefsEditorProps> = ({
-  path,
-  priorities,
-  pathIndex,
-  isSaving,
-  sourcesData,
-  multiSourcePaths
-}) => {
-  const changePriority = useStore((s) => s.changePriority)
-  const deletePriority = useStore((s) => s.deletePriority)
-  const movePriority = useStore((s) => s.movePriority)
-  const { getDisplayName } = useSourceAliases()
-
-  const sourceRefs = useMemo(
-    () => (path && multiSourcePaths[path]) || [],
-    [path, multiSourcePaths]
-  )
-
-  const allOptions: SelectOption[] = sourceRefs.map((ref) => ({
-    label: getDisplayName(ref, sourcesData),
-    value: ref
-  }))
-
-  // Build rows: append an empty placeholder row if unassigned sources remain
-  const rows = useMemo(() => {
-    const assigned = new Set(priorities.map((p) => p.sourceRef).filter(Boolean))
-    if (priorities.length >= sourceRefs.length) {
-      return priorities
-    }
-    const hasUnassigned = sourceRefs.some((ref) => !assigned.has(ref))
-    if (hasUnassigned) {
-      return [...priorities, { sourceRef: '', timeout: 5000 }]
-    }
-    return priorities
-  }, [priorities, sourceRefs])
-
-  // Set of all sourceRefs currently shown in rows (for dropdown filtering)
-  const selectedRefs = useMemo(
-    () => new Set(rows.map((r) => r.sourceRef).filter(Boolean)),
-    [rows]
-  )
-
-  return (
-    <Table size="sm">
-      <thead>
-        <tr>
-          <td style={{ width: '30px' }}>#</td>
-          <td>Source Reference (see DataBrowser for details)</td>
-          <td style={{ width: '140px' }}>Fallback after (ms)</td>
-          <td style={{ width: '70px' }}>Enabled</td>
-          <td style={{ width: '80px' }}>Order</td>
-          <td></td>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map(({ sourceRef, timeout }, index) => {
-          // Filter dropdown to sources not already assigned to other rows
-          const availableOptions = allOptions.filter(
-            (o) => o.value === sourceRef || !selectedRefs.has(o.value)
-          )
-          const priorityKey = `${index}-${sourceRef || 'new'}`
-          const isDisabled = Number(timeout) === -1
-          return (
-            <tr key={priorityKey}>
-              <td>{index + 1}.</td>
-              <td>
-                <Creatable
-                  menuPortalTarget={document.body}
-                  options={availableOptions}
-                  value={{
-                    value: sourceRef,
-                    label: getDisplayName(sourceRef, sourcesData)
-                  }}
-                  onChange={(e) => {
-                    changePriority(pathIndex, index, e?.value || '', timeout)
-                  }}
-                />
-              </td>
-              <td>
-                {index === 0 && !isDisabled ? (
-                  <span className="text-muted small">preferred</span>
-                ) : (
-                  <Form.Control
-                    type="number"
-                    name="timeout"
-                    disabled={isDisabled}
-                    onChange={(e) =>
-                      changePriority(
-                        pathIndex,
-                        index,
-                        sourceRef,
-                        e.target.value
-                      )
-                    }
-                    value={isDisabled ? '' : timeout}
-                  />
-                )}
-              </td>
-              <td className="text-center">
-                <Form.Check
-                  type="checkbox"
-                  checked={!isDisabled}
-                  aria-label={`Enable source ${sourceRef || 'row ' + (index + 1)}`}
-                  onChange={(e) =>
-                    changePriority(
-                      pathIndex,
-                      index,
-                      sourceRef,
-                      e.target.checked ? (index === 0 ? 0 : 5000) : -1
-                    )
-                  }
-                />
-              </td>
-              <td>
-                {index > 0 && index < priorities.length && (
-                  <button
-                    type="button"
-                    aria-label={`Move row ${index + 1} up`}
-                    onClick={() =>
-                      !isSaving && movePriority(pathIndex, index, -1)
-                    }
-                  >
-                    <FontAwesomeIcon icon={faArrowUp} />
-                  </button>
-                )}
-                {index < priorities.length - 1 && (
-                  <button
-                    type="button"
-                    aria-label={`Move row ${index + 1} down`}
-                    onClick={() =>
-                      !isSaving && movePriority(pathIndex, index, 1)
-                    }
-                  >
-                    <FontAwesomeIcon icon={faArrowDown} />
-                  </button>
-                )}
-              </td>
-              <td>
-                {index < priorities.length && (
-                  <button
-                    type="button"
-                    aria-label={`Delete row ${index + 1}`}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      padding: 0,
-                      cursor: 'pointer',
-                      color: 'inherit'
-                    }}
-                    onClick={() =>
-                      !isSaving && deletePriority(pathIndex, index)
-                    }
-                  >
-                    <FontAwesomeIcon icon={faTrash} />
-                  </button>
-                )}
-              </td>
-            </tr>
-          )
-        })}
-      </tbody>
-    </Table>
-  )
-}
+import {
+  useStore,
+  useSourcePriorities,
+  useMultiSourcePaths,
+  usePriorityGroups
+} from '../../store'
+import type { SourcesData } from '../../utils/sourceLabels'
+import {
+  computeGroups,
+  reconcileGroups,
+  fanOutGroupRanking,
+  isPathOverride
+} from '../../utils/sourceGroups'
+import type { SourcePriority } from '../../store/types'
+import PrefsEditor from './PrefsEditor'
+import PriorityGroupCard from './PriorityGroupCard'
 
 function fetchAvailablePaths(cb: (paths: string[]) => void) {
   fetch(`${window.serverRoutesPrefix}/availablePaths`, {
@@ -213,12 +31,6 @@ function fetchAvailablePaths(cb: (paths: string[]) => void) {
     .then((response) => response.json())
     .then(cb)
 }
-
-// ─── Fallback Timeline Diagram ──────────────────────────────────────────────
-//
-// Two sources over time. The Preferred source is sending then goes silent;
-// the Backup source waits for "Fallback after" milliseconds of silence
-// before it's allowed to take over.
 
 const TimelineDiagram: React.FC = () => (
   <svg
@@ -241,8 +53,6 @@ const TimelineDiagram: React.FC = () => (
         <path d="M 0 0 L 10 5 L 0 10 z" fill="#555" />
       </marker>
     </defs>
-
-    {/* Legend */}
     <rect x="0" y="0" width="10" height="10" fill="#2e7d32" rx="2" />
     <text x="16" y="9" fontSize="10" fill="#555">
       accepted (winning)
@@ -255,8 +65,6 @@ const TimelineDiagram: React.FC = () => (
     <text x="321" y="9" fontSize="10" fill="#555">
       accepted (takeover)
     </text>
-
-    {/* Track labels */}
     <text x="0" y="56" fontSize="12" fill="#333" fontWeight="600">
       Preferred
     </text>
@@ -266,8 +74,6 @@ const TimelineDiagram: React.FC = () => (
     <text x="0" y="156" fontSize="12" fill="#333" fontWeight="600">
       Backup 2
     </text>
-
-    {/* Preferred track */}
     <rect x="80" y="48" width="30" height="16" fill="#2e7d32" rx="2" />
     <rect x="118" y="48" width="30" height="16" fill="#2e7d32" rx="2" />
     <rect x="156" y="48" width="30" height="16" fill="#2e7d32" rx="2" />
@@ -285,8 +91,6 @@ const TimelineDiagram: React.FC = () => (
     <text x="531" y="45" fontSize="11" fill="#b71c1c" textAnchor="middle">
       (silent)
     </text>
-
-    {/* Backup 1 track */}
     <rect x="80" y="98" width="30" height="16" fill="#bdbdbd" rx="2" />
     <rect x="118" y="98" width="30" height="16" fill="#bdbdbd" rx="2" />
     <rect x="156" y="98" width="30" height="16" fill="#bdbdbd" rx="2" />
@@ -311,8 +115,6 @@ const TimelineDiagram: React.FC = () => (
     <text x="674" y="95" fontSize="11" fill="#b71c1c" textAnchor="middle">
       (silent)
     </text>
-
-    {/* Backup 2 track */}
     <rect x="80" y="148" width="30" height="16" fill="#bdbdbd" rx="2" />
     <rect x="118" y="148" width="30" height="16" fill="#bdbdbd" rx="2" />
     <rect x="156" y="148" width="30" height="16" fill="#bdbdbd" rx="2" />
@@ -331,8 +133,6 @@ const TimelineDiagram: React.FC = () => (
     <rect x="674" y="148" width="30" height="16" fill="#bdbdbd" rx="2" />
     <rect x="728" y="148" width="30" height="16" fill="#1565c0" rx="2" />
     <rect x="766" y="148" width="30" height="16" fill="#1565c0" rx="2" />
-
-    {/* First threshold: Preferred → Backup 1 */}
     <line
       x1="262"
       y1="30"
@@ -370,8 +170,6 @@ const TimelineDiagram: React.FC = () => (
     <text x="352" y="76" fontSize="10" fill="#333" textAnchor="middle">
       Fallback after (5s)
     </text>
-
-    {/* Second threshold: Backup 1 → Backup 2 */}
     <line
       x1="548"
       y1="80"
@@ -409,14 +207,10 @@ const TimelineDiagram: React.FC = () => (
     <text x="638" y="171" fontSize="10" fill="#333" textAnchor="middle">
       Fallback after (5s)
     </text>
-
-    {/* Time axis */}
     <line x1="80" y1="200" x2="810" y2="200" stroke="#ccc" strokeWidth="1" />
     <text x="810" y="200" fontSize="10" fill="#999" textAnchor="end" dy="12">
       time →
     </text>
-
-    {/* Caption */}
     <text
       x="420"
       y="240"
@@ -439,43 +233,82 @@ const TimelineDiagram: React.FC = () => (
   </svg>
 )
 
-// ─── Main Page ──────────────────────────────────────────────────────────────
-
 const SourcePriorities: React.FC = () => {
   const sourcePrioritiesData = useSourcePriorities()
-  const changePath = useStore((s) => s.changePath)
-  const deletePath = useStore((s) => s.deletePath)
+  const priorityGroupsData = usePriorityGroups()
+  const multiSourcePaths = useMultiSourcePaths()
+
   const setSaving = useStore((s) => s.setSaving)
   const setSaved = useStore((s) => s.setSaved)
   const setSaveFailed = useStore((s) => s.setSaveFailed)
   const clearSaveFailed = useStore((s) => s.clearSaveFailed)
+  const setGroupsSaving = useStore((s) => s.setGroupsSaving)
+  const setGroupsSaved = useStore((s) => s.setGroupsSaved)
+  const setGroupsSaveFailed = useStore((s) => s.setGroupsSaveFailed)
+  const setSourcePriorities = useStore((s) => s.setSourcePriorities)
+  const changePath = useStore((s) => s.changePath)
+  const deletePath = useStore((s) => s.deletePath)
 
   const { sourcePriorities, saveState } = sourcePrioritiesData
+  const { groups: savedGroups, saveState: groupsSaveState } = priorityGroupsData
 
-  const [availablePaths, setAvailablePaths] = useState<SelectOption[]>([])
   const [sourcesData, setSourcesData] = useState<SourcesData | null>(null)
-  const multiSourcePaths = useMultiSourcePaths()
-
+  const [availablePaths, setAvailablePaths] = useState<string[]>([])
   const [searchParams, setSearchParams] = useSearchParams()
 
-  // Compute unconfigured multi-source paths for warning banner
-  const unconfiguredPaths = useMemo(() => {
-    const configuredPaths = new Set<string>()
-    for (const pp of sourcePriorities) {
-      if (pp.path) configuredPaths.add(pp.path)
-    }
+  const derived = useMemo(
+    () => computeGroups(multiSourcePaths),
+    [multiSourcePaths]
+  )
+  const reconciled = useMemo(
+    () => reconcileGroups(derived, savedGroups),
+    [derived, savedGroups]
+  )
 
-    const result: string[] = []
-    for (const path of Object.keys(multiSourcePaths)) {
-      // Notifications bypass source priority server-side, so configuring
-      // them here would be a no-op. Hide them from the warning banner.
-      if (path === 'notifications' || path.startsWith('notifications.')) {
-        continue
-      }
-      if (!configuredPaths.has(path)) result.push(path)
+  // Sync reconciled ordering back into the groups slice so DnD edits the right
+  // source. We only hydrate when a saved group's order is stale vs. the derived
+  // set; we never clobber dirty edits.
+  useEffect(() => {
+    if (groupsSaveState.dirty) return
+    const next = reconciled.map((g) => ({ id: g.id, sources: g.sources }))
+    const sameShape =
+      next.length === savedGroups.length &&
+      next.every((g, i) => {
+        const s = savedGroups[i]
+        return (
+          s?.id === g.id &&
+          s.sources.length === g.sources.length &&
+          s.sources.every((src, j) => src === g.sources[j])
+        )
+      })
+    if (!sameShape) {
+      useStore.getState().setPriorityGroupsFromServer(next)
     }
-    return result.sort()
-  }, [multiSourcePaths, sourcePriorities])
+  }, [reconciled, savedGroups, groupsSaveState.dirty])
+
+  // Ungrouped overrides: paths in sourcePriorities whose path is not in any
+  // derived group's path list. These include plugin-only paths or paths with
+  // a single source (user may have pre-configured).
+  const groupPathSet = useMemo(() => {
+    const all = new Set<string>()
+    for (const g of reconciled) for (const p of g.paths) all.add(p)
+    return all
+  }, [reconciled])
+
+  const ungroupedOverrides = useMemo(
+    () =>
+      sourcePriorities
+        .map((pp, index) => ({ pp, index }))
+        .filter(({ pp }) => pp.path && !groupPathSet.has(pp.path))
+        .sort((a, b) => a.pp.path.localeCompare(b.pp.path)),
+    [sourcePriorities, groupPathSet]
+  )
+
+  // Count of groups that have no saved ranking yet (all new / never seen).
+  const unrankedGroupCount = useMemo(
+    () => reconciled.filter((g) => g.matchedSavedId === null).length,
+    [reconciled]
+  )
 
   const pathParam = searchParams.get('path')
   useEffect(() => {
@@ -487,28 +320,12 @@ const SourcePriorities: React.FC = () => {
     setSearchParams({}, { replace: true })
   }, [pathParam, sourcePriorities, changePath, setSearchParams])
 
-  const handleAddPath = useCallback(
-    (path: string) => {
-      const alreadyExists = sourcePriorities.some((pp) => pp.path === path)
-      if (!alreadyExists) {
-        changePath(sourcePriorities.length, path)
-      }
-    },
-    [sourcePriorities, changePath]
-  )
-
   useEffect(() => {
     fetchAvailablePaths((pathsArray) => {
       setAvailablePaths(
-        pathsArray
-          .filter(
-            (path) =>
-              path !== 'notifications' && !path.startsWith('notifications.')
-          )
-          .map((path) => ({
-            value: path,
-            label: path
-          }))
+        pathsArray.filter(
+          (p) => p !== 'notifications' && !p.startsWith('notifications.')
+        )
       )
     })
     fetch('/signalk/v1/api/sources', { credentials: 'include' })
@@ -517,7 +334,6 @@ const SourcePriorities: React.FC = () => {
       .catch((err) => console.warn('Failed to load sources data:', err))
   }, [])
 
-  // Check for incomplete entries (paths with empty sourceRef in priorities)
   const hasIncompleteEntries = useMemo(
     () =>
       sourcePriorities.some(
@@ -526,51 +342,100 @@ const SourcePriorities: React.FC = () => {
     [sourcePriorities]
   )
 
-  const handleSave = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault()
-      setSaving()
-      // Filter out entries with empty path or priorities with empty sourceRef
-      const cleanData = sourcePriorities.reduce<Record<string, Priority[]>>(
-        (acc, pathPriority) => {
-          if (!pathPriority.path) return acc
-          const validPriorities = pathPriority.priorities.filter(
-            (p) => p.sourceRef
-          )
-          if (validPriorities.length > 0) {
-            acc[pathPriority.path] = validPriorities
-          }
-          return acc
-        },
-        {}
-      )
-      fetch(`${window.serverRoutesPrefix}/sourcePriorities`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(cleanData)
-      })
-        .then((response) => {
-          if (response.status === 200) {
-            setSaved()
-          } else {
-            throw new Error()
-          }
-        })
-        .catch(() => {
-          setSaveFailed()
-          setTimeout(() => clearSaveFailed(), 5000)
-        })
-    },
-    [sourcePriorities, setSaving, setSaved, setSaveFailed, clearSaveFailed]
-  )
+  const isDirty = saveState.dirty || groupsSaveState.dirty
+  const isSaving = !!(saveState.isSaving || groupsSaveState.isSaving)
 
-  const priosWithEmpty: PathPriority[] = [
-    ...sourcePriorities,
-    { path: '', priorities: [] }
-  ]
+  const handleSave = useCallback(
+    async (e: React.MouseEvent) => {
+      e.preventDefault()
+
+      setGroupsSaving()
+      setSaving()
+
+      // Build the override set — per group, any path where current ordering
+      // differs from group order.
+      const nextPriorityMap: Record<string, SourcePriority[]> =
+        sourcePriorities.reduce<Record<string, SourcePriority[]>>((acc, pp) => {
+          if (!pp.path) return acc
+          const valid = pp.priorities.filter((p) => p.sourceRef)
+          if (valid.length > 0) acc[pp.path] = valid
+          return acc
+        }, {})
+
+      // Build a lookup from groupId → saved sources BEFORE this save, so we
+      // can distinguish "user edited the group ranking" from "user set a
+      // path-level override". Override detection compares against the saved
+      // (baseline) group order — never against the newly-edited order.
+      const baselineSourcesById = new Map<string, string[]>()
+      for (const g of savedGroups) baselineSourcesById.set(g.id, g.sources)
+
+      let fannedOut = { ...nextPriorityMap }
+      for (const group of reconciled) {
+        const baseline =
+          (group.matchedSavedId &&
+            baselineSourcesById.get(group.matchedSavedId)) ||
+          group.sources
+        const overridePaths = new Set<string>()
+        for (const path of group.paths) {
+          const existing = nextPriorityMap[path]
+          const publishers = new Set(multiSourcePaths[path] ?? [])
+          const baselineOrder = baseline.filter((src) => publishers.has(src))
+          if (existing && isPathOverride(existing, baselineOrder)) {
+            overridePaths.add(path)
+          }
+        }
+        fannedOut = fanOutGroupRanking(
+          { sources: group.sources, paths: group.paths },
+          multiSourcePaths,
+          fannedOut,
+          overridePaths
+        )
+      }
+
+      try {
+        const [groupsRes, prioritiesRes] = await Promise.all([
+          fetch(`${window.serverRoutesPrefix}/priorityGroups`, {
+            method: 'PUT',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(
+              reconciled.map((g) => ({ id: g.id, sources: g.sources }))
+            )
+          }),
+          fetch(`${window.serverRoutesPrefix}/sourcePriorities`, {
+            method: 'PUT',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(fannedOut)
+          })
+        ])
+
+        if (groupsRes.status !== 200 || prioritiesRes.status !== 200) {
+          throw new Error('save failed')
+        }
+        setGroupsSaved()
+        setSaved()
+        setSourcePriorities(fannedOut)
+      } catch {
+        setGroupsSaveFailed()
+        setSaveFailed()
+        setTimeout(() => clearSaveFailed(), 5000)
+      }
+    },
+    [
+      reconciled,
+      sourcePriorities,
+      multiSourcePaths,
+      setGroupsSaving,
+      setGroupsSaved,
+      setGroupsSaveFailed,
+      setSaving,
+      setSaved,
+      setSaveFailed,
+      clearSaveFailed,
+      setSourcePriorities
+    ]
+  )
 
   return (
     <>
@@ -579,32 +444,32 @@ const SourcePriorities: React.FC = () => {
         <Card.Body>
           <Alert>
             <p>
-              For each path, list the sources that may provide it in order of
-              preference. The top source wins while it is sending. Each other
-              row has a <b>Fallback after</b> value — how many milliseconds the
-              higher-priority source must be silent before this row is allowed
-              to take over.
+              Signal K groups sources that share paths. Inside each group, drag
+              the sources into your preferred order — the top one wins every
+              shared path while it is sending. Each row below the top waits{' '}
+              <b>Fallback after</b> milliseconds of silence from the source
+              currently winning before it may take over.
             </p>
             <div style={{ margin: '12px 0' }}>
               <TimelineDiagram />
             </div>
             <p>
-              <b>Example:</b> two GPS receivers, both publishing{' '}
-              <code>navigation.position</code>. Preferred = Furuno, Backup =
-              Garmin with <b>Fallback after 5000</b> (5s). Garmin data is
-              dropped while Furuno is sending, and only starts passing through
-              once Furuno has been silent for 5s. When Furuno returns, it
-              immediately takes over again.
+              <b>Example:</b> two GPS receivers both publishing{' '}
+              <code>navigation.position</code> and a few related paths land in
+              one group. Drag Furuno above Garmin and every shared path prefers
+              Furuno. Add a <b>path-level override</b> only when you want a
+              specific path to deviate — e.g. use Garmin&apos;s magnetic
+              variation if its WMM model is better.
             </p>
             <p>
               The top row is always &quot;preferred&quot; — it has no Fallback
-              value because nothing ranks higher. Uncheck <b>Enabled</b> to
-              block a source on this path entirely. Data from unlisted sources
-              can only take over after a default of 10 seconds of silence from
-              every listed source.
+              value because nothing ranks higher. Uncheck <b>Enabled</b> on an
+              override row to block a source on that path entirely. Data from
+              unlisted sources can only take over after a default of 10 seconds
+              of silence from every listed source.
             </p>
             <p>
-              You can debug the settings by saving them and activating debug key{' '}
+              You can debug the settings by activating debug key{' '}
               <b>signalk-server:sourcepriorities</b> in{' '}
               <a
                 href="./#/serverConfiguration/log"
@@ -614,93 +479,87 @@ const SourcePriorities: React.FC = () => {
               </a>
             </p>
           </Alert>
-          {unconfiguredPaths.length > 0 && (
+
+          {unrankedGroupCount > 0 && (
             <Alert variant="warning">
               <strong>
-                {unconfiguredPaths.length} path(s) have multiple sources without
-                priority configuration:
-              </strong>
-              <div style={{ marginTop: '8px' }}>
-                {unconfiguredPaths.map((p) => (
-                  <Badge
-                    key={p}
-                    bg="warning"
-                    text="dark"
-                    style={{ margin: '2px', cursor: 'pointer' }}
-                    onClick={() => handleAddPath(p)}
-                  >
-                    {p}
-                  </Badge>
-                ))}
-              </div>
+                {unrankedGroupCount} group
+                {unrankedGroupCount === 1 ? '' : 's'} without a saved ranking:
+              </strong>{' '}
+              drag sources into your preferred order inside each card below to
+              rank them.
             </Alert>
           )}
-          <Table responsive bordered striped size="sm">
-            <thead>
-              <tr>
-                <th style={{ width: '40%' }}>Path</th>
-                <th>Priorities</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {priosWithEmpty.map(({ path, priorities }, index) => {
-                // Path items may be empty for new entries
-                const pathKey = `${index}-${path || 'new'}`
-                return (
-                  <tr key={pathKey}>
-                    <td>
-                      <Creatable
-                        menuPortalTarget={document.body}
-                        options={availablePaths}
-                        value={{ value: path, label: path }}
-                        onChange={(e) => {
-                          changePath(index, e?.value || '')
-                        }}
-                      />
-                    </td>
-                    <td>
-                      <PrefsEditor
-                        key={path}
-                        path={path}
-                        priorities={priorities}
-                        pathIndex={index}
-                        isSaving={saveState.isSaving || false}
-                        sourcesData={sourcesData}
-                        multiSourcePaths={multiSourcePaths}
-                      />
-                    </td>
-                    <td style={{ border: 'none' }}>
-                      {index < sourcePriorities.length && (
-                        <button
-                          type="button"
-                          aria-label={`Delete path ${path || index + 1}`}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            padding: 0,
-                            cursor: 'pointer',
-                            color: 'inherit'
-                          }}
-                          onClick={() => deletePath(index)}
-                        >
-                          <FontAwesomeIcon icon={faTrash} />
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </Table>
+
+          {reconciled.length === 0 && (
+            <Alert variant="info">
+              No multi-source paths detected yet. When more than one source
+              starts publishing the same path, a group card will appear here.
+            </Alert>
+          )}
+
+          {reconciled.map((group) => (
+            <PriorityGroupCard
+              key={group.id}
+              group={group}
+              multiSourcePaths={multiSourcePaths}
+              sourcePriorities={sourcePriorities}
+              sourcesData={sourcesData}
+              isSaving={isSaving}
+            />
+          ))}
+
+          {ungroupedOverrides.length > 0 && (
+            <Card className="pg-card pg-card-unranked mt-3">
+              <Card.Header>
+                <strong>Ungrouped path overrides</strong>
+                <span className="text-muted small ms-2">
+                  {ungroupedOverrides.length} path
+                  {ungroupedOverrides.length === 1 ? '' : 's'}
+                </span>
+              </Card.Header>
+              <Card.Body>
+                {ungroupedOverrides.map(({ pp, index }) => (
+                  <div key={pp.path} className="pg-override-row">
+                    <div className="pg-override-path d-flex justify-content-between align-items-center">
+                      <code>{pp.path}</code>
+                      <Button
+                        size="sm"
+                        variant="link"
+                        className="text-danger"
+                        onClick={() => deletePath(index)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                    <PrefsEditor
+                      path={pp.path}
+                      priorities={pp.priorities}
+                      pathIndex={index}
+                      isSaving={isSaving}
+                      sourcesData={sourcesData}
+                      multiSourcePaths={multiSourcePaths}
+                    />
+                  </div>
+                ))}
+              </Card.Body>
+            </Card>
+          )}
+
+          <AddUngroupedOverride
+            availablePaths={availablePaths}
+            groupPathSet={groupPathSet}
+            configuredPaths={new Set(sourcePriorities.map((p) => p.path))}
+            onAdd={(path) => changePath(sourcePriorities.length, path)}
+          />
         </Card.Body>
         <Card.Footer>
           <Button
             size="sm"
             variant="primary"
             disabled={
-              !saveState.dirty ||
-              saveState.isSaving ||
+              !isDirty ||
+              isSaving ||
               !saveState.timeoutsOk ||
               hasIncompleteEntries
             }
@@ -708,11 +567,12 @@ const SourcePriorities: React.FC = () => {
           >
             <FontAwesomeIcon icon={faFloppyDisk} /> Save
           </Button>
-          {saveState.saveFailed && 'Saving priorities settings failed!'}
+          {(saveState.saveFailed || groupsSaveState.saveFailed) &&
+            ' Saving priorities settings failed!'}
           {!saveState.timeoutsOk && (
             <span style={{ paddingLeft: '10px' }}>
               <Badge bg="danger">Error</Badge>
-              {'Timeout values must be positive numbers (milliseconds).'}
+              {' Timeout values must be positive numbers (milliseconds).'}
             </span>
           )}
           {hasIncompleteEntries && (
@@ -726,6 +586,54 @@ const SourcePriorities: React.FC = () => {
         </Card.Footer>
       </Card>
     </>
+  )
+}
+
+interface AddUngroupedOverrideProps {
+  availablePaths: string[]
+  groupPathSet: Set<string>
+  configuredPaths: Set<string>
+  onAdd: (path: string) => void
+}
+
+const AddUngroupedOverride: React.FC<AddUngroupedOverrideProps> = ({
+  availablePaths,
+  groupPathSet,
+  configuredPaths,
+  onAdd
+}) => {
+  const [value, setValue] = useState('')
+  const options = useMemo(
+    () =>
+      availablePaths.filter(
+        (p) => !groupPathSet.has(p) && !configuredPaths.has(p)
+      ),
+    [availablePaths, groupPathSet, configuredPaths]
+  )
+  if (options.length === 0) return null
+  return (
+    <div className="mt-3">
+      <label className="form-label small text-muted">
+        Add an ungrouped path-level override
+      </label>
+      <select
+        className="form-select form-select-sm pg-add-override-select"
+        value={value}
+        onChange={(e) => {
+          const v = e.target.value
+          if (!v) return
+          onAdd(v)
+          setValue('')
+        }}
+      >
+        <option value="">Select a path…</option>
+        {options.map((p) => (
+          <option key={p} value={p}>
+            {p}
+          </option>
+        ))}
+      </select>
+    </div>
   )
 }
 

@@ -9,9 +9,10 @@ import {
   useLoginStatus,
   useSourcesData,
   useMultiSourcePaths,
-  useSourcePriorities,
+  usePriorityGroups,
   useIgnoredInstanceConflicts
 } from '../../store'
+import { computeGroups, reconcileGroups } from '../../utils/sourceGroups'
 import {
   extractN2kDevices,
   detectInstanceConflicts,
@@ -73,21 +74,14 @@ export default function Sidebar({ location }: SidebarProps) {
   }, [sourcesData, ignoredConflicts])
 
   const multiSourcePaths = useMultiSourcePaths()
-  const sourcePrioritiesData = useSourcePriorities()
+  const priorityGroupsData = usePriorityGroups()
 
   const unconfiguredPriorityCount = useMemo(() => {
-    if (!multiSourcePaths || !sourcePrioritiesData?.sourcePriorities) return 0
-    const configuredPaths = new Set<string>()
-    for (const pp of sourcePrioritiesData.sourcePriorities) {
-      if (pp.path) configuredPaths.add(pp.path)
-    }
-
-    let count = 0
-    for (const path of Object.keys(multiSourcePaths)) {
-      if (!configuredPaths.has(path)) count++
-    }
-    return count
-  }, [multiSourcePaths, sourcePrioritiesData])
+    if (!multiSourcePaths) return 0
+    const derived = computeGroups(multiSourcePaths)
+    const reconciled = reconcileGroups(derived, priorityGroupsData.groups)
+    return reconciled.filter((g) => g.matchedSavedId === null).length
+  }, [multiSourcePaths, priorityGroupsData])
 
   const nowMs = Date.now() // eslint-disable-line react-hooks/purity -- expired status is stable
   const expiredDeviceCount = devices.filter(
