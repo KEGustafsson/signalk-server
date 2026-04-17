@@ -39,7 +39,8 @@ export function buildProviderTalkerLookups(
     const subOptions = options.subOptions || options
     if (
       subOptions.talkerGroups &&
-      typeof subOptions.talkerGroups === 'object'
+      typeof subOptions.talkerGroups === 'object' &&
+      !Array.isArray(subOptions.talkerGroups)
     ) {
       result.set(provider.id, buildTalkerLookup(subOptions.talkerGroups))
     }

@@ -51,7 +51,10 @@ function SourceGroupHeader({
       }}
     >
       {onToggle && (
-        <span style={{ width: '16px', textAlign: 'center', fontSize: '0.8em' }}>
+        <span
+          aria-hidden="true"
+          style={{ width: '16px', textAlign: 'center', fontSize: '0.8em' }}
+        >
           {isCollapsed ? '\u25B6' : '\u25BC'}
         </span>
       )}

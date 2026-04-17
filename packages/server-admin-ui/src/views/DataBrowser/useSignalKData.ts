@@ -141,20 +141,22 @@ export function useSignalKData() {
                 : timestamp.format(TIMESTAMP_FORMAT)
 
               if (vp.path === '') {
-                Object.keys(vp.value as object).forEach((k) => {
-                  const path$SourceKey = getPath$SourceKey(k, update.$source)
-                  const pathData: PathData = {
-                    path: k,
-                    value: (vp.value as Record<string, unknown>)[k],
-                    $source: update.$source,
-                    pgn: pgn || undefined,
-                    sentence: sentence || undefined,
-                    timestamp: formattedTimestamp
-                  }
-                  const wasNew = !getPathData(key, path$SourceKey)
-                  updatePath(key, path$SourceKey, pathData)
-                  if (wasNew) isNew = true
-                })
+                if (vp.value && typeof vp.value === 'object') {
+                  Object.keys(vp.value as object).forEach((k) => {
+                    const path$SourceKey = getPath$SourceKey(k, update.$source)
+                    const pathData: PathData = {
+                      path: k,
+                      value: (vp.value as Record<string, unknown>)[k],
+                      $source: update.$source,
+                      pgn: pgn || undefined,
+                      sentence: sentence || undefined,
+                      timestamp: formattedTimestamp
+                    }
+                    const wasNew = !getPathData(key, path$SourceKey)
+                    updatePath(key, path$SourceKey, pathData)
+                    if (wasNew) isNew = true
+                  })
+                }
               } else {
                 const path$SourceKey = getPath$SourceKey(
                   vp.path,

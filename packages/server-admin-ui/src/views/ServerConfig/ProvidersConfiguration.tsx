@@ -95,22 +95,38 @@ const ProvidersConfiguration: React.FC = () => {
     (
       event:
         | React.ChangeEvent<HTMLInputElement>
-        | { target: { name: string; value: unknown; type?: string } },
+        | {
+            target: {
+              name: string
+              value: unknown
+              type?: string
+              checked?: boolean
+            }
+          },
       valueType?: string
     ) => {
       if (!selectedProvider) return
 
-      let value: unknown =
-        event.target.type === 'checkbox'
-          ? (event.target as HTMLInputElement).checked
-          : event.target.value
+      const target = event.target
+      let value: unknown
+      if (target.type === 'checkbox') {
+        // For native DOM events, .checked carries the truth.
+        // For our synthetic union variant, callers pass .checked alongside
+        // .value (which mirrors checked), so reading either is fine.
+        value =
+          'checked' in target && target.checked !== undefined
+            ? target.checked
+            : target.value
+      } else {
+        value = target.value
+      }
 
       if (valueType === 'number') {
         value = Number(value)
       }
 
       const updatedProvider = { ...selectedProvider }
-      set(updatedProvider, event.target.name, value)
+      set(updatedProvider, target.name, value)
       setSelectedProvider(updatedProvider)
     },
     [selectedProvider]

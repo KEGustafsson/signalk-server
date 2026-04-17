@@ -28,7 +28,14 @@ interface N2KFiltersProps {
   onChange: (
     event:
       | ChangeEvent<HTMLInputElement>
-      | { target: { name: string; value: unknown; type?: string } }
+      | {
+          target: {
+            name: string
+            value: unknown
+            type?: string
+            checked?: boolean
+          }
+        }
   ) => void
 }
 
@@ -60,6 +67,7 @@ export default function N2KFilters({ value, onChange }: N2KFiltersProps) {
       target: {
         name: 'options.filtersEnabled',
         value: event.target.checked,
+        checked: event.target.checked,
         type: 'checkbox'
       }
     })
@@ -84,7 +92,7 @@ export default function N2KFilters({ value, onChange }: N2KFiltersProps) {
               type="checkbox"
               name="filtersEnabled"
               className="switch-input"
-              checked={value.options.filtersEnabled}
+              checked={!!value.options.filtersEnabled}
               onChange={handleEnabledChange}
             />
             <span className="switch-label" data-on="Yes" data-off="No" />

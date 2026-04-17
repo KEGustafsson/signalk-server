@@ -21,7 +21,8 @@ function migrateFromLocalStorage(
       !localAliases ||
       typeof localAliases !== 'object' ||
       Array.isArray(localAliases) ||
-      Object.keys(localAliases).length === 0
+      Object.keys(localAliases).length === 0 ||
+      !Object.values(localAliases).every((v) => typeof v === 'string')
     ) {
       localStorage.removeItem(LEGACY_STORAGE_KEY)
       return

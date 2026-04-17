@@ -244,8 +244,10 @@ export function isProprietaryPGN(pgn: string | number): boolean {
 const COMPOUND_KEY_PGNS = new Set([
   '130312', // Temperature
   '130313', // Humidity
-  '130316', // Temperature Extended Range
-  '130823' // Maretron proprietary temperature
+  '130316' // Temperature Extended Range
+  // Note: Maretron proprietary temperature (130823) is also compound-keyed,
+  // but it's filtered out earlier as a proprietary PGN, so listing it here
+  // would be unreachable.
 ])
 
 /**

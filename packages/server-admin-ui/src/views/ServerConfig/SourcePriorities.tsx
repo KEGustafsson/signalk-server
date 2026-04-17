@@ -143,6 +143,7 @@ const PrefsEditor: React.FC<PrefsEditorProps> = ({
                 <Form.Check
                   type="checkbox"
                   checked={!isDisabled}
+                  aria-label={`Enable source ${sourceRef || 'row ' + (index + 1)}`}
                   onChange={(e) =>
                     changePriority(
                       pathIndex,
@@ -157,6 +158,7 @@ const PrefsEditor: React.FC<PrefsEditorProps> = ({
                 {index > 0 && index < priorities.length && (
                   <button
                     type="button"
+                    aria-label={`Move row ${index + 1} up`}
                     onClick={() =>
                       !isSaving && movePriority(pathIndex, index, -1)
                     }
@@ -167,6 +169,7 @@ const PrefsEditor: React.FC<PrefsEditorProps> = ({
                 {index < priorities.length - 1 && (
                   <button
                     type="button"
+                    aria-label={`Move row ${index + 1} down`}
                     onClick={() =>
                       !isSaving && movePriority(pathIndex, index, 1)
                     }
@@ -177,13 +180,22 @@ const PrefsEditor: React.FC<PrefsEditorProps> = ({
               </td>
               <td>
                 {index < priorities.length && (
-                  <FontAwesomeIcon
-                    icon={faTrash}
-                    style={{ cursor: 'pointer' }}
+                  <button
+                    type="button"
+                    aria-label={`Delete row ${index + 1}`}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      cursor: 'pointer',
+                      color: 'inherit'
+                    }}
                     onClick={() =>
                       !isSaving && deletePriority(pathIndex, index)
                     }
-                  />
+                  >
+                    <FontAwesomeIcon icon={faTrash} />
+                  </button>
                 )}
               </td>
             </tr>
@@ -574,11 +586,20 @@ const SourcePriorities: React.FC = () => {
                     </td>
                     <td style={{ border: 'none' }}>
                       {index < sourcePriorities.length && (
-                        <FontAwesomeIcon
-                          icon={faTrash}
-                          style={{ cursor: 'pointer' }}
+                        <button
+                          type="button"
+                          aria-label={`Delete path ${path || index + 1}`}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            padding: 0,
+                            cursor: 'pointer',
+                            color: 'inherit'
+                          }}
                           onClick={() => deletePath(index)}
-                        />
+                        >
+                          <FontAwesomeIcon icon={faTrash} />
+                        </button>
                       )}
                     </td>
                   </tr>

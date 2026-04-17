@@ -34,6 +34,11 @@ class GranularSubscriptionManager {
   startDiscovery(): void {
     if (!this.webSocket) return
 
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer)
+      this.debounceTimer = null
+    }
+
     this._send({
       context: '*',
       announceNewPaths: true,

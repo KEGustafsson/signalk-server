@@ -188,19 +188,21 @@ const DataBrowser: React.FC = () => {
                 : timestamp.format(TIMESTAMP_FORMAT)
 
               if (vp.path === '') {
-                Object.keys(vp.value as object).forEach((k) => {
-                  const pathData: PathData = {
-                    path: k,
-                    value: (vp.value as Record<string, unknown>)[k],
-                    $source: update.$source,
-                    pgn: pgn || undefined,
-                    sentence: sentence || undefined,
-                    timestamp: formattedTimestamp
-                  }
-                  const wasNew = !getPathData(key, k)
-                  updatePath(key, k, pathData)
-                  if (wasNew) isNew = true
-                })
+                if (vp.value && typeof vp.value === 'object') {
+                  Object.keys(vp.value as object).forEach((k) => {
+                    const pathData: PathData = {
+                      path: k,
+                      value: (vp.value as Record<string, unknown>)[k],
+                      $source: update.$source,
+                      pgn: pgn || undefined,
+                      sentence: sentence || undefined,
+                      timestamp: formattedTimestamp
+                    }
+                    const wasNew = !getPathData(key, k)
+                    updatePath(key, k, pathData)
+                    if (wasNew) isNew = true
+                  })
+                }
               } else {
                 const path$SourceKey = getPath$SourceKey(
                   vp.path,
@@ -374,10 +376,14 @@ const DataBrowser: React.FC = () => {
       for (const key of Object.keys(contextData)) {
         const pathData = contextData[key] as PathData | undefined
         const source = pathData?.$source || ''
+        const pgn = pathData?.pgn || ''
+        const sentence = pathData?.sentence || ''
         if (
           !matchesSearch(key, deferredSearch) &&
           !matchesSearch(source, deferredSearch) &&
-          !matchesSearch(getLabel(source), deferredSearch)
+          !matchesSearch(getLabel(source), deferredSearch) &&
+          !matchesSearch(pgn, deferredSearch) &&
+          !matchesSearch(sentence, deferredSearch)
         ) {
           continue
         }
@@ -711,7 +717,7 @@ const DataBrowser: React.FC = () => {
                     id="databrowser-search"
                     name="search"
                     autoComplete="off"
-                    placeholder="e.g. pos wind furuno (searches path and source, space = OR)"
+                    placeholder="e.g. pos wind furuno 65017 (path/source/PGN, space = OR)"
                     onChange={handleSearch}
                     value={search}
                   />
