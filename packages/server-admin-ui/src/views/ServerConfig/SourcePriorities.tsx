@@ -222,11 +222,11 @@ function fetchAvailablePaths(cb: (paths: string[]) => void) {
 
 const TimelineDiagram: React.FC = () => (
   <svg
-    viewBox="0 0 700 170"
+    viewBox="0 0 840 300"
     xmlns="http://www.w3.org/2000/svg"
-    style={{ maxWidth: '700px', width: '100%', height: 'auto' }}
+    style={{ maxWidth: '840px', width: '100%', height: 'auto' }}
     role="img"
-    aria-label="Fallback timeline: the backup source takes over after the preferred source is silent, then the preferred immediately wins when it returns."
+    aria-label="Fallback timeline with three sources: Backup 1 takes over after Preferred is silent for Fallback after, then Backup 2 takes over after Backup 1 is also silent for its Fallback after. Each wait is measured from whichever source was last winning."
   >
     <defs>
       <marker
@@ -242,113 +242,199 @@ const TimelineDiagram: React.FC = () => (
       </marker>
     </defs>
 
-    {/* Track labels */}
-    <text x="0" y="55" fontSize="12" fill="#333">
-      Preferred
+    {/* Legend */}
+    <rect x="0" y="0" width="10" height="10" fill="#2e7d32" rx="2" />
+    <text x="16" y="9" fontSize="10" fill="#555">
+      accepted (winning)
     </text>
-    <text x="0" y="120" fontSize="12" fill="#333">
-      Backup
+    <rect x="150" y="0" width="10" height="10" fill="#bdbdbd" rx="2" />
+    <text x="166" y="9" fontSize="10" fill="#555">
+      ignored (not winning)
+    </text>
+    <rect x="305" y="0" width="10" height="10" fill="#1565c0" rx="2" />
+    <text x="321" y="9" fontSize="10" fill="#555">
+      accepted (takeover)
     </text>
 
-    {/* Preferred: active → silence → returns */}
-    <rect x="80" y="42" width="30" height="16" fill="#2e7d32" rx="2" />
-    <rect x="118" y="42" width="30" height="16" fill="#2e7d32" rx="2" />
-    <rect x="156" y="42" width="30" height="16" fill="#2e7d32" rx="2" />
-    <rect x="194" y="42" width="30" height="16" fill="#2e7d32" rx="2" />
-    <rect x="232" y="42" width="30" height="16" fill="#2e7d32" rx="2" />
-    {/* silence */}
+    {/* Track labels */}
+    <text x="0" y="56" fontSize="12" fill="#333" fontWeight="600">
+      Preferred
+    </text>
+    <text x="0" y="106" fontSize="12" fill="#333" fontWeight="600">
+      Backup 1
+    </text>
+    <text x="0" y="156" fontSize="12" fill="#333" fontWeight="600">
+      Backup 2
+    </text>
+
+    {/* Preferred track */}
+    <rect x="80" y="48" width="30" height="16" fill="#2e7d32" rx="2" />
+    <rect x="118" y="48" width="30" height="16" fill="#2e7d32" rx="2" />
+    <rect x="156" y="48" width="30" height="16" fill="#2e7d32" rx="2" />
+    <rect x="194" y="48" width="30" height="16" fill="#2e7d32" rx="2" />
+    <rect x="232" y="48" width="30" height="16" fill="#2e7d32" rx="2" />
     <line
       x1="262"
-      y1="50"
-      x2="442"
-      y2="50"
+      y1="56"
+      x2="800"
+      y2="56"
       stroke="#b71c1c"
       strokeWidth="1.5"
       strokeDasharray="4 3"
     />
-    <text x="352" y="40" fontSize="11" fill="#b71c1c" textAnchor="middle">
+    <text x="531" y="45" fontSize="11" fill="#b71c1c" textAnchor="middle">
       (silent)
     </text>
-    {/* returns — immediately wins again */}
-    <rect x="560" y="42" width="30" height="16" fill="#2e7d32" rx="2" />
-    <rect x="598" y="42" width="30" height="16" fill="#2e7d32" rx="2" />
-    <rect x="636" y="42" width="30" height="16" fill="#2e7d32" rx="2" />
 
-    {/* Backup: ignored → accepted → ignored again when preferred returns */}
-    <rect x="80" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
-    <rect x="118" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
-    <rect x="156" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
-    <rect x="194" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
-    <rect x="232" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
-    <rect x="270" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
-    <rect x="308" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
-    <rect x="346" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
-    <rect x="384" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
-    {/* accepted */}
-    <rect x="442" y="107" width="30" height="16" fill="#1565c0" rx="2" />
-    <rect x="480" y="107" width="30" height="16" fill="#1565c0" rx="2" />
-    <rect x="518" y="107" width="30" height="16" fill="#1565c0" rx="2" />
-    {/* ignored again */}
-    <rect x="560" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
-    <rect x="598" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
-    <rect x="636" y="107" width="30" height="16" fill="#bdbdbd" rx="2" />
-
-    {/* Threshold marker */}
+    {/* Backup 1 track */}
+    <rect x="80" y="98" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="118" y="98" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="156" y="98" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="194" y="98" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="232" y="98" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="270" y="98" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="308" y="98" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="346" y="98" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="384" y="98" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="442" y="98" width="30" height="16" fill="#1565c0" rx="2" />
+    <rect x="480" y="98" width="30" height="16" fill="#1565c0" rx="2" />
+    <rect x="518" y="98" width="30" height="16" fill="#1565c0" rx="2" />
     <line
-      x1="442"
-      y1="25"
-      x2="442"
-      y2="140"
-      stroke="#555"
+      x1="548"
+      y1="106"
+      x2="800"
+      y2="106"
+      stroke="#b71c1c"
+      strokeWidth="1.5"
+      strokeDasharray="4 3"
+    />
+    <text x="674" y="95" fontSize="11" fill="#b71c1c" textAnchor="middle">
+      (silent)
+    </text>
+
+    {/* Backup 2 track */}
+    <rect x="80" y="148" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="118" y="148" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="156" y="148" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="194" y="148" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="232" y="148" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="270" y="148" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="308" y="148" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="346" y="148" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="384" y="148" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="442" y="148" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="480" y="148" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="518" y="148" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="560" y="148" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="598" y="148" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="636" y="148" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="674" y="148" width="30" height="16" fill="#bdbdbd" rx="2" />
+    <rect x="728" y="148" width="30" height="16" fill="#1565c0" rx="2" />
+    <rect x="766" y="148" width="30" height="16" fill="#1565c0" rx="2" />
+
+    {/* First threshold: Preferred → Backup 1 */}
+    <line
+      x1="262"
+      y1="30"
+      x2="262"
+      y2="185"
+      stroke="#999"
       strokeWidth="1"
       strokeDasharray="3 3"
     />
+    <text x="262" y="24" fontSize="10" fill="#555" textAnchor="middle">
+      Preferred silent
+    </text>
+    <line
+      x1="442"
+      y1="30"
+      x2="442"
+      y2="185"
+      stroke="#1565c0"
+      strokeWidth="1"
+      strokeDasharray="3 3"
+    />
+    <text x="442" y="24" fontSize="10" fill="#1565c0" textAnchor="middle">
+      Backup 1 wins
+    </text>
     <line
       x1="262"
-      y1="150"
+      y1="80"
       x2="442"
-      y2="150"
+      y2="80"
       stroke="#555"
       strokeWidth="1"
       markerStart="url(#arrow)"
       markerEnd="url(#arrow)"
     />
-    <text x="352" y="164" fontSize="11" fill="#333" textAnchor="middle">
-      Fallback after (ms)
+    <text x="352" y="76" fontSize="10" fill="#333" textAnchor="middle">
+      Fallback after (5s)
     </text>
 
-    {/* Returns marker */}
+    {/* Second threshold: Backup 1 → Backup 2 */}
     <line
-      x1="560"
-      y1="25"
-      x2="560"
-      y2="140"
-      stroke="#2e7d32"
+      x1="548"
+      y1="80"
+      x2="548"
+      y2="185"
+      stroke="#999"
       strokeWidth="1"
       strokeDasharray="3 3"
     />
-    <text x="560" y="18" fontSize="10" fill="#2e7d32" textAnchor="middle">
-      returns
+    <text x="548" y="74" fontSize="10" fill="#555" textAnchor="middle">
+      Backup 1 silent
     </text>
-
-    {/* Legend */}
-    <rect x="0" y="0" width="10" height="10" fill="#2e7d32" rx="2" />
-    <text x="16" y="9" fontSize="10" fill="#555">
-      preferred active
+    <line
+      x1="728"
+      y1="130"
+      x2="728"
+      y2="185"
+      stroke="#1565c0"
+      strokeWidth="1"
+      strokeDasharray="3 3"
+    />
+    <text x="728" y="126" fontSize="10" fill="#1565c0" textAnchor="middle">
+      Backup 2 wins
     </text>
-    <rect x="130" y="0" width="10" height="10" fill="#bdbdbd" rx="2" />
-    <text x="146" y="9" fontSize="10" fill="#555">
-      backup ignored
-    </text>
-    <rect x="240" y="0" width="10" height="10" fill="#1565c0" rx="2" />
-    <text x="256" y="9" fontSize="10" fill="#555">
-      backup accepted
+    <line
+      x1="548"
+      y1="175"
+      x2="728"
+      y2="175"
+      stroke="#555"
+      strokeWidth="1"
+      markerStart="url(#arrow)"
+      markerEnd="url(#arrow)"
+    />
+    <text x="638" y="171" fontSize="10" fill="#333" textAnchor="middle">
+      Fallback after (5s)
     </text>
 
     {/* Time axis */}
-    <line x1="80" y1="140" x2="680" y2="140" stroke="#ccc" strokeWidth="1" />
-    <text x="680" y="140" fontSize="10" fill="#999" textAnchor="end" dy="12">
+    <line x1="80" y1="200" x2="810" y2="200" stroke="#ccc" strokeWidth="1" />
+    <text x="810" y="200" fontSize="10" fill="#999" textAnchor="end" dy="12">
       time →
+    </text>
+
+    {/* Caption */}
+    <text
+      x="420"
+      y="240"
+      fontSize="11"
+      fill="#333"
+      textAnchor="middle"
+      fontWeight="600"
+    >
+      Each row&apos;s Fallback timer starts from the last source that was
+      winning — not from row 1.
+    </text>
+    <text x="420" y="256" fontSize="10" fill="#666" textAnchor="middle">
+      Backup 2 waits for Backup 1 to go silent, then 5 s more. It does NOT kick
+      in 5 s after Preferred.
+    </text>
+    <text x="420" y="272" fontSize="10" fill="#666" textAnchor="middle">
+      If Backup 1 keeps sending, Backup 2 never wins — only the next row up in
+      the chain matters.
     </text>
   </svg>
 )

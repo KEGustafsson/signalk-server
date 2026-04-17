@@ -24,19 +24,21 @@ The sidebar shows a yellow warning badge on the _Data_ menu item when there are 
 
 ## How It Works
 
-For each path, you list the sources that may provide it, in order of preference. The top row is the **preferred** source — while it is publishing data, its values always win. Every other row has a **Fallback after** value: the number of milliseconds the higher-priority source must be silent before this row is allowed to take over.
+For each path, you list the sources that may provide it, in order of preference. The top row is the **preferred** source — while it is publishing data, its values always win. Every other row has a **Fallback after** value: the number of milliseconds the **currently-winning** source must be silent before this row is allowed to take over.
 
-![Fallback timeline showing the backup source taking over only after the preferred source is silent for the configured threshold](../img/source-priority-timeline.svg)
+![Fallback timeline with three sources showing the cascade behaviour](../img/source-priority-timeline.svg)
 
-- Green bars: the preferred source is publishing data — its values are delivered.
-- Grey bars: the backup source is publishing too, but its data is dropped because the preferred source is still active.
-- Dashed red section: the preferred source has gone silent.
-- Blue bars: once that silence has lasted as long as the backup's _Fallback after_, the backup starts winning and its values are delivered.
-- When the preferred source returns, it immediately takes over again — no "Fallback after" wait applies to the preferred source.
+The important subtlety: each row's timer is measured against whichever source is **currently winning**, not against row 1.
+
+- When the preferred source goes silent, the second row's Fallback clock starts.
+- If and when the second row takes over, it becomes the winner. From that moment, the **third** row's Fallback clock starts ticking against the **second row**, not against row 1.
+- So if Backup 1 keeps actively sending after taking over, Backup 2 never wins — the chain cascades one step at a time.
+
+The preferred source has no Fallback value because nothing ranks higher. When it returns after any silence, it immediately resumes winning — the backups do not "hold" their position.
 
 ### A Worked Example
 
-Two GPS receivers on the boat both publish `navigation.position`. In the Admin UI they appear with human-readable labels; the underlying `$source` values are CAN Names:
+Three GPS sources on the boat all publish `navigation.position`. In the Admin UI they appear with human-readable labels; the underlying `$source` values are CAN Names:
 
 | Row | Shown as                         | `$source` (CAN Name)    | Fallback after |
 | --- | -------------------------------- | ----------------------- | -------------- |
@@ -44,10 +46,12 @@ Two GPS receivers on the boat both publish `navigation.position`. In the Admin U
 | 2   | Garmin (`can0.c0328400e7e00a86`) | `can0.c0328400e7e00a86` | `5000` (5 s)   |
 | 3   | serial0.GP                       | `serial0.GP`            | `30000` (30 s) |
 
-- While Furuno is publishing, only Furuno values reach subscribers.
-- If Furuno goes quiet for 5 seconds, Garmin values start being accepted.
-- If Garmin is also silent for 30 seconds _from when Furuno went silent_, the NMEA 0183 GPS takes over as a last resort.
-- The moment Furuno sends again, it wins again.
+Scenarios:
+
+- **Furuno is healthy:** only Furuno values reach subscribers. Garmin and serial0.GP are ignored even though they publish continuously.
+- **Furuno unplugged, Garmin healthy:** after 5 s of Furuno silence, Garmin takes over and keeps winning as long as it keeps publishing. serial0.GP is still ignored — its 30 s clock is measured against Garmin, but Garmin is never silent.
+- **Furuno unplugged AND Garmin unplugged:** after 5 s of Furuno silence, Garmin takes over. 30 s later (measured from Garmin's last value), serial0.GP takes over.
+- **Furuno returns:** it immediately wins again, regardless of which backup was winning.
 
 ### Disabling a Source on a Path
 
