@@ -134,65 +134,9 @@ When the sidebar shows a conflict badge, open Source Discovery to see which devi
 
 ## REST API
 
-The Source Discovery features are backed by two REST endpoints.
+Source Discovery is backed by two REST endpoints under `/skServer/`:
 
-### POST /skServer/n2kDiscoverDevices
+- `POST /skServer/n2kDiscoverDevices` — triggers an ISO Request sweep across known device addresses to refresh manufacturer and product information.
+- `POST /skServer/n2kConfigDevice` — sends a PGN 126208 command to change a device's configuration (instance numbers, installation descriptions, battery/DC instance, etc.).
 
-Triggers discovery of all NMEA 2000 devices on the bus. Sends ISO Request (PGN 59904) to each known device address, requesting Product Information (PGN 126996).
-
-**Request:** No body required.
-
-**Response:**
-
-```json
-{
-  "state": "COMPLETED",
-  "statusCode": 200,
-  "message": "Discovery request sent to 12 devices (~6s)"
-}
-```
-
-Returns `503` if N2K output is not available (e.g. no bidirectional connection to the bus).
-
-### POST /skServer/n2kConfigDevice
-
-Sends a PGN 126208 command to change a device's configuration.
-
-**Request body:**
-
-```json
-{
-  "dst": 22,
-  "field": "deviceInstance",
-  "value": 1
-}
-```
-
-| Parameter | Type   | Description                                   |
-| --------- | ------ | --------------------------------------------- |
-| `dst`     | number | The N2K source address of the target device   |
-| `field`   | string | The configuration field to change (see below) |
-| `value`   | varies | The new value to set                          |
-
-**Supported fields:**
-
-| Field                      | Target PGN | Value Range | Description                                              |
-| -------------------------- | ---------- | ----------- | -------------------------------------------------------- |
-| `deviceInstance`           | 60928      | 0–253       | Full device instance (sets both lower and upper parts)   |
-| `deviceInstanceLower`      | 60928      | 0–7         | Data Instance only (lower 3 bits)                        |
-| `installationDescription1` | 126998     | string      | Free-text device label                                   |
-| `installationDescription2` | 126998     | string      | Free-text field (used for device config on some devices) |
-| `batteryInstance`          | 127508     | 0–252       | Battery bank instance number                             |
-| `dcInstance`               | 127506     | 0–252       | DC source instance number                                |
-
-**Response:**
-
-```json
-{
-  "state": "COMPLETED",
-  "statusCode": 200,
-  "message": "Configuration command sent to device 22"
-}
-```
-
-Returns `400` for invalid parameters or unknown fields, `503` if N2K output is not available.
+For the exact request and response shapes, supported configuration fields, and value ranges, see the route handlers in [`src/interfaces/n2k-discovery.ts`](https://github.com/SignalK/signalk-server/blob/master/src/interfaces/n2k-discovery.ts) — the implementation is authoritative.

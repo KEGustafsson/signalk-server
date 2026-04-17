@@ -8,23 +8,6 @@ This document lists breaking changes and deprecations in Signal K Server.
 
 ---
 
-## Source Priority: Global Source Ranking Removed
-
-The **Source Ranking** card under _Data -> Source Priority_ has been removed. Only per-path configuration remains. Users found the global-plus-per-path model confusing, and the interactions between ranked and unranked sources produced surprising behaviour.
-
-### What Changed
-
-- The Source Ranking UI is gone.
-- The `GET`/`PUT /skServer/sourceRanking` REST endpoints have been removed.
-- The `SOURCERANKING` WebSocket event is no longer emitted.
-- Any `sourceRanking` key in an existing `settings.json` is silently ignored — the file is not rewritten. You can safely leave it in place or delete it by hand.
-
-### Action Required
-
-If you relied on Source Ranking to express a global preference, recreate the intent on each affected path under _Data -> Source Priority_. The sidebar badge still counts multi-source paths that have no configuration, so you can step through them.
-
----
-
 ## Node.js: Default Version Updated to 24
 
 Signal K Server now defaults to **Node.js 24** and requires **Node.js 22 or later**.

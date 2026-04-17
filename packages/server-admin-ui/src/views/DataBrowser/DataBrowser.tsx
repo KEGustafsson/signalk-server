@@ -352,14 +352,12 @@ const DataBrowser: React.FC = () => {
 
   const showContext = context === 'all'
 
-  // Build the path key list, optionally grouped by source with header rows
   const filteredPathKeys: string[] = useMemo(() => {
     const currentData = dataVersion >= 0 ? getSignalkData() : {}
     const contexts = context === 'all' ? Object.keys(currentData) : [context]
 
     let filtered: string[] = []
 
-    // Build a cache of source display labels for search matching
     const sourceLabels = new Map<string, string>()
     const getLabel = (src: string): string => {
       if (!src) return ''
@@ -451,7 +449,6 @@ const DataBrowser: React.FC = () => {
       return filtered.sort((a, b) => a.localeCompare(b))
     }
 
-    // Group by source: sort by $source then path, inject headers
     const getSource = (compositeKey: string): string => {
       const nullIdx = compositeKey.indexOf('\0')
       const realKey =
@@ -488,7 +485,6 @@ const DataBrowser: React.FC = () => {
       return a.localeCompare(b)
     })
 
-    // Group matched paths by source
     const bySource = new Map<string, string[]>()
     for (const key of filtered) {
       const src = getSource(key)

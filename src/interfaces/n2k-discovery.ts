@@ -468,9 +468,7 @@ module.exports = (app: N2kDiscoveryApp) => {
 
         setTimeout(() => {
           app.removeListener('N2KAnalyzerOut', listener)
-          // Sort by PGN then instance
           instances.sort((a, b) => a.pgn - b.pgn || a.instance - b.instance)
-          // Attach labels and hardware channel IDs
           for (const inst of instances) {
             // Prefer N2K device labels (PGN 130060), fall back to local
             const deviceLabel =

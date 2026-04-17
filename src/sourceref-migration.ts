@@ -126,9 +126,7 @@ export function migrateSourceRef(
     }
   }
 
-  // 5. Clean up deltaCache for old sourceRef (always called, but we don't
-  // count it in migrated unless something else changed — it's a cleanup
-  // operation, not a config migration users care about logging).
+  // 5. Clean up deltaCache for old sourceRef
   app.deltaCache.removeSource(oldRef as SourceRef)
 
   // 6. Persist settings

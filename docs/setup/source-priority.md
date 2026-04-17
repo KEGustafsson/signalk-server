@@ -102,30 +102,6 @@ Plugin sources use the plugin ID as their `$source`, e.g. `derived-data` or `sig
 
 ## REST API
 
-> The server implementation is authoritative.
-> Request/response payloads below are illustrative examples and may evolve.
+The configuration is read and written via `GET` / `PUT /skServer/sourcePriorities` (admin write). For the request and response shapes, see the route handlers in [`src/serverroutes.ts`](https://github.com/SignalK/signalk-server/blob/master/src/serverroutes.ts).
 
-The Source Priority configuration is managed through the following REST endpoints:
-
-### GET /skServer/sourcePriorities
-
-Returns the current path-level priority configuration.
-
-**Response:**
-
-```json
-{
-  "navigation.position": [
-    { "sourceRef": "can0.c0788c00e7e04312", "timeout": 0 },
-    { "sourceRef": "can0.c0328400e7e00a86", "timeout": 5000 }
-  ]
-}
-```
-
-The JSON field name is still `timeout` for backwards-compatibility; semantically it is the _Fallback after_ value — milliseconds of silence from higher-priority sources required before this entry is allowed to take over. The first entry's value is ignored (it is the preferred source). A value of `-1` disables the source on that path.
-
-### PUT /skServer/sourcePriorities
-
-Saves a new path-level priority configuration. Requires admin access.
-
-**Request body:** Same format as the GET response.
+The persisted JSON keeps the field name `timeout` for backwards compatibility; it carries the _Fallback after_ value described above. A `timeout` of `-1` on a source disables it for that path.
