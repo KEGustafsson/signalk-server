@@ -25,6 +25,7 @@ interface ProviderOptions {
   uniqueNumber?: string
   mfgCode?: string
   useCamelCompat?: boolean
+  useCanName?: boolean
   sendNetworkStats?: boolean
   noDataReceivedTimeout?: string
   remoteSelf?: string
@@ -1304,6 +1305,38 @@ function Suppress0183Checkbox({
   )
 }
 
+function UseCanNameInput({
+  value,
+  onChange
+}: {
+  value: ProviderOptions
+  onChange: OnChangeHandler
+}) {
+  return (
+    <Form.Group as={Row} className="mb-3">
+      <Col xs="3" md="3">
+        <Form.Label htmlFor="provider-useCanName">
+          Use Can NAME in source data
+        </Form.Label>
+      </Col>
+      <Col xs="2" md="3">
+        <Form.Label className="switch switch-text switch-primary">
+          <input
+            type="checkbox"
+            id="provider-useCanName"
+            name="options.useCanName"
+            className="switch-input"
+            onChange={(event) => onChange(event)}
+            checked={value.useCanName === true}
+          />
+          <span className="switch-label" data-on="Yes" data-off="No" />
+          <span className="switch-handle" />
+        </Form.Label>
+      </Col>
+    </Form.Group>
+  )
+}
+
 function CamelCaseCompatInput({
   value,
   onChange
@@ -1490,7 +1523,10 @@ function NMEA2000({ value, onChange, hasAnalyzer }: TypeComponentProps) {
       )}
       {value.options.type !== undefined &&
         value.options.type.indexOf('canboatjs') !== -1 && (
-          <CamelCaseCompatInput value={value.options} onChange={onChange} />
+          <>
+            <UseCanNameInput value={value.options} onChange={onChange} />
+            <CamelCaseCompatInput value={value.options} onChange={onChange} />
+          </>
         )}
     </div>
   )

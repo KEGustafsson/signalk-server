@@ -189,7 +189,7 @@ export default class N2kToSignalK extends Transform {
       return undefined
     }
     return this.filters.find((filter) => {
-      const sFilter = source.canName || source.src
+      const sFilter = this.options.useCanName ? source.canName : source.src
       return (
         (!filter.source ||
           filter.source.length === 0 ||
@@ -223,9 +223,17 @@ export default class N2kToSignalK extends Transform {
         firstUpdate.values.length > 0 &&
         !this.isFiltered(firstUpdate.source)
       ) {
+        if (!this.options.useCanName) {
+          delete firstUpdate.source.canName
+        }
+
         const canName = firstUpdate.source.canName
 
-        if (!canName && !this.sourceMeta[src]?.unknowCanName) {
+        if (
+          this.options.useCanName &&
+          !canName &&
+          !this.sourceMeta[src]?.unknowCanName
+        ) {
           done()
           return
         }
