@@ -82,7 +82,10 @@ module.exports = function mdnsResponder(app) {
     txt: txtRecord
   }
 
-  const host = app.config.getExternalHostname()
+  const host = app.config
+    .getExternalHostname()
+    .replace(/\.$/, '')
+    .replace(/\.local$/i, '')
 
   if (host !== require('os').hostname()) {
     options.host = host
