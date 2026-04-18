@@ -55,6 +55,11 @@ export async function fetchAllData(): Promise<void> {
     fetchAndSet('/signalk', state.setServerSpecification, ''),
     fetchAndSet('/security/access/requests', state.setAccessRequests),
     fetchAndSet('/security/devices', state.setDevices),
-    fetchAndSet('/nodeInfo', state.setNodeInfo)
+    fetchAndSet('/nodeInfo', state.setNodeInfo),
+    fetchAndSet('/signalk/v1/api/sources', state.setSourcesData, ''),
+    fetchAndSet('/sourcePriorities', state.setSourcePrioritiesFromServer),
+    fetchAndSet('/priorityGroups', state.setPriorityGroupsFromServer),
+    fetchAndSet('/sourceAliases', state.setSourceAliases),
+    fetchAndSet('/ignoredInstanceConflicts', state.setIgnoredInstanceConflicts)
   ])
 }

@@ -6,9 +6,20 @@ import {
   useAppStore,
   useAccessRequests,
   useDevices,
-  useLoginStatus
+  useLoginStatus,
+  useSourcesData,
+  useMultiSourcePaths,
+  usePriorityGroups,
+  useIgnoredInstanceConflicts
 } from '../../store'
+import { computeGroups, reconcileGroups } from '../../utils/sourceGroups'
+import {
+  extractN2kDevices,
+  detectInstanceConflicts,
+  conflictKey
+} from '../../utils/sourceLabels'
 import classNames from 'classnames'
+import './Sidebar.css'
 import SidebarFooter from './../SidebarFooter/SidebarFooter'
 import SidebarForm from './../SidebarForm/SidebarForm'
 import SidebarHeader from './../SidebarHeader/SidebarHeader'
@@ -48,6 +59,29 @@ export default function Sidebar({ location }: SidebarProps) {
   const accessRequests = useAccessRequests()
   const devices = useDevices()
   const loginStatus = useLoginStatus()
+  const sourcesData = useSourcesData()
+
+  const ignoredConflicts = useIgnoredInstanceConflicts()
+
+  const conflictCount = useMemo(() => {
+    if (!sourcesData) return 0
+    const n2kDevices = extractN2kDevices(sourcesData)
+    const all = detectInstanceConflicts(n2kDevices)
+    return all.filter(
+      (c) =>
+        !ignoredConflicts[conflictKey(c.deviceA.sourceRef, c.deviceB.sourceRef)]
+    ).length
+  }, [sourcesData, ignoredConflicts])
+
+  const multiSourcePaths = useMultiSourcePaths()
+  const priorityGroupsData = usePriorityGroups()
+
+  const unconfiguredPriorityCount = useMemo(() => {
+    if (!multiSourcePaths) return 0
+    const derived = computeGroups(multiSourcePaths)
+    const reconciled = reconcileGroups(derived, priorityGroupsData.groups)
+    return reconciled.filter((g) => g.matchedSavedId === null).length
+  }, [multiSourcePaths, priorityGroupsData])
 
   const nowMs = Date.now() // eslint-disable-line react-hooks/purity -- expired status is stable
   const expiredDeviceCount = devices.filter(
@@ -100,6 +134,46 @@ export default function Sidebar({ location }: SidebarProps) {
       }
     }
 
+    const isAdmin =
+      loginStatus.authenticationRequired === false ||
+      loginStatus.userLevel === 'admin'
+
+    const dataChildren: NavItemData[] = [
+      { name: 'Browser', url: '/data/browser' },
+      { name: 'Metadata', url: '/data/meta' }
+    ]
+    if (isAdmin) {
+      dataChildren.push({
+        name: 'Connections',
+        url: '/data/connections/-'
+      })
+    }
+    dataChildren.push({
+      name: 'NMEA Discovery',
+      url: '/data/sources',
+      badge:
+        conflictCount > 0
+          ? { variant: 'warning', text: `${conflictCount}` }
+          : null
+    })
+    if (isAdmin) {
+      dataChildren.push(
+        {
+          name: 'Priorities',
+          url: '/data/priorities',
+          badge:
+            unconfiguredPriorityCount > 0
+              ? {
+                  variant: 'warning',
+                  text: `${unconfiguredPriorityCount}`
+                }
+              : null
+        },
+        { name: 'Unit Preferences', url: '/data/units' },
+        { name: 'Fiddler', url: '/data/fiddler' }
+      )
+    }
+
     const result: NavItemData[] = [
       {
         name: 'Dashboard',
@@ -112,16 +186,21 @@ export default function Sidebar({ location }: SidebarProps) {
         icon: 'icon-grid'
       },
       {
-        name: 'Data Browser',
-        url: '/databrowser',
-        icon: 'icon-folder'
+        name: 'Data',
+        url: '/data',
+        icon: 'icon-folder',
+        badge:
+          (isAdmin ? unconfiguredPriorityCount : 0) + conflictCount > 0
+            ? {
+                variant: 'warning',
+                text: `${(isAdmin ? unconfiguredPriorityCount : 0) + conflictCount}`
+              }
+            : null,
+        children: dataChildren
       }
     ]
 
-    if (
-      !loginStatus.authenticationRequired ||
-      loginStatus.userLevel === 'admin'
-    ) {
+    if (isAdmin) {
       result.push(
         {
           name: 'Appstore',
@@ -139,10 +218,6 @@ export default function Sidebar({ location }: SidebarProps) {
               url: '/serverConfiguration/settings'
             },
             {
-              name: 'Data Connections',
-              url: '/serverConfiguration/connections/-'
-            },
-            {
               name: 'Plugin Config',
               url: '/serverConfiguration/plugins/-'
             },
@@ -156,10 +231,6 @@ export default function Sidebar({ location }: SidebarProps) {
               badge: serverUpdateBadge
             },
             {
-              name: 'Data Fiddler',
-              url: '/serverConfiguration/datafiddler'
-            },
-            {
               name: 'Backup/Restore',
               url: '/serverConfiguration/backuprestore'
             }
@@ -168,10 +239,7 @@ export default function Sidebar({ location }: SidebarProps) {
       )
     }
 
-    if (
-      loginStatus.authenticationRequired === false ||
-      loginStatus.userLevel === 'admin'
-    ) {
+    if (isAdmin) {
       const securityBadges: BadgeData[] = []
       if (accessRequestsBadge) securityBadges.push(accessRequestsBadge)
       if (expiredDevicesBadge) securityBadges.push(expiredDevicesBadge)
@@ -235,7 +303,14 @@ export default function Sidebar({ location }: SidebarProps) {
     })
 
     return result
-  }, [appStore, accessRequests, expiredDeviceCount, loginStatus])
+  }, [
+    appStore,
+    accessRequests,
+    expiredDeviceCount,
+    loginStatus,
+    conflictCount,
+    unconfiguredPriorityCount
+  ])
 
   const handleClick = useCallback((e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
