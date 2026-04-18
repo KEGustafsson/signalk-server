@@ -11,7 +11,6 @@ import { faCircleDot } from '@fortawesome/free-regular-svg-icons/faCircleDot'
 import { useStore } from '../../store'
 
 import BasicProvider from './BasicProvider'
-import SourcePriorities from './SourcePriorities'
 import set from 'lodash.set'
 
 interface Provider {
@@ -96,30 +95,42 @@ const ProvidersConfiguration: React.FC = () => {
     (
       event:
         | React.ChangeEvent<HTMLInputElement>
-        | { target: { name: string; value: unknown; type?: string } },
+        | {
+            target: {
+              name: string
+              value: unknown
+              type?: string
+              checked?: boolean
+            }
+          },
       valueType?: string
     ) => {
       if (!selectedProvider) return
 
-      let value: unknown =
-        event.target.type === 'checkbox'
-          ? (event.target as HTMLInputElement).checked
-          : event.target.value
+      const target = event.target
+      let value: unknown
+      if (target.type === 'checkbox') {
+        // For native DOM events, .checked carries the truth.
+        // For our synthetic union variant, callers pass .checked alongside
+        // .value (which mirrors checked), so reading either is fine.
+        value =
+          'checked' in target && target.checked !== undefined
+            ? target.checked
+            : target.value
+      } else {
+        value = target.value
+      }
 
       if (valueType === 'number') {
         value = Number(value)
       }
 
       const updatedProvider = { ...selectedProvider }
-      set(updatedProvider, event.target.name, value)
+      set(updatedProvider, target.name, value)
       setSelectedProvider(updatedProvider)
     },
     [selectedProvider]
   )
-
-  const handleProviderPropChange = useCallback(() => {
-    setSelectedProvider((prev) => (prev ? { ...prev } : null))
-  }, [])
 
   const handleAddProvider = useCallback(() => {
     const newProvider: Provider = {
@@ -184,7 +195,7 @@ const ProvidersConfiguration: React.FC = () => {
 
       setSelectedProvider(null)
       setSelectedIndex(-1)
-      navigate('/serverConfiguration/connections/-')
+      navigate('/data/connections/-')
     } else {
       const text = await response.text()
       alert(text)
@@ -339,7 +350,7 @@ const ProvidersConfiguration: React.FC = () => {
                 <BasicProvider
                   value={selectedProvider}
                   onChange={handleProviderChange}
-                  onPropChange={handleProviderPropChange}
+                  onPropChange={handleProviderChange}
                 />
               ) : (
                 <Form.Control
@@ -381,8 +392,6 @@ const ProvidersConfiguration: React.FC = () => {
           </Card>
         </div>
       )}
-
-      <SourcePriorities />
     </div>
   )
 }

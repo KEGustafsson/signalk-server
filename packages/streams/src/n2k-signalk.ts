@@ -168,6 +168,10 @@ export default class N2kToSignalK extends Transform {
         if (this.sourceMeta[srcNum]) {
           delete this.sourceMeta[srcNum]
         }
+        // Notify server so persistent settings can be migrated
+        const oldRef = `${this.options.providerId}.${from}`
+        const newRef = `${this.options.providerId}.${to}`
+        this.app.emit('sourceRefChanged', { oldRef, newRef, src: srcNum })
       }
     )
 

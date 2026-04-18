@@ -1214,6 +1214,16 @@ module.exports = function (
   )
 
   app.securityStrategy.addAdminMiddleware(
+    `${SERVERROUTESPREFIX}/multiSourcePaths`
+  )
+  app.get(
+    `${SERVERROUTESPREFIX}/multiSourcePaths`,
+    (req: Request, res: Response) => {
+      res.json(app.deltaCache.getMultiSourcePaths())
+    }
+  )
+
+  app.securityStrategy.addAdminMiddleware(
     `${SERVERROUTESPREFIX}/eventsRoutingData`
   )
   app.get(
@@ -1266,6 +1276,100 @@ module.exports = function (
         } else {
           app.config.settings = updatedSettings
           app.activateSourcePriorities()
+          res.json({ result: 'ok' })
+        }
+      })
+    }
+  )
+
+  app.securityStrategy.addAdminWriteMiddleware(
+    `${SERVERROUTESPREFIX}/sourceAliases`
+  )
+
+  app.get(
+    `${SERVERROUTESPREFIX}/sourceAliases`,
+    (req: Request, res: Response) => {
+      res.json(app.config.settings.sourceAliases || {})
+    }
+  )
+
+  app.put(
+    `${SERVERROUTESPREFIX}/sourceAliases`,
+    (req: Request, res: Response) => {
+      const updatedSettings = structuredClone(app.config.settings)
+      updatedSettings.sourceAliases = req.body
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      writeSettingsFile(app, updatedSettings, (err: any) => {
+        if (err) {
+          res.status(500).send('Unable to save sourceAliases in settings file')
+        } else {
+          app.config.settings = updatedSettings
+          app.emit('serverAdminEvent', {
+            type: 'SOURCEALIASES',
+            data: req.body
+          })
+          res.json({ result: 'ok' })
+        }
+      })
+    }
+  )
+
+  app.securityStrategy.addAdminWriteMiddleware(
+    `${SERVERROUTESPREFIX}/priorityGroups`
+  )
+
+  app.get(
+    `${SERVERROUTESPREFIX}/priorityGroups`,
+    (req: Request, res: Response) => {
+      res.json(app.config.settings.priorityGroups || [])
+    }
+  )
+
+  app.put(
+    `${SERVERROUTESPREFIX}/priorityGroups`,
+    (req: Request, res: Response) => {
+      const updatedSettings = structuredClone(app.config.settings)
+      updatedSettings.priorityGroups = req.body
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      writeSettingsFile(app, updatedSettings, (err: any) => {
+        if (err) {
+          res.status(500).send('Unable to save priorityGroups in settings file')
+        } else {
+          app.config.settings = updatedSettings
+          app.emit('serverAdminEvent', {
+            type: 'PRIORITYGROUPS',
+            data: req.body
+          })
+          res.json({ result: 'ok' })
+        }
+      })
+    }
+  )
+
+  app.securityStrategy.addAdminWriteMiddleware(
+    `${SERVERROUTESPREFIX}/ignoredInstanceConflicts`
+  )
+
+  app.get(
+    `${SERVERROUTESPREFIX}/ignoredInstanceConflicts`,
+    (req: Request, res: Response) => {
+      res.json(app.config.settings.ignoredInstanceConflicts || {})
+    }
+  )
+
+  app.put(
+    `${SERVERROUTESPREFIX}/ignoredInstanceConflicts`,
+    (req: Request, res: Response) => {
+      const updatedSettings = structuredClone(app.config.settings)
+      updatedSettings.ignoredInstanceConflicts = req.body
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      writeSettingsFile(app, updatedSettings, (err: any) => {
+        if (err) {
+          res
+            .status(500)
+            .send('Unable to save ignoredInstanceConflicts in settings file')
+        } else {
+          app.config.settings = updatedSettings
           res.json({ result: 'ok' })
         }
       })

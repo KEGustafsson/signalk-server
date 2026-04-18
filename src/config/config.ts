@@ -85,6 +85,18 @@ export interface Config {
     enablePluginLogging?: boolean
     loggingDirectory?: string
     sourcePriorities?: any
+
+    /** Ordered list of sources per priority group. UI-layer organisation
+     * of sources that share output paths; the delta engine never reads
+     * this — on save, rankings are fanned out into sourcePriorities for
+     * every shared path without an explicit override. */
+    priorityGroups?: Array<{ id: string; sources: string[] }>
+
+    /** Map of sourceRef → user-defined display alias for that source */
+    sourceAliases?: Record<string, string>
+    /** Map of "sourceRefA+sourceRefB" (sorted) → ISO timestamp when the
+     * conflict was dismissed by the user */
+    ignoredInstanceConflicts?: Record<string, string>
     trustProxy?: boolean | string | number
     courseApi?: {
       apiOnly?: boolean

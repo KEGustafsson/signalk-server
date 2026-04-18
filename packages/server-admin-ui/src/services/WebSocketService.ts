@@ -244,6 +244,33 @@ export class WebSocketService {
           discoveredProviders: data
         } as Partial<SignalKStore>)
         break
+      case 'SOURCEPRIORITIES':
+        useStore
+          .getState()
+          .setSourcePrioritiesFromServer(
+            data as Record<
+              string,
+              { sourceRef: string; timeout: string | number }[]
+            >
+          )
+        break
+      case 'PRIORITYGROUPS':
+        useStore
+          .getState()
+          .setPriorityGroupsFromServer(
+            msg.data as unknown as Parameters<
+              SignalKStore['setPriorityGroupsFromServer']
+            >[0]
+          )
+        break
+      case 'SOURCEALIASES':
+        useStore.getState().setSourceAliases(data as Record<string, string>)
+        break
+      case 'MULTISOURCEPATHS':
+        useStore
+          .getState()
+          .setMultiSourcePaths(data as Record<string, string[]>)
+        break
       case 'RESTORESTATUS':
         this.zustandSetState({ restoreStatus: data } as Partial<SignalKStore>)
         break
@@ -251,13 +278,6 @@ export class WebSocketService {
         useStore
           .getState()
           .setVesselInfo(data as Parameters<SignalKStore['setVesselInfo']>[0])
-        break
-      case 'SOURCEPRIORITIES':
-        useStore
-          .getState()
-          .setSourcePriorities(
-            data as Parameters<SignalKStore['setSourcePriorities']>[0]
-          )
         break
       case 'RECEIVE_APPSTORE_LIST':
       case 'APP_STORE_CHANGED':
