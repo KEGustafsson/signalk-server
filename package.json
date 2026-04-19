@@ -193,5 +193,22 @@
     "typescript-eslint": "^8.29.1",
     "zod-validation-error": "^4.0.0"
   },
-  "funding": "https://opencollective.com/signalk"
+  "funding": "https://opencollective.com/signalk",
+  "overrides": {
+    "anymatch": {
+      "picomatch": "^2.3.2"
+    },
+    "micromatch": {
+      "picomatch": "^2.3.2"
+    },
+    "readdirp": {
+      "picomatch": "^2.3.2"
+    },
+    "tinyglobby": {
+      "picomatch": "^4.0.4"
+    },
+    "ts-declaration-location": {
+      "picomatch": "^4.0.4"
+    }
+  }
 }
