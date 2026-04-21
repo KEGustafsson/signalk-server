@@ -76,9 +76,6 @@ export default defineConfig({
   plugins: [
     replaceAddonScripts(),
     stripSvgFonts(),
-    // Embedded webapps are initialized from their remoteEntry.js files at
-    // runtime, so the host build does not need to rewrite its own React
-    // imports through the federation plugin.
     react(),
     babel({
       presets: [reactCompilerPreset()]
