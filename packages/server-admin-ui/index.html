@@ -9,6 +9,17 @@
     />
     <meta name="description" content="Signal K Node Server" />
 
+    <script type="importmap">
+      {
+        "imports": {
+          "react": "./host-modules/react.js",
+          "react-dom": "./host-modules/react-dom.js",
+          "react-dom/client": "./host-modules/react-dom-client.js",
+          "react/jsx-runtime": "./host-modules/react-jsx-runtime.js"
+        }
+      }
+    </script>
+
     %ADDONSCRIPTS%
 
     <link rel="shortcut icon" href="img/favicon.ico" />
