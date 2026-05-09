@@ -174,57 +174,51 @@ The server loads these via a classic `<script>` tag which places the container o
 
 ### Vite / ESM bundlers
 
-The server also supports ESM containers produced by Vite, Rollup, esbuild, or any bundler that outputs standard `export { init, get }`. To use an ESM container:
+The server also supports ESM containers produced by Vite, Rollup, esbuild, or any bundler that outputs `export { init, get }`. Set `"type": "module"` in the plugin's `package.json` and the server emits `<script type="module">` for the container; the Admin UI loads it via dynamic `import()` when the expected name is not present on `window`.
 
-1. Set `"type": "module"` in your plugin's `package.json`. The server uses this to emit `<script type="module">` instead of a classic `<script>` tag.
-2. Configure your bundler to produce a Module Federation container as ESM. For example with `@module-federation/vite`:
+If the plugin's server-side code remains CommonJS (`module.exports`), give `"main"` a `.cjs` extension so Node.js still loads it as CommonJS under the module-typed package.
+
+### React Version Compatibility
+
+The Admin UI uses **React 19** with functional components and hooks. Your plugin must use the host's React instance — bundling a second copy yields `Cannot read properties of null (reading 'useState')` when the plugin's hooks read a dispatcher that the host activated on its React, not the plugin's.
+
+#### Sharing React with the host
+
+**ESM bundlers (Vite, Rollup, esbuild)** — the Admin UI's `index.html` ships a browser import map that points `react`, `react-dom`, `react-dom/client`, and `react/jsx-runtime` at proxy modules served by the host. Mark those specifiers as external in your bundle and the browser resolves `import 'react'` to the host's React at runtime:
 
 ```javascript
 // vite.config.js
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { federation } from '@module-federation/vite'
 
 export default defineConfig({
-  plugins: [
-    react(),
-    federation({
-      name: 'my-plugin',
-      filename: 'remoteEntry.js',
-      exposes: {
-        './PluginConfigurationPanel': './src/PluginConfigurationPanel.tsx'
-      },
-      shared: {
-        react: { singleton: true, requiredVersion: false },
-        'react-dom': { singleton: true, requiredVersion: false }
-      }
-    })
-  ],
-  define: {
-    'process.env.NODE_ENV': JSON.stringify('production')
-  },
+  plugins: [react()],
+  define: { 'process.env.NODE_ENV': JSON.stringify('production') },
   build: {
     outDir: 'public',
-    emptyOutDir: false
+    emptyOutDir: false,
+    rollupOptions: {
+      external: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime'],
+      output: { format: 'es', entryFileNames: 'remoteEntry.js' }
+    }
   }
 })
 ```
 
-The `process.env.NODE_ENV` define is required because some shared dependencies reference `process.env` which is not available in the browser.
+No `resolve.alias`, no shim files, no Module Federation `shared` declaration — the plugin's `import { useState } from 'react'` resolves natively via the import map to the host's React instance, so hooks share the host's dispatcher.
 
-If your plugin's server-side code uses CommonJS (`module.exports`), set `"main"` to a `.cjs` file so Node.js treats it as CommonJS despite the `"type": "module"` in `package.json`.
+The `process.env.NODE_ENV` define is required because some dependencies reference `process.env` which is not available in the browser.
 
-The Admin UI detects ESM containers automatically via dynamic `import()` when the expected container is not present on `window`.
+**Webpack (`var` library)** — webpack-MF's runtime hooks into the host's share scope automatically when you declare React as a singleton:
 
-### React Version Compatibility
+```javascript
+shared: {
+  react: { singleton: true, requiredVersion: '^19' },
+  'react-dom': { singleton: true, requiredVersion: '^19' }
+}
+```
 
-The Admin UI uses **React 19** with shared dependencies via Module Federation. Your embedded webapp should:
-
-1. **Share React as a singleton** - Configure Module Federation to use the host's React instance with `requiredVersion: false`. See [vite.config.js](https://github.com/SignalK/signalk-server/blob/master/packages/server-admin-ui/vite.config.js) for the current configuration.
-
-2. **Use functional components** - The Admin UI is built with functional components and React hooks. While class components still work, functional components are recommended for consistency.
-
-See the Calibration plugin for an example. It is probably easier to start with an existing plugin and modify it to suit your needs. Don't forget to change the module id and name in package.json!
+See the Calibration plugin for an existing webpack-based example to start from. It is probably easier to start with an existing plugin and modify it to suit your needs. Don't forget to change the module id and name in package.json!
 
 ## WebApp / Component and Admin UI / Server interfaces
 
