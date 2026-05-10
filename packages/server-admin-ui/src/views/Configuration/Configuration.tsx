@@ -16,11 +16,16 @@ import Col from 'react-bootstrap/Col'
 import Form from 'react-bootstrap/Form'
 import Row from 'react-bootstrap/Row'
 import Table from 'react-bootstrap/Table'
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
+import Tooltip from 'react-bootstrap/Tooltip'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faAlignJustify } from '@fortawesome/free-solid-svg-icons/faAlignJustify'
 import { faCheck } from '@fortawesome/free-solid-svg-icons/faCheck'
 import { faGear } from '@fortawesome/free-solid-svg-icons/faGear'
+import { faTriangleExclamation } from '@fortawesome/free-solid-svg-icons/faTriangleExclamation'
+import { faCircleInfo } from '@fortawesome/free-solid-svg-icons/faCircleInfo'
 import EmbeddedPluginConfigurationForm from './EmbeddedPluginConfigurationForm'
+import { useStore } from '../../store'
 
 interface PluginSchema {
   properties?: Record<string, unknown>
@@ -46,6 +51,7 @@ interface Plugin {
   uiSchema?: Record<string, unknown>
   statusMessage?: string
   data: PluginData
+  bundled?: boolean
   [key: string]: unknown
 }
 
@@ -104,11 +110,15 @@ export default function PluginConfigurationList() {
           (plugin.data.configuration === null ||
             plugin.data.configuration === undefined)
 
+        const isUnconfigured = !plugin.bundled && configurationRequired
+
         switch (filter) {
           case 'enabled':
-            return !configurationRequired && plugin.data.enabled
+            return !isUnconfigured && plugin.data.enabled
           case 'disabled':
-            return configurationRequired || !plugin.data.enabled
+            return !isUnconfigured && !plugin.data.enabled
+          case 'unconfigured':
+            return isUnconfigured
           default:
             return true
         }
@@ -209,7 +219,13 @@ export default function PluginConfigurationList() {
       const plugin = plugins.find((p) => p.id === pluginId)
 
       if (plugin) {
-        selectPlugin(plugin)
+        const currentlySelected =
+          selectedPlugin && selectedPlugin.id === plugin.id
+        if (currentlySelected) {
+          selectPlugin(null)
+        } else {
+          selectPlugin(plugin)
+        }
       }
     },
     [plugins, selectPlugin]
@@ -239,6 +255,7 @@ export default function PluginConfigurationList() {
         if (pluginIndex !== -1) {
           newPlugins[pluginIndex] = { ...newPlugins[pluginIndex], data }
         }
+        useStore.getState().setPlugins(newPlugins)
         return newPlugins
       })
 
@@ -292,6 +309,7 @@ export default function PluginConfigurationList() {
         }
 
         setPlugins(fetchedPlugins)
+        useStore.getState().setPlugins(fetchedPlugins)
         setSelectedPlugin(initialSelectedPlugin)
         setWasmEnabled(wasmInterfaceEnabled)
 
@@ -309,6 +327,24 @@ export default function PluginConfigurationList() {
 
     fetchData()
   }, [params.pluginid, scrollToSelectedPlugin])
+
+  useEffect(() => {
+    const unsubscribe = useStore.subscribe(
+      (state) => state.plugins,
+      (storePlugins) => {
+        if (storePlugins.length > 0) {
+          setPlugins(storePlugins as Plugin[])
+          setSelectedPlugin((prev) => {
+            if (!prev) return null
+            return (
+              (storePlugins.find((p) => p.id === prev.id) as Plugin) || null
+            )
+          })
+        }
+      }
+    )
+    return unsubscribe
+  }, [])
 
   const pluginList = getFilteredPlugins()
   const selectedPluginId = selectedPlugin ? selectedPlugin.id : null
@@ -352,6 +388,7 @@ export default function PluginConfigurationList() {
                   <option value="all">All Plugins</option>
                   <option value="enabled">Enabled</option>
                   <option value="disabled">Disabled</option>
+                  <option value="unconfigured">Unconfigured</option>
                 </Form.Select>
               </Form.Group>
             </Form>
@@ -400,6 +437,9 @@ export default function PluginConfigurationList() {
                     if (wasmDisabledForPlugin) {
                       badgeClass = 'text-bg-danger'
                       badgeText = 'WASM disabled'
+                    } else if (!plugin.bundled && configurationRequired) {
+                      badgeClass = 'text-bg-warning'
+                      badgeText = 'Unconfigured'
                     } else if (plugin.data.enabled && !configurationRequired) {
                       badgeClass = 'text-bg-success'
                       badgeText = 'Enabled'
@@ -516,6 +556,19 @@ function PluginConfigCard({
     (plugin.data.configuration === null ||
       plugin.data.configuration === undefined)
 
+  const providerStatus = useStore((state) => state.providerStatus)
+  const pluginStatus = providerStatus?.find((s) => s.id === plugin.id)
+  const statusClasses: Record<string, string> = {
+    status: 'text-success',
+    warning: 'text-warning',
+    error: 'text-danger'
+  }
+  const statusClass = statusClasses[pluginStatus?.type || ''] || ''
+  const lastError =
+    pluginStatus?.lastError && pluginStatus.lastError !== pluginStatus.message
+      ? `${pluginStatus.lastErrorTimeStamp}: ${pluginStatus.lastError}`
+      : ''
+
   return (
     <div>
       {showSaveSuccess && (
@@ -546,14 +599,23 @@ function PluginConfigCard({
                   icon={faGear}
                   style={{ marginRight: '10px' }}
                 />
-                Configure: {plugin.name}
+                {plugin.packageName}
+                {plugin.description && (
+                  <OverlayTrigger
+                    placement="bottom"
+                    overlay={<Tooltip>{plugin.description}</Tooltip>}
+                    trigger={['hover', 'focus']}
+                  >
+                    <button
+                      type="button"
+                      className="btn btn-link p-0 ms-1 text-muted align-baseline"
+                      aria-label="Plugin description"
+                    >
+                      <FontAwesomeIcon icon={faCircleInfo} />
+                    </button>
+                  </OverlayTrigger>
+                )}
               </h5>
-              <small className="text-muted">{plugin.packageName}</small>
-              {plugin.description && (
-                <p className="text-muted mb-0 mt-1">
-                  <small>{plugin.description}</small>
-                </p>
-              )}
             </Col>
           </Row>
           {configurationRequired && (
@@ -562,65 +624,116 @@ function PluginConfigCard({
             </Row>
           )}
           {!configurationRequired && (
-            <Row>
-              <Col lg={4} className={'mt-2 mt-lg-0'}>
-                <Form.Label
-                  style={labelStyle}
-                  className="switch switch-text switch-primary"
-                >
-                  <input
-                    type="checkbox"
-                    name="enabled"
-                    className="switch-input"
-                    onChange={() => handleToggle('enabled')}
-                    checked={optimisticData.enabled}
-                  />
-                  <span className="switch-label" data-on="Yes" data-off="No" />
-                  <span className="switch-handle" />
-                </Form.Label>
-                <span className="ms-1">Enabled</span>
-              </Col>
-              <Col lg={4} className={'mt-2 mt-lg-0'}>
-                <Form.Label
-                  style={labelStyle}
-                  className="switch switch-text switch-primary"
-                >
-                  <input
-                    type="checkbox"
-                    name="enableLogging"
-                    className="switch-input"
-                    onChange={() => handleToggle('enableLogging')}
-                    checked={optimisticData.enableLogging}
-                  />
-                  <span className="switch-label" data-on="Yes" data-off="No" />
-                  <span className="switch-handle" />
-                </Form.Label>
-                <span className="ms-1">Data logging</span>
-                {optimisticData.enableLogging && (
-                  <Form.Text className="text-warning d-block">
-                    Creates hourly log files that can consume significant disk
-                    space
-                  </Form.Text>
-                )}
-              </Col>
-              <Col lg={4} className={'mt-2 mt-lg-0'}>
-                <Form.Label
-                  style={labelStyle}
-                  className="switch switch-text switch-primary"
-                >
-                  <input
-                    type="checkbox"
-                    name="enableDebug"
-                    className="switch-input"
-                    onChange={() => handleToggle('enableDebug')}
-                    checked={optimisticData.enableDebug}
-                  />
-                  <span className="switch-label" data-on="Yes" data-off="No" />
-                  <span className="switch-handle" />
-                </Form.Label>
-                <span className="ms-1">Enable debug log</span>
-              </Col>
-            </Row>
+            <>
+              <Row>
+                <Col lg={4} className={'mt-2 mt-lg-0'}>
+                  <Form.Label
+                    style={labelStyle}
+                    className="switch switch-text switch-primary"
+                  >
+                    <input
+                      type="checkbox"
+                      name="enabled"
+                      className="switch-input"
+                      onChange={() => handleToggle('enabled')}
+                      checked={optimisticData.enabled}
+                    />
+                    <span
+                      className="switch-label"
+                      data-on="Yes"
+                      data-off="No"
+                    />
+                    <span className="switch-handle" />
+                  </Form.Label>
+                  <span className="ms-1">Enabled</span>
+                </Col>
+                <Col lg={4} className={'mt-2 mt-lg-0'}>
+                  <Form.Label
+                    style={labelStyle}
+                    className="switch switch-text switch-primary"
+                  >
+                    <input
+                      type="checkbox"
+                      name="enableLogging"
+                      className="switch-input"
+                      onChange={() => handleToggle('enableLogging')}
+                      checked={optimisticData.enableLogging}
+                    />
+                    <span
+                      className="switch-label"
+                      data-on="Yes"
+                      data-off="No"
+                    />
+                    <span className="switch-handle" />
+                  </Form.Label>
+                  <span className="ms-1">Data logging</span>
+                  {optimisticData.enableLogging && (
+                    <OverlayTrigger
+                      placement="bottom"
+                      overlay={
+                        <Tooltip>
+                          Creates hourly log files that can consume significant
+                          disk space
+                        </Tooltip>
+                      }
+                    >
+                      <button
+                        type="button"
+                        className="btn btn-link p-0 text-warning ms-1 align-baseline"
+                        aria-label="Hourly logs disk space warning"
+                      >
+                        <FontAwesomeIcon icon={faTriangleExclamation} />
+                      </button>
+                    </OverlayTrigger>
+                  )}
+                </Col>
+                <Col lg={4} className={'mt-2 mt-lg-0'}>
+                  <Form.Label
+                    style={labelStyle}
+                    className="switch switch-text switch-primary"
+                  >
+                    <input
+                      type="checkbox"
+                      name="enableDebug"
+                      className="switch-input"
+                      onChange={() => handleToggle('enableDebug')}
+                      checked={optimisticData.enableDebug}
+                    />
+                    <span
+                      className="switch-label"
+                      data-on="Yes"
+                      data-off="No"
+                    />
+                    <span className="switch-handle" />
+                  </Form.Label>
+                  <span className="ms-1">
+                    Enable debug{' '}
+                    {optimisticData.enableDebug ? (
+                      <a href="#/serverConfiguration/log">log</a>
+                    ) : (
+                      'log'
+                    )}
+                  </span>
+                </Col>
+              </Row>
+              {optimisticData.enabled && (
+                <Row className="mt-2">
+                  <Col>
+                    <small>
+                      <strong>Status:</strong>{' '}
+                      <span className={statusClass}>
+                        {pluginStatus?.message || 'Started'}
+                      </span>
+                    </small>
+                    {lastError && (
+                      <small className="d-block text-danger">
+                        <strong>Last error:</strong> {lastError}
+                      </small>
+                    )}
+                  </Col>
+                </Row>
+              )}
+            </>
           )}
         </Card.Header>
         <Card.Body>

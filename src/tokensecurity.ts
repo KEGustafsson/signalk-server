@@ -18,8 +18,8 @@ import { Request, Response, NextFunction, IRouter } from 'express'
 import jwt, { SignOptions } from 'jsonwebtoken'
 import _ from 'lodash'
 import bcrypt from 'bcryptjs'
-import { getSourceId } from '@signalk/signalk-schema'
 import {
+  getSourceId,
   Delta,
   Update,
   hasValues,
@@ -70,7 +70,9 @@ import {
   ExternalUserService,
   ExternalUser,
   ProviderUserLookup,
-  PartialOIDCConfig
+  PartialOIDCConfig,
+  OIDCError,
+  OIDC_DEFAULTS
 } from './oidc'
 import { SERVERROUTESPREFIX } from './constants'
 import { ICallback } from './types'
@@ -414,19 +416,34 @@ function tokenSecurityFactory(
   }
   strategy.getConfiguration = getConfiguration
 
-  // Parse and cache OIDC configuration
+  // Parse and cache OIDC configuration eagerly so that invalid config
+  // is detected at startup rather than on first request (see #2594)
   let cachedOIDCConfig: OIDCConfig | null = null
-  function getOIDCConfig(): OIDCConfig {
-    if (!cachedOIDCConfig) {
+  function parseAndCacheOIDCConfig(): void {
+    try {
       cachedOIDCConfig = parseOIDCConfig(options)
+    } catch (err) {
+      if (err instanceof OIDCError) {
+        console.error(`OIDC configuration error [${err.code}]: ${err.message}`)
+        console.error(
+          'OIDC will be disabled. Fix the configuration and restart.'
+        )
+      } else {
+        console.error('Unexpected error parsing OIDC configuration:', err)
+        console.error('OIDC will be disabled.')
+      }
+      cachedOIDCConfig = { ...OIDC_DEFAULTS, enabled: false } as OIDCConfig
     }
-    return cachedOIDCConfig
+  }
+  parseAndCacheOIDCConfig()
+
+  function getOIDCConfig(): OIDCConfig {
+    return cachedOIDCConfig!
   }
 
-  // Update OIDC configuration in memory and clear cache
   function updateOIDCConfig(newOidcConfig: PartialOIDCConfig): void {
     options.oidc = newOidcConfig as SecurityConfig['oidc']
-    cachedOIDCConfig = null // Clear cache so it gets re-parsed
+    parseAndCacheOIDCConfig()
   }
   strategy.updateOIDCConfig = updateOIDCConfig
 
@@ -874,6 +891,7 @@ function tokenSecurityFactory(
     app.use(aPath, http_authorize(false))
     app.put(aPath, adminAuthenticationMiddleware(false))
     app.post(aPath, adminAuthenticationMiddleware(false))
+    app.delete(aPath, adminAuthenticationMiddleware(false))
   }
 
   strategy.addWriteMiddleware = function (aPath: string): void {
@@ -966,6 +984,7 @@ function tokenSecurityFactory(
     newConfig.devices = aConfig.devices
     newConfig.secretKey = aConfig.secretKey
     options = newConfig as TokenSecurityOptions
+    parseAndCacheOIDCConfig()
     return newConfig
   }
 

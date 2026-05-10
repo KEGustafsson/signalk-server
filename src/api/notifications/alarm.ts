@@ -110,7 +110,17 @@ export class Alarm {
     this.external = true
     this.status.canClear = false
 
+    const prevState = this.value?.state
+
     this.parseDelta(update, context)
+
+    if (
+      prevState === ALARM_STATE.normal &&
+      this.value.state !== ALARM_STATE.normal
+    ) {
+      this.status.acknowledged = false
+      this.status.silenced = false
+    }
 
     if (
       !this.status.acknowledged &&
@@ -166,7 +176,11 @@ export class Alarm {
         }
       ]
     }
-    const d: Delta = { updates: [this.update] }
+    // Strip the original source metadata so handleMessage does not
+    // create a phantom N2K device entry under the notificationApi label.
+    // The $source field is sufficient for delta routing.
+    const { source: _source, ...updateWithoutSource } = this.update
+    const d: Delta = { updates: [updateWithoutSource as Update] }
     if (this.external) {
       d.context = this.context
     }
