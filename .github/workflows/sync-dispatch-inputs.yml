@@ -21,6 +21,7 @@ on:
       - '.github/scripts/sync-dispatch-inputs.mjs'
       - '.github/workflows/build-base-image.yml'
       - '.github/workflows/build-docker.yml'
+      - '.github/workflows/release.yml'
       - '.github/workflows/sync-dispatch-inputs.yml'
   workflow_dispatch:
 

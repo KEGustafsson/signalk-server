@@ -19,7 +19,8 @@ const matrixPath = resolve(repoRoot, '.github', 'build-matrix.json')
 
 const WORKFLOWS = [
   '.github/workflows/build-base-image.yml',
-  '.github/workflows/build-docker.yml'
+  '.github/workflows/build-docker.yml',
+  '.github/workflows/release.yml'
 ]
 
 const BEGIN =
