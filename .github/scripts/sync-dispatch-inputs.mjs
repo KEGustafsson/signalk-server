@@ -47,8 +47,10 @@ function nodeDisplay(os, node) {
 }
 
 function keyFor(os, node) {
-  // { family: 'ubuntu', id: '24.04' } + node '24' -> 'ubuntu_24_04_node_24'
-  // { family: 'alpine', id: 'alpine' } + node '24' -> 'alpine_node_24'
+  // Must match the prepare-job jq lookup and start with a letter (GH Actions
+  // input-name rule). Family is prefixed when distinct from id so '24.04' -
+  // which would otherwise produce an invalid '24_04_...' identifier - becomes
+  // 'ubuntu_24_04_node_24'. 'alpine' (family == id) stays 'alpine_node_24'.
   const idPart = os.id.replace(/[-.]/g, '_')
   const prefix = os.family === os.id ? '' : `${os.family}_`
   return `${prefix}${idPart}_node_${node.id}`

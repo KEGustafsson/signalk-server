@@ -53,7 +53,7 @@ jobs:
             (if ($enabled | type) == "object" then $enabled else {} end) as $en
             | .os_variants as $os | .node_versions as $nodes
             | [ $os[] as $o | $nodes[] as $n |
-                (($o.id | gsub("[-.]"; "_")) + "_node_" + $n.id) as $key |
+                ((if $o.family == $o.id then "" else "\($o.family)_" end) + ($o.id | gsub("[-.]"; "_")) + "_node_" + $n.id) as $key |
                 {
                   enabled: ($en[$key] // (if ($o.default_enabled and $n.default_enabled) then "true" else "false" end)),
                   family:     $o.family,
