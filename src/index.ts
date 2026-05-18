@@ -210,8 +210,7 @@ class Server {
       type: string,
       statusType = 'provider'
     ) {
-      if (!statusMessage) {
-        delete app.providerStatus[providerId]
+      if (!statusMessage && !app.providerStatus[providerId]) {
         return
       }
 
@@ -220,15 +219,17 @@ class Server {
       }
       const status = app.providerStatus[providerId]
 
-      if (status.type === 'error' && status.message !== statusMessage) {
-        status.lastError = status.message
-        status.lastErrorTimeStamp = status.timeStamp
-      }
+      if (statusMessage) {
+        if (status.type === 'error' && status.message !== statusMessage) {
+          status.lastError = status.message
+          status.lastErrorTimeStamp = status.timeStamp
+        }
 
-      status.type = type
-      status.id = providerId
-      status.statusType = statusType
-      status.timeStamp = new Date().toISOString()
+        status.type = type
+        status.id = providerId
+        status.statusType = statusType
+        status.timeStamp = new Date().toISOString()
+      }
 
       status.message = statusMessage
 
