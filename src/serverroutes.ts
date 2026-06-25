@@ -49,6 +49,7 @@ import {
 } from './config/config'
 import { resetPriorities } from './config/priorities-file'
 import { buildDeviceIdentities } from './deviceIdentities'
+import { buildSourceNames } from './sourceNames'
 import { SERVERROUTESPREFIX } from './constants'
 import { handleAdminUICORSOrigin } from './cors'
 import { createDebug, listKnownDebugs } from './debug'
@@ -566,12 +567,47 @@ module.exports = function (
             res.status(500).send('Unable to save configuration change')
             return
           }
+          // Device add/update/delete and access-request approval all
+          // funnel through here, so this is the single point that keeps
+          // the WebSocket device names fresh.
+          refreshSourceNames()
           res.type('text/plain').send(success)
         })
       } else {
         res.type('text/plain').send(success)
       }
     }
+  }
+
+  // Cached source-name map (ws device descriptions + manual aliases),
+  // rebuilt only when devices or aliases change — never on the per-delta
+  // path. Served read-only to all authenticated clients via GET
+  // /sourceNames so non-admin users see human-readable WebSocket device
+  // names too.
+  let cachedSourceNames: Record<string, string> | null = null
+
+  const computeSourceNames = (): Record<string, string> => {
+    const config = getSecurityConfig(app)
+    const devices =
+      typeof app.securityStrategy.getDevices === 'function'
+        ? app.securityStrategy.getDevices(config)
+        : []
+    return buildSourceNames(devices, app.config.settings.sourceAliases || {})
+  }
+
+  const getSourceNames = (): Record<string, string> => {
+    if (cachedSourceNames === null) {
+      cachedSourceNames = computeSourceNames()
+    }
+    return cachedSourceNames
+  }
+
+  const refreshSourceNames = (): void => {
+    cachedSourceNames = computeSourceNames()
+    app.emit('serverAdminEvent', {
+      type: 'SOURCENAMES',
+      data: cachedSourceNames
+    })
   }
 
   function checkAllowConfigure(req: Request, res: Response) {
@@ -1726,6 +1762,17 @@ module.exports = function (
     }
   )
 
+  // Read-only and intentionally NOT behind addAdminMiddleware: every
+  // authenticated client (including read-only users) needs these names to
+  // render human-readable source labels. Writes stay admin-only via
+  // /sourceAliases and /security/devices.
+  app.get(
+    `${SERVERROUTESPREFIX}/sourceNames`,
+    (req: Request, res: Response) => {
+      res.json(getSourceNames())
+    }
+  )
+
   app.securityStrategy.addAdminMiddleware(`${SERVERROUTESPREFIX}/sourceAliases`)
 
   app.get(
@@ -1758,6 +1805,7 @@ module.exports = function (
             type: 'SOURCEALIASES',
             data: validation.value
           })
+          refreshSourceNames()
           res.json({ result: 'ok' })
         }
       })
