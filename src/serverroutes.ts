@@ -604,7 +604,9 @@ module.exports = function (
 
   const refreshSourceNames = (): void => {
     cachedSourceNames = computeSourceNames()
-    app.emit('serverAdminEvent', {
+    // serverevent (not serverAdminEvent) so non-admin clients get live
+    // updates too — serverAdminEvent is only forwarded to admins.
+    app.emit('serverevent', {
       type: 'SOURCENAMES',
       data: cachedSourceNames
     })
@@ -1685,6 +1687,7 @@ module.exports = function (
             type: 'SOURCEALIASES',
             data: aliases
           })
+          refreshSourceNames()
           respondOk()
         })
       } else {
@@ -1765,10 +1768,22 @@ module.exports = function (
   // Read-only and intentionally NOT behind addAdminMiddleware: every
   // authenticated client (including read-only users) needs these names to
   // render human-readable source labels. Writes stay admin-only via
-  // /sourceAliases and /security/devices.
+  // /sourceAliases and /security/devices. Access mirrors the data read
+  // policy: served when security is off, the request is authenticated, or
+  // anonymous read-only access is enabled — otherwise rejected, so the
+  // device descriptions are not exposed to anonymous clients.
   app.get(
     `${SERVERROUTESPREFIX}/sourceNames`,
     (req: Request, res: Response) => {
+      const skReq = req as Request & { skIsAuthenticated?: boolean }
+      if (
+        !app.securityStrategy.isDummy() &&
+        !skReq.skIsAuthenticated &&
+        !app.securityStrategy.allowReadOnly()
+      ) {
+        res.status(403).json('Permission denied')
+        return
+      }
       res.json(getSourceNames())
     }
   )
