@@ -443,6 +443,23 @@ module.exports = function (
     serveIndexWithAddonScripts(path.join(adminUiPath, 'index.html'), res)
   })
 
+  // Stable endpoint for plugins/webapps to resolve current admin UI asset URLs
+  // without depending on Vite manifest internals.
+  app.get('/admin/assets.json', (_req: Request, res: Response) => {
+    const manifestPath = path.join(adminUiPath, '.vite', 'manifest.json')
+    fs.readFile(manifestPath, 'utf8', (err, content) => {
+      if (err) {
+        res.status(404).json({ error: 'manifest not available' })
+        return
+      }
+      const entry = JSON.parse(content)['index.html']
+      res.json({
+        css: (entry.css || []).map((f: string) => `/admin/${f}`),
+        js: [`/admin/${entry.file}`]
+      })
+    })
+  })
+
   app.use('/admin', express.static(adminUiPath))
 
   app.get('/', (req: Request, res: Response) => {
