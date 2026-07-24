@@ -17,16 +17,33 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [24.04]
+        os: [24.04, 26.04]
         node: [24.x]
         include:
           - os: 24.04
             node: 24.x
             image-tag: 'latest'
+          - os: 26.04
+            node: 24.x
+            image-tag: 'latest-26.04'
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+      # An OS variant added to the build matrix has no released image until the
+      # next release publishes its tag, so scan only what is actually there.
+      - name: Check image is published
+        id: image
+        env:
+          IMAGE: 'ghcr.io/signalk/signalk-server:${{ matrix.image-tag }}'
+        run: |
+          if docker manifest inspect "$IMAGE" > /dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::$IMAGE is not published, skipping scan"
+          fi
       - name: Run Trivy vulnerability scanner for Docker Image
+        if: steps.image.outputs.exists == 'true'
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: 'ghcr.io/signalk/signalk-server:${{ matrix.image-tag }}'
@@ -34,7 +51,7 @@ jobs:
           output: 'trivy-results-docker-node${{ matrix.node }}-${{ matrix.image-tag }}.sarif'
       - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v4
-        if: always()
+        if: always() && steps.image.outputs.exists == 'true'
         with:
           sarif_file: 'trivy-results-docker-node${{ matrix.node }}-${{ matrix.image-tag }}.sarif'
           category: 'trivy-docker-node${{ matrix.node }}-${{ matrix.image-tag }}'
