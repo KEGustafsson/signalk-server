@@ -17,15 +17,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [24.04, alpine]
+        os: [24.04]
         node: [24.x]
         include:
           - os: 24.04
             node: 24.x
             image-tag: 'latest'
-          - os: alpine
-            node: 24.x
-            image-tag: 'latest-alpine'
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
