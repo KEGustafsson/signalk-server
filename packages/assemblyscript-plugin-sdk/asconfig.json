@@ -5,7 +5,6 @@
       "sourceMap": false,
       "optimize": true,
       "shrinkLevel": 2,
-      "converge": true,
       "noAssert": true,
       "runtime": "stub",
       "use": "abort="
