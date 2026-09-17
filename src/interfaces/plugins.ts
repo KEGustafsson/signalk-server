@@ -695,15 +695,31 @@ module.exports = (theApp: any) => {
       }
     })
     onStopHandlers[plugin.id] = []
-    const result = Promise.resolve(plugin.stop())
-    result.then(() => {
-      theApp.setPluginStatus(plugin.id, 'Stopped')
-      debug('Stopped plugin ' + plugin.name)
-      if (theApp.deltaCache) {
-        theApp.deltaCache.removeSource(plugin.id)
+    let result: Promise<unknown>
+    try {
+      result = Promise.resolve(plugin.stop())
+    } catch (err) {
+      result = Promise.reject(err)
+    }
+    // A failed stop() must not block the restart that usually follows, nor
+    // escape into the caller, which may be the uncaughtException handler.
+    return result.then(
+      () => {
+        theApp.setPluginStatus(plugin.id, 'Stopped')
+        debug('Stopped plugin ' + plugin.name)
+        if (theApp.deltaCache) {
+          theApp.deltaCache.removeSource(plugin.id)
+        }
+      },
+      (err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err)
+        console.error(`${plugin.id} failed to stop: ${message}`)
+        theApp.setPluginError(plugin.id, `Failed to stop: ${message}`)
+        if (theApp.deltaCache) {
+          theApp.deltaCache.removeSource(plugin.id)
+        }
       }
-    })
-    return result
+    )
   }
 
   function setPluginStartedMessage(plugin: PluginInfo) {
@@ -1350,16 +1366,33 @@ module.exports = (theApp: any) => {
       res.json(getPluginOptions(plugin.id))
     })
 
-    if (typeof plugin.registerWithRouter === 'function') {
-      plugin.registerWithRouter(asPluginRouter(app, router, plugin.id))
-      if (typeof plugin.getOpenApi === 'function') {
-        app.setPluginOpenApi(plugin.id, plugin.getOpenApi())
+    try {
+      if (typeof plugin.registerWithRouter === 'function') {
+        plugin.registerWithRouter(asPluginRouter(app, router, plugin.id))
+        if (typeof plugin.getOpenApi === 'function') {
+          app.setPluginOpenApi(plugin.id, plugin.getOpenApi())
+        }
       }
+    } catch (e: any) {
+      console.error(`${plugin.id} failed to register routes: ${e.message}`)
+      console.error(e.stack)
+      app.setPluginError(plugin.id, `Failed to register routes: ${e.message}`)
     }
     app.use(backwardsCompat('/plugins/' + plugin.id), router)
 
     if (typeof plugin.signalKApiRoutes === 'function') {
-      app.use('/signalk/v1/api', plugin.signalKApiRoutes(express.Router()))
+      try {
+        app.use('/signalk/v1/api', plugin.signalKApiRoutes(express.Router()))
+      } catch (e: any) {
+        console.error(
+          `${plugin.id} failed to register API routes: ${e.message}`
+        )
+        console.error(e.stack)
+        app.setPluginError(
+          plugin.id,
+          `Failed to register API routes: ${e.message}`
+        )
+      }
     }
   }
 }
