@@ -5,6 +5,7 @@ import { EventEmitter } from 'node:events'
 import { Config } from './config/config'
 import DeltaCache from './deltacache'
 import { StalenessEnforcer } from './staleness'
+import { StartupGuard } from './startupguard'
 
 export interface ServerApp extends ServerAPI {
   started: boolean
@@ -21,6 +22,7 @@ export interface ServerApp extends ServerAPI {
   redirectServer?: any
   deltaCache: DeltaCache
   stalenessEnforcer?: StalenessEnforcer
+  startupGuard: StartupGuard
   getMaxFailoverTimeoutMs?: (path: string) => number
   getProviderStatus: () => any
   lastServerEvents: { [key: string]: any }

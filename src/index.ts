@@ -73,6 +73,7 @@ import { buildProviderTalkerLookups } from './nmea0183TalkerGroups'
 import { pipedProviders } from './pipedproviders'
 import { EventsActorId, WithWrappedEmitter, wrapEmitter } from './events'
 import { StalenessEnforcer } from './staleness'
+import { STABLE_UPTIME_MS, StartupGuard } from './startupguard'
 import { ThrottledCaller } from './throttledCaller'
 import { Zones } from './zones'
 import checkNodeVersion from './version'
@@ -130,6 +131,7 @@ class Server {
   // migration scheduled before a restart cannot fire on a torn-down app.
   pendingSourceRefMigrations?: Set<NodeJS.Timeout>
   private providerStatusEmitter: ThrottledCaller
+  private stableTimer?: NodeJS.Timeout
 
   constructor(opts: { securityConfig: SecurityConfig }) {
     checkNodeVersion()
@@ -163,6 +165,7 @@ class Server {
     _.merge(app, opts)
 
     load(app)
+    app.startupGuard = new StartupGuard(app.config.configPath)
 
     // Apply trust proxy setting if configured
     if (app.config.settings.trustProxy !== undefined) {
@@ -756,6 +759,7 @@ class Server {
         sendBaseDeltas(app as unknown as ConfigApp)
 
         app.apis = await startApis(app)
+        app.startupGuard.begin()
         await startInterfaces(app)
         startMdns(app)
         app.pipedProviders = pipedProviders(app as any)
@@ -769,6 +773,10 @@ class Server {
           )
           app.started = true
           app.stalenessEnforcer?.start()
+          self.stableTimer = setTimeout(
+            () => app.startupGuard.markStable(),
+            STABLE_UPTIME_MS
+          ).unref()
           resolve(self)
         })
         const secondaryPort = getSecondaryPort(app)
@@ -839,6 +847,9 @@ class Server {
       })
 
       this.app.stalenessEnforcer?.stop()
+
+      clearTimeout(this.stableTimer)
+      this.app.startupGuard.markStable()
 
       // Cancel a pending history-provider grace timer; reload() creates
       // a fresh registry, so a timer left running here would emit a

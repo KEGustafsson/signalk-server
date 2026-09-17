@@ -80,6 +80,7 @@ import {
 } from '../deltastats'
 import { EventsActorId } from '../events'
 import { importOrRequire, modulesWithKeyword, NpmPackageData } from '../modules'
+import { SAFE_MODE_MESSAGE } from '../startupguard'
 
 const put = require('../put')
 const _putPath = put.putPath
@@ -467,6 +468,12 @@ module.exports = (theApp: any) => {
       'signalk-node-server-plugin'
     )
     const wasmModules = modulesWithKeyword(app.config, 'signalk-wasm-plugin')
+
+    if (app.startupGuard.safeMode) {
+      console.error(
+        `Server crashed ${app.startupGuard.consecutiveCrashes} times in a row before running stably; starting in safe mode with all plugins stopped`
+      )
+    }
 
     // Combine and deduplicate by module name (a plugin might have both keywords)
     const seenModules = new Set<string>()
@@ -1245,13 +1252,17 @@ module.exports = (theApp: any) => {
     plugin.packageLocation = location
 
     if (startupOptions && startupOptions.enabled) {
-      doPluginStart(
-        app,
-        plugin,
-        location,
-        startupOptions.configuration,
-        restart
-      )
+      if (app.startupGuard.safeMode) {
+        app.setPluginError(plugin.id, SAFE_MODE_MESSAGE)
+      } else {
+        doPluginStart(
+          app,
+          plugin,
+          location,
+          startupOptions.configuration,
+          restart
+        )
+      }
     }
     plugin.enableLogging = startupOptions.enableLogging
     app.plugins.push(plugin)
