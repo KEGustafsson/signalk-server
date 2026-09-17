@@ -369,6 +369,14 @@ To record deltas sent by the plugin in the server's data log, enable the **Log p
 
 ---
 
+## Errors and process safety
+
+A plugin runs inside the server process. The server keeps running when a plugin throws an uncaught exception or leaves a promise rejection unhandled: the error is logged and shown as the plugin's status in the Admin UI. A plugin that produces ten such errors within a minute is stopped, with the reason shown as its status; saving its configuration starts it again.
+
+A plugin must not end the process. Calls to `process.exit()`, `process.abort()` and `process.kill()` targeting the server's own pid are ignored when they come from a plugin or from a module installed in the plugin directory, and are logged with the plugin's status set to an error.
+
+---
+
 ## Removing a plugin
 
 Plugins can be removed via the AppStore.

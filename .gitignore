@@ -31,6 +31,7 @@ test/plugin-test-config/ssl-cert.pem
 test/plugin-test-config/ssl-key.pem
 test/plugin-test-config/baseDeltas.json
 test/plugin-test-config/unitpreferences/
+test/plugin-test-config/startup-guard.json
 
 test/server-test-config/applicationData/
 test/server-test-config/unitpreferences/
@@ -39,6 +40,7 @@ test/server-test-config/ssl-key.pem
 test/server-test-config/plugin-config-data/
 test/server-test-config/sources-cache.json
 test/server-test-config/appstore-cache/
+test/server-test-config/startup-guard.json
 
 docs/built
 
