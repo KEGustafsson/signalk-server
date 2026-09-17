@@ -912,7 +912,10 @@ function installProcessErrorHandlers(app: any) {
     if (app.plugins) {
       const pluginId = identifyPluginFromStack(err.stack ?? '', app.plugins)
       if (pluginId) {
-        app.setPluginError(pluginId, `Uncaught error: ${err.message}`)
+        app.reportPluginUncaughtError(
+          pluginId,
+          `Uncaught error: ${err.message}`
+        )
       }
     }
   })
@@ -923,7 +926,10 @@ function installProcessErrorHandlers(app: any) {
     if (app.plugins) {
       const pluginId = identifyPluginFromStack(err.stack ?? '', app.plugins)
       if (pluginId) {
-        app.setPluginError(pluginId, `Unhandled rejection: ${err.message}`)
+        app.reportPluginUncaughtError(
+          pluginId,
+          `Unhandled rejection: ${err.message}`
+        )
       }
     }
   })

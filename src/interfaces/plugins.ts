@@ -100,6 +100,9 @@ import { validateCategoryAssignment } from '../unitpreferences'
 // #521 Returns path to load plugin-config assets.
 const getPluginConfigPublic = getModulePublic('@signalk/plugin-config')
 
+const MAX_UNCAUGHT_ERRORS = 10
+const UNCAUGHT_ERROR_WINDOW_MS = 60_000
+
 const DEFAULT_ENABLED_PLUGINS = process.env.DEFAULTENABLEDPLUGINS
   ? process.env.DEFAULTENABLEDPLUGINS.split(',')
   : []
@@ -239,6 +242,37 @@ module.exports = (theApp: any) => {
   // start() would make correctness depend on start() completion order, which
   // Promise.all does not guarantee.
   installUpgradeListenerOnce()
+
+  const startedPlugins = new Set<string>()
+  const uncaughtErrorTimes: Record<string, number[]> = {}
+
+  // An error the plugin did not catch leaves it in an unknown state, and a
+  // plugin that keeps failing floods the log and burns CPU on every delta
+  // or packet. Stopping it lets its stop() release sockets and timers, and
+  // its status tells the user why it is no longer running.
+  theApp.reportPluginUncaughtError = (pluginId: string, message: string) => {
+    theApp.setPluginError(pluginId, message)
+    const plugin = theApp.pluginsMap[pluginId]
+    if (!plugin || !startedPlugins.has(pluginId)) {
+      return
+    }
+    const now = Date.now()
+    const recent = (uncaughtErrorTimes[pluginId] ?? []).filter(
+      (time) => now - time < UNCAUGHT_ERROR_WINDOW_MS
+    )
+    recent.push(now)
+    uncaughtErrorTimes[pluginId] = recent
+    if (recent.length < MAX_UNCAUGHT_ERRORS) {
+      return
+    }
+    uncaughtErrorTimes[pluginId] = []
+    const reason = `Stopped after ${MAX_UNCAUGHT_ERRORS} uncaught errors within ${UNCAUGHT_ERROR_WINDOW_MS / 1000} s, last: ${message}`
+    console.error(`${pluginId}: ${reason}`)
+    stopPlugin(plugin).then(() => {
+      theApp.setPluginError(pluginId, reason)
+      emitPluginsChanged()
+    })
+  }
 
   return {
     async start() {
@@ -652,6 +686,7 @@ module.exports = (theApp: any) => {
 
   function stopPlugin(plugin: PluginInfo): Promise<any> {
     debug('Stopping plugin ' + plugin.name)
+    startedPlugins.delete(plugin.id)
     onStopHandlers[plugin.id].forEach((f: () => void) => {
       try {
         f()
@@ -730,6 +765,7 @@ module.exports = (theApp: any) => {
         }
         throw e
       }
+      startedPlugins.add(plugin.id)
       debug('Started plugin ' + plugin.name)
       setPluginStartedMessage(plugin)
     } catch (e: any) {
@@ -928,7 +964,10 @@ module.exports = (theApp: any) => {
             if (err instanceof Error && err.stack) {
               console.error(err.stack)
             }
-            app.setPluginError(plugin.id, `Runtime error: ${message}`)
+            app.reportPluginUncaughtError(
+              plugin.id,
+              `Runtime error: ${message}`
+            )
           }
         }
         // Honour command.sourcePolicy so a plugin can opt into the
