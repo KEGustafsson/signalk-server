@@ -485,6 +485,8 @@ module.exports = (theApp: any) => {
       return true
     })
 
+    app.pluginPackageNames = modules.map((moduleData: any) => moduleData.module)
+
     await Promise.all(
       modules.map((moduleData: any) => {
         return registerPlugin(

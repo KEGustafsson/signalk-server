@@ -73,6 +73,7 @@ import { buildProviderTalkerLookups } from './nmea0183TalkerGroups'
 import { pipedProviders } from './pipedproviders'
 import { EventsActorId, WithWrappedEmitter, wrapEmitter } from './events'
 import { StalenessEnforcer } from './staleness'
+import { identifyPluginFromStack, installProcessGuard } from './processguard'
 import { STABLE_UPTIME_MS, StartupGuard } from './startupguard'
 import { ThrottledCaller } from './throttledCaller'
 import { Zones } from './zones'
@@ -644,6 +645,7 @@ class Server {
     })
 
     installProcessErrorHandlers(app)
+    installProcessGuard(app)
   }
 
   start() {
@@ -903,18 +905,6 @@ class Server {
 }
 
 module.exports = Server
-
-function identifyPluginFromStack(
-  stack: string,
-  plugins: Array<{ id: string; packageName: string }>
-): string | undefined {
-  for (const plugin of plugins) {
-    if (stack.includes(plugin.packageName)) {
-      return plugin.id
-    }
-  }
-  return undefined
-}
 
 function installProcessErrorHandlers(app: any) {
   process.on('uncaughtException', (err: Error) => {
