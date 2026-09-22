@@ -24,6 +24,7 @@ import { updateResourceProviderInstance } from '../bindings/resource-provider'
 import { updateWeatherProviderInstance } from '../bindings/weather-provider'
 import { updateRadarProviderInstance } from '../bindings/radar-provider'
 import { derivePluginId } from '../../pluginid'
+import { SAFE_MODE_MESSAGE } from '../../startupguard'
 
 const debug = Debug('signalk:wasm:loader')
 
@@ -397,7 +398,11 @@ export async function registerWasmPlugin(
 
     // Auto-start if enabled
     if (plugin.enabled) {
-      await _startWasmPlugin(app, pluginId)
+      if (app.startupGuard.safeMode) {
+        app.setPluginError(pluginId, SAFE_MODE_MESSAGE)
+      } else {
+        await _startWasmPlugin(app, pluginId)
+      }
     }
 
     return plugin

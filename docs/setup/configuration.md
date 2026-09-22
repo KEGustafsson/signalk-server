@@ -165,6 +165,14 @@ If things are not working as expected after installing a plugin or webapp, selec
 
 Enabling the `Remember debug setting` ensure your selections are remebered after a server restart.
 
+### Safe mode after repeated crashes
+
+A plugin runs inside the server process, so a faulty plugin can take the whole server down before the Admin UI is reachable. If the server exits three times in a row before it has run for a minute, the next start is in safe mode: the server starts without starting any plugin, and each enabled plugin shows an error on the Dashboard explaining this.
+
+While in safe mode, look at the server log for the cause of the crashes and disable the plugin causing it in _Server -> Plugin Config_. Saving a plugin's configuration in _Plugin Config_ starts that plugin, so plugins can be brought back one at a time. Restarting the server leaves safe mode and starts all enabled plugins again.
+
+The crash count is kept in `startup-guard.json` in the configuration directory. A stop via the _Restart_ button or the system service manager does not count as a crash.
+
 ## Landing page
 
 When you access the Signal K server on a web browser you will be redirected to the Admin webapp as the default `landing page`. You can replace this default with your choice by adding the property `landingPage` in your `settings.json`. For example you can redirect the user to Kip or Freeboard.

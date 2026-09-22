@@ -80,6 +80,7 @@ import {
 } from '../deltastats'
 import { EventsActorId } from '../events'
 import { importOrRequire, modulesWithKeyword, NpmPackageData } from '../modules'
+import { SAFE_MODE_MESSAGE } from '../startupguard'
 
 const put = require('../put')
 const _putPath = put.putPath
@@ -98,6 +99,9 @@ import { validateCategoryAssignment } from '../unitpreferences'
 
 // #521 Returns path to load plugin-config assets.
 const getPluginConfigPublic = getModulePublic('@signalk/plugin-config')
+
+const MAX_UNCAUGHT_ERRORS = 10
+const UNCAUGHT_ERROR_WINDOW_MS = 60_000
 
 const DEFAULT_ENABLED_PLUGINS = process.env.DEFAULTENABLEDPLUGINS
   ? process.env.DEFAULTENABLEDPLUGINS.split(',')
@@ -238,6 +242,37 @@ module.exports = (theApp: any) => {
   // start() would make correctness depend on start() completion order, which
   // Promise.all does not guarantee.
   installUpgradeListenerOnce()
+
+  const startedPlugins = new Set<string>()
+  const uncaughtErrorTimes: Record<string, number[]> = {}
+
+  // An error the plugin did not catch leaves it in an unknown state, and a
+  // plugin that keeps failing floods the log and burns CPU on every delta
+  // or packet. Stopping it lets its stop() release sockets and timers, and
+  // its status tells the user why it is no longer running.
+  theApp.reportPluginUncaughtError = (pluginId: string, message: string) => {
+    theApp.setPluginError(pluginId, message)
+    const plugin = theApp.pluginsMap[pluginId]
+    if (!plugin || !startedPlugins.has(pluginId)) {
+      return
+    }
+    const now = Date.now()
+    const recent = (uncaughtErrorTimes[pluginId] ?? []).filter(
+      (time) => now - time < UNCAUGHT_ERROR_WINDOW_MS
+    )
+    recent.push(now)
+    uncaughtErrorTimes[pluginId] = recent
+    if (recent.length < MAX_UNCAUGHT_ERRORS) {
+      return
+    }
+    uncaughtErrorTimes[pluginId] = []
+    const reason = `Stopped after ${MAX_UNCAUGHT_ERRORS} uncaught errors within ${UNCAUGHT_ERROR_WINDOW_MS / 1000} s, last: ${message}`
+    console.error(`${pluginId}: ${reason}`)
+    stopPlugin(plugin).then(() => {
+      theApp.setPluginError(pluginId, reason)
+      emitPluginsChanged()
+    })
+  }
 
   return {
     async start() {
@@ -468,6 +503,12 @@ module.exports = (theApp: any) => {
     )
     const wasmModules = modulesWithKeyword(app.config, 'signalk-wasm-plugin')
 
+    if (app.startupGuard.safeMode) {
+      console.error(
+        `Server crashed ${app.startupGuard.consecutiveCrashes} times in a row before running stably; starting in safe mode with all plugins stopped`
+      )
+    }
+
     // Combine and deduplicate by module name (a plugin might have both keywords)
     const seenModules = new Set<string>()
     const modules = [...jsModules, ...wasmModules].filter((moduleData: any) => {
@@ -477,6 +518,8 @@ module.exports = (theApp: any) => {
       seenModules.add(moduleData.module)
       return true
     })
+
+    app.pluginPackageNames = modules.map((moduleData: any) => moduleData.module)
 
     await Promise.all(
       modules.map((moduleData: any) => {
@@ -643,6 +686,7 @@ module.exports = (theApp: any) => {
 
   function stopPlugin(plugin: PluginInfo): Promise<any> {
     debug('Stopping plugin ' + plugin.name)
+    startedPlugins.delete(plugin.id)
     onStopHandlers[plugin.id].forEach((f: () => void) => {
       try {
         f()
@@ -651,15 +695,31 @@ module.exports = (theApp: any) => {
       }
     })
     onStopHandlers[plugin.id] = []
-    const result = Promise.resolve(plugin.stop())
-    result.then(() => {
-      theApp.setPluginStatus(plugin.id, 'Stopped')
-      debug('Stopped plugin ' + plugin.name)
-      if (theApp.deltaCache) {
-        theApp.deltaCache.removeSource(plugin.id)
+    let result: Promise<unknown>
+    try {
+      result = Promise.resolve(plugin.stop())
+    } catch (err) {
+      result = Promise.reject(err)
+    }
+    // A failed stop() must not block the restart that usually follows, nor
+    // escape into the caller, which may be the uncaughtException handler.
+    return result.then(
+      () => {
+        theApp.setPluginStatus(plugin.id, 'Stopped')
+        debug('Stopped plugin ' + plugin.name)
+        if (theApp.deltaCache) {
+          theApp.deltaCache.removeSource(plugin.id)
+        }
+      },
+      (err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err)
+        console.error(`${plugin.id} failed to stop: ${message}`)
+        theApp.setPluginError(plugin.id, `Failed to stop: ${message}`)
+        if (theApp.deltaCache) {
+          theApp.deltaCache.removeSource(plugin.id)
+        }
       }
-    })
-    return result
+    )
   }
 
   function setPluginStartedMessage(plugin: PluginInfo) {
@@ -721,6 +781,7 @@ module.exports = (theApp: any) => {
         }
         throw e
       }
+      startedPlugins.add(plugin.id)
       debug('Started plugin ' + plugin.name)
       setPluginStartedMessage(plugin)
     } catch (e: any) {
@@ -919,7 +980,10 @@ module.exports = (theApp: any) => {
             if (err instanceof Error && err.stack) {
               console.error(err.stack)
             }
-            app.setPluginError(plugin.id, `Runtime error: ${message}`)
+            app.reportPluginUncaughtError(
+              plugin.id,
+              `Runtime error: ${message}`
+            )
           }
         }
         // Honour command.sourcePolicy so a plugin can opt into the
@@ -1245,13 +1309,17 @@ module.exports = (theApp: any) => {
     plugin.packageLocation = location
 
     if (startupOptions && startupOptions.enabled) {
-      doPluginStart(
-        app,
-        plugin,
-        location,
-        startupOptions.configuration,
-        restart
-      )
+      if (app.startupGuard.safeMode) {
+        app.setPluginError(plugin.id, SAFE_MODE_MESSAGE)
+      } else {
+        doPluginStart(
+          app,
+          plugin,
+          location,
+          startupOptions.configuration,
+          restart
+        )
+      }
     }
     plugin.enableLogging = startupOptions.enableLogging
     app.plugins.push(plugin)
@@ -1298,16 +1366,33 @@ module.exports = (theApp: any) => {
       res.json(getPluginOptions(plugin.id))
     })
 
-    if (typeof plugin.registerWithRouter === 'function') {
-      plugin.registerWithRouter(asPluginRouter(app, router, plugin.id))
-      if (typeof plugin.getOpenApi === 'function') {
-        app.setPluginOpenApi(plugin.id, plugin.getOpenApi())
+    try {
+      if (typeof plugin.registerWithRouter === 'function') {
+        plugin.registerWithRouter(asPluginRouter(app, router, plugin.id))
+        if (typeof plugin.getOpenApi === 'function') {
+          app.setPluginOpenApi(plugin.id, plugin.getOpenApi())
+        }
       }
+    } catch (e: any) {
+      console.error(`${plugin.id} failed to register routes: ${e.message}`)
+      console.error(e.stack)
+      app.setPluginError(plugin.id, `Failed to register routes: ${e.message}`)
     }
     app.use(backwardsCompat('/plugins/' + plugin.id), router)
 
     if (typeof plugin.signalKApiRoutes === 'function') {
-      app.use('/signalk/v1/api', plugin.signalKApiRoutes(express.Router()))
+      try {
+        app.use('/signalk/v1/api', plugin.signalKApiRoutes(express.Router()))
+      } catch (e: any) {
+        console.error(
+          `${plugin.id} failed to register API routes: ${e.message}`
+        )
+        console.error(e.stack)
+        app.setPluginError(
+          plugin.id,
+          `Failed to register API routes: ${e.message}`
+        )
+      }
     }
   }
 }
