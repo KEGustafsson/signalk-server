@@ -151,7 +151,6 @@ function mergeExcludeSelf(
 
 module.exports = (theApp: any) => {
   const onStopHandlers: any = {}
-  const appNodeModules = path.join(theApp.config.appPath, 'node_modules/')
 
   // Partitioned by plugin id so the dispatcher can tell a plugin that does
   // not use registerWebSocket at all (leave the upgrade event to other
@@ -314,8 +313,15 @@ module.exports = (theApp: any) => {
     })
   }
 
+  // Bundled plugins can live in several places depending on the package
+  // manager that installed the server, but user installed plugins are
+  // always in the config directory.
   function isBundledPlugin(plugin: PluginInfo) {
-    return plugin.packageLocation === appNodeModules
+    const { appPath, configPath } = theApp.config
+    return (
+      appPath === configPath ||
+      plugin.packageLocation !== path.join(configPath, 'node_modules/')
+    )
   }
 
   function getPluginResponseInfo(plugin: PluginInfo, providerStatus: any) {
