@@ -56,7 +56,7 @@ describe('InstallLogModal', () => {
     await waitFor(() => {
       expect(screen.getByText('npm ERR! gyp failed')).toBeDefined()
     })
-    expect(screen.getByText('npm exited with code 1')).toBeDefined()
+    expect(screen.getByText('Install exited with code 1')).toBeDefined()
     expect(fetch).toHaveBeenCalledWith(
       '/signalk/v1/appstore/installLog/signalk-example',
       expect.objectContaining({ credentials: 'include' })
@@ -173,8 +173,8 @@ describe('InstallLogModal', () => {
 describe('logFilename', () => {
   it('flattens scoped package names', () => {
     expect(logFilename('@signalk/charts-plugin')).toBe(
-      'npm-_signalk_charts-plugin.log'
+      'install-_signalk_charts-plugin.log'
     )
-    expect(logFilename('signalk-example')).toBe('npm-signalk-example.log')
+    expect(logFilename('signalk-example')).toBe('install-signalk-example.log')
   })
 })

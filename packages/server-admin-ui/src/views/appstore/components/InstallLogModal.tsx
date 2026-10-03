@@ -35,7 +35,7 @@ export function downloadAsFile(filename: string, text: string) {
 }
 
 export function logFilename(appName: string): string {
-  return `npm-${appName.replace(/[@/]/g, '_')}.log`
+  return `install-${appName.replace(/[@/]/g, '_')}.log`
 }
 
 export default function InstallLogModal({
@@ -112,7 +112,7 @@ export default function InstallLogModal({
           <>
             {typeof state.data.code === 'number' && state.data.code !== 0 && (
               <p className="text-danger">
-                npm exited with code {state.data.code}
+                Install exited with code {state.data.code}
               </p>
             )}
             <pre
