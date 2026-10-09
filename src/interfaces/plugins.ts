@@ -319,8 +319,9 @@ module.exports = (theApp: any) => {
   function isBundledPlugin(plugin: PluginInfo) {
     const { appPath, configPath } = theApp.config
     return (
-      appPath === configPath ||
-      plugin.packageLocation !== path.join(configPath, 'node_modules/')
+      path.resolve(appPath) === path.resolve(configPath) ||
+      path.resolve(plugin.packageLocation) !==
+        path.resolve(configPath, 'node_modules')
     )
   }
 
