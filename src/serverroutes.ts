@@ -39,7 +39,7 @@ import path from 'path'
 import { findPackageLocation } from './bundled-packages'
 import util from 'util'
 import { mountSwaggerUi } from './api/swagger'
-import unzipper from 'unzipper'
+import { extractBackup } from './backup'
 import { serveStaticFiles } from './staticfiles'
 import {
   ConfigApp,
@@ -2401,58 +2401,17 @@ module.exports = function (
                 res.status(500).send(err.message)
               })
               .on('close', () => {
-                const zipStream = fs.createReadStream(zipFile)
-                const extractPromises: Promise<void>[] = []
-                const resolvedBase = path.resolve(restoreFilePath)
-
-                zipStream
-                  .pipe(unzipper.Parse())
-                  .on('entry', (entry: unzipper.Entry) => {
-                    const targetPath = path.join(restoreFilePath, entry.path)
-                    const resolvedTarget = path.resolve(targetPath)
-
-                    if (!resolvedTarget.startsWith(resolvedBase + path.sep)) {
-                      console.error(`Zip slip attempt blocked: ${entry.path}`)
-                      entry.autodrain()
-                      return
-                    }
-
-                    if (entry.type === 'Directory') {
-                      fs.mkdirSync(resolvedTarget, { recursive: true })
-                      entry.autodrain()
-                    } else {
-                      fs.mkdirSync(path.dirname(resolvedTarget), {
-                        recursive: true
-                      })
-                      const writePromise = new Promise<void>(
-                        (resolve, reject) => {
-                          entry
-                            .pipe(fs.createWriteStream(resolvedTarget))
-                            .on('close', resolve)
-                            .on('error', reject)
-                        }
-                      )
-                      extractPromises.push(writePromise)
-                    }
+                extractBackup(zipFile, restoreFilePath)
+                  .then(() => {
+                    fs.unlinkSync(zipFile)
+                    return listSafeRestoreFiles(restoreFilePath)
                   })
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  .on('error', (err: any) => {
+                  .then((files) => {
+                    res.type('text/plain').send(files)
+                  })
+                  .catch((err) => {
                     console.error(err)
                     res.status(500).send(err.message)
-                  })
-                  .on('close', () => {
-                    Promise.all(extractPromises)
-                      .then(() => {
-                        fs.unlinkSync(zipFile)
-                        return listSafeRestoreFiles(restoreFilePath)
-                      })
-                      .then((files) => {
-                        res.type('text/plain').send(files)
-                      })
-                      .catch((err) => {
-                        console.error(err)
-                        res.status(500).send(err.message)
-                      })
                   })
               })
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
