@@ -55,6 +55,12 @@ Once the OS installation has been completed, you are ready to commence.
 
    Ensure the reported versions are equal to or greater than `v24.0.0, 11.0.0` respectively.
 
+1. Install pnpm, which the App Store uses to install plugins and webapps.
+
+   ```
+   sudo npm install -g pnpm@11
+   ```
+
 1. Install a Bonjour (mDNS) service for Linux called Avahi, which allows Apps and other network devices to Discover the Signal K server.
    ```
    sudo apt install libnss-mdns avahi-utils libavahi-compat-libdnssd-dev
@@ -63,8 +69,10 @@ Once the OS installation has been completed, you are ready to commence.
 ## Install Signal K Server
 
 ```
-sudo npm install -g signalk-server
+sudo npm install -g signalk-server --allow-scripts=@canboat/canboatjs
 ```
+
+npm 12 and later block install scripts they are not told to allow, so `--allow-scripts` lets npm run the one that builds the server's native CAN bus support. npm 11 runs install scripts by default, and older npm ignores the option.
 
 You can test that installation was successful by starting the server using some
 sample data.

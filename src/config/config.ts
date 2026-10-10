@@ -26,6 +26,7 @@ import semver from 'semver'
 import { v4 as uuidv4 } from 'uuid'
 import { ServerApp, SignalKMessageHub, WithConfig } from '../app'
 import { createDebug } from '../debug'
+import { findPackageLocation } from '../bundled-packages'
 import DeltaEditor from '../deltaeditor'
 import { getExternalPort } from '../ports'
 import { atomicWriteFile } from '../atomicWrite'
@@ -423,20 +424,15 @@ function checkPackageVersion(name: string, pkg: any, appPath: string) {
   if (!expected) {
     return
   }
-  let modulePackageJsonPath = path.join(
-    appPath,
-    'node_modules',
-    name,
-    'package.json'
-  )
-  if (!fs.existsSync(modulePackageJsonPath)) {
-    modulePackageJsonPath = path.join(appPath, '..', name, 'package.json')
+  const location = findPackageLocation(appPath, name)
+  if (!location) {
+    if (isOptional) {
+      // Optional package not installed, as in the core Docker edition
+      return
+    }
+    throw new Error(`${name} is not installed`)
   }
-  if (!fs.existsSync(modulePackageJsonPath) && isOptional) {
-    // Optional package not installed (e.g. core image with --omit=optional).
-    return
-  }
-  const installed = require(modulePackageJsonPath)
+  const installed = require(path.join(location, name, 'package.json'))
 
   if (!semver.satisfies(installed.version, expected)) {
     console.error(
@@ -478,15 +474,6 @@ function setConfigDirectory(app: ConfigApp) {
         configPackage,
         JSON.stringify(pluginsPackageJsonTemplate, null, 2)
       )
-    }
-    const npmrcPath = path.join(app.config.configPath, '.npmrc')
-    if (!fs.existsSync(npmrcPath)) {
-      fs.writeFileSync(npmrcPath, 'package-lock=false\n')
-    } else {
-      const contents = fs.readFileSync(npmrcPath)
-      if (contents.indexOf('package-lock=') === -1) {
-        fs.appendFileSync(npmrcPath, '\npackage-lock=false\n')
-      }
     }
   }
 }

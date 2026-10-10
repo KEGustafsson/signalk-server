@@ -36,9 +36,10 @@ import moment from 'moment'
 import ncpI from 'ncp'
 import os from 'os'
 import path from 'path'
-import unzipper from 'unzipper'
+import { findPackageLocation } from './bundled-packages'
 import util from 'util'
 import { mountSwaggerUi } from './api/swagger'
+import { extractBackup } from './backup'
 import { serveStaticFiles } from './staticfiles'
 import {
   ConfigApp,
@@ -55,7 +56,14 @@ import { readDesignLengthOverall } from './api/sensors/vesselDimensions'
 import { handleAdminUICORSOrigin } from './cors'
 import { createDebug, listKnownDebugs } from './debug'
 import { PluginManager } from './interfaces/plugins'
-import { getAuthor, Package, restoreModules } from './modules'
+import {
+  getAuthor,
+  getPnpmInfo,
+  Package,
+  PREVIOUS_MODULES_BACKUP,
+  DISCARDED_MODULES,
+  restoreModules
+} from './modules'
 import { getHttpPort, getSslPort } from './ports'
 import { queryRequest } from './requestResponse'
 import {
@@ -82,6 +90,7 @@ import { Value } from '@sinclair/typebox/value'
 
 const readdir = util.promisify(fs.readdir)
 const debug = createDebug('signalk-server:serverroutes')
+const ADMIN_UI_PACKAGE = '@signalk/server-admin-ui'
 
 // Schemas for the atomic priorities payload and its sub-documents. These are
 // the same shapes the delta engine and the persisted settings.json already
@@ -405,17 +414,19 @@ module.exports = function (
     )
   }
 
+  const adminUiPath = path.join(
+    findPackageLocation(app.config.appPath, ADMIN_UI_PACKAGE) ??
+      path.join(app.config.appPath, 'node_modules'),
+    ADMIN_UI_PACKAGE,
+    'public'
+  )
+
   // Vite 8 (Rolldown) changed CSS url() rewriting for publicDir assets: the built CSS
   // references logos as url(public_src/img/...) which resolves to assets/public_src/img/
   // relative to the CSS file, not the actual img/ location. Serve default logos from there.
   app.use(
     '/admin/assets/public_src/img',
-    express.static(
-      path.join(
-        __dirname,
-        '/../node_modules/@signalk/server-admin-ui/public/img'
-      )
-    )
+    express.static(path.join(adminUiPath, 'img'))
   )
 
   // mount before the main /admin
@@ -434,11 +445,6 @@ module.exports = function (
       res.redirect(301, to)
     })
   }
-
-  const adminUiPath = path.join(
-    __dirname,
-    '/../node_modules/@signalk/server-admin-ui/public'
-  )
 
   function serveIndexWithAddonScripts(indexPath: string, res: Response) {
     fs.readFile(indexPath, (err, indexContent) => {
@@ -2176,13 +2182,18 @@ module.exports = function (
     }
   })()
 
-  app.get(`${SERVERROUTESPREFIX}/nodeInfo`, (_req: Request, res: Response) => {
-    res.json({
-      nodeVersion: process.version,
-      npmVersion,
-      recommendedNodeVersion
-    })
-  })
+  app.get(
+    `${SERVERROUTESPREFIX}/nodeInfo`,
+    async (_req: Request, res: Response) => {
+      const pnpm = await getPnpmInfo()
+      res.json({
+        nodeVersion: process.version,
+        npmVersion,
+        pnpmVersion: pnpm?.version,
+        recommendedNodeVersion
+      })
+    }
+  )
 
   app.securityStrategy.addAdminWriteMiddleware(
     `${SERVERROUTESPREFIX}/rememberDebug`
@@ -2390,58 +2401,17 @@ module.exports = function (
                 res.status(500).send(err.message)
               })
               .on('close', () => {
-                const zipStream = fs.createReadStream(zipFile)
-                const extractPromises: Promise<void>[] = []
-                const resolvedBase = path.resolve(restoreFilePath)
-
-                zipStream
-                  .pipe(unzipper.Parse())
-                  .on('entry', (entry: unzipper.Entry) => {
-                    const targetPath = path.join(restoreFilePath, entry.path)
-                    const resolvedTarget = path.resolve(targetPath)
-
-                    if (!resolvedTarget.startsWith(resolvedBase + path.sep)) {
-                      console.error(`Zip slip attempt blocked: ${entry.path}`)
-                      entry.autodrain()
-                      return
-                    }
-
-                    if (entry.type === 'Directory') {
-                      fs.mkdirSync(resolvedTarget, { recursive: true })
-                      entry.autodrain()
-                    } else {
-                      fs.mkdirSync(path.dirname(resolvedTarget), {
-                        recursive: true
-                      })
-                      const writePromise = new Promise<void>(
-                        (resolve, reject) => {
-                          entry
-                            .pipe(fs.createWriteStream(resolvedTarget))
-                            .on('close', resolve)
-                            .on('error', reject)
-                        }
-                      )
-                      extractPromises.push(writePromise)
-                    }
+                extractBackup(zipFile, restoreFilePath)
+                  .then(() => {
+                    fs.unlinkSync(zipFile)
+                    return listSafeRestoreFiles(restoreFilePath)
                   })
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  .on('error', (err: any) => {
+                  .then((files) => {
+                    res.type('text/plain').send(files)
+                  })
+                  .catch((err) => {
                     console.error(err)
                     res.status(500).send(err.message)
-                  })
-                  .on('close', () => {
-                    Promise.all(extractPromises)
-                      .then(() => {
-                        fs.unlinkSync(zipFile)
-                        return listSafeRestoreFiles(restoreFilePath)
-                      })
-                      .then((files) => {
-                        res.type('text/plain').send(files)
-                      })
-                      .catch((err) => {
-                        console.error(err)
-                        res.status(500).send(err.message)
-                      })
                   })
               })
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -2471,6 +2441,8 @@ module.exports = function (
             (file !== 'node_modules' ||
               (file === 'node_modules' &&
                 req.query.includePlugins === 'true')) &&
+            file !== PREVIOUS_MODULES_BACKUP &&
+            file !== DISCARDED_MODULES &&
             !file.endsWith('.log') &&
             file !== 'signalk-server' &&
             file !== '.npmrc'
