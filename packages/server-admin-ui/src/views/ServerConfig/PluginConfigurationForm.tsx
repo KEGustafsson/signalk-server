@@ -1,4 +1,4 @@
-import Form from '@rjsf/core'
+import Form, { type FormProps } from '@rjsf/core'
 import validator from '@rjsf/validator-ajv8'
 import {
   getTemplate,
@@ -8,13 +8,18 @@ import {
   RegistryFieldsType,
   RegistryWidgetsType
 } from '@rjsf/utils'
-import { ReactNode } from 'react'
+import { ComponentType, ReactNode } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus } from '@fortawesome/free-solid-svg-icons/faPlus'
 import { faArrowUp } from '@fortawesome/free-solid-svg-icons/faArrowUp'
 import { faArrowDown } from '@fortawesome/free-solid-svg-icons/faArrowDown'
 import { faTimes } from '@fortawesome/free-solid-svg-icons/faTimes'
 import { faFloppyDisk } from '@fortawesome/free-solid-svg-icons/faFloppyDisk'
+
+// @rjsf/core's Form is a generic class component whose instance type is not
+// recognised as a valid JSX element under @types/react 19. Expose it through a
+// plain component type so it can be rendered while keeping prop typing.
+const RjsfForm = Form as unknown as ComponentType<FormProps>
 
 const GRID_COLUMNS = {
   CONTENT: 'col-9',
@@ -461,7 +466,7 @@ export default function PluginConfigurationForm({
   }
 
   return (
-    <Form
+    <RjsfForm
       validator={validator}
       schema={formSchema}
       uiSchema={plugin.uiSchema ? { configuration: plugin.uiSchema } : {}}
@@ -480,6 +485,6 @@ export default function PluginConfigurationForm({
         <FontAwesomeIcon icon={faFloppyDisk} style={{ marginRight: '8px' }} />
         Save Configuration
       </button>
-    </Form>
+    </RjsfForm>
   )
 }

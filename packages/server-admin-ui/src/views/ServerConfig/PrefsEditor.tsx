@@ -6,7 +6,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowUp } from '@fortawesome/free-solid-svg-icons/faArrowUp'
 import { faArrowDown } from '@fortawesome/free-solid-svg-icons/faArrowDown'
 import { faTrash } from '@fortawesome/free-solid-svg-icons/faTrash'
-import Select, { type StylesConfig } from 'react-select'
+import Select, { type SingleValue, type StylesConfig } from 'react-select'
 import { useStore, useSourceStatus, useSourceStatusLoaded } from '../../store'
 import { type SourcesData } from '../../utils/sourceLabels'
 import { DEFAULT_FALLBACK_MS } from '../../utils/sourceGroups'
@@ -262,7 +262,7 @@ export const PrefsEditor: React.FC<PrefsEditorProps> = ({
                         }
                         placeholder="Pick a source…"
                         isClearable={false}
-                        onChange={(e) => {
+                        onChange={(e: SingleValue<SelectOption>) => {
                           safeChange(index, e?.value || '', timeout)
                         }}
                       />

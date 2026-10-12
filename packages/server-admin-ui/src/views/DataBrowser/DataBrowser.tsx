@@ -10,7 +10,8 @@ import React, {
 import Select, {
   components,
   type OptionProps,
-  type SingleValue
+  type SingleValue,
+  type StylesConfig
 } from 'react-select'
 import Button from 'react-bootstrap/Button'
 import Card from 'react-bootstrap/Card'
@@ -897,18 +898,20 @@ const DataBrowser: React.FC = () => {
                   maxMenuHeight={500}
                   noOptionsMessage={() => 'No contexts available'}
                   components={{ Option: ContextOption }}
-                  styles={{
-                    menu: (base) => ({ ...base, zIndex: 100 }),
-                    option: (base, state) => ({
-                      ...base,
-                      backgroundColor: state.isSelected
-                        ? base.backgroundColor
-                        : 'transparent',
-                      ':hover': {
-                        backgroundColor: '#deebff'
-                      }
-                    })
-                  }}
+                  styles={
+                    {
+                      menu: (base) => ({ ...base, zIndex: 100 }),
+                      option: (base, state) => ({
+                        ...base,
+                        backgroundColor: state.isSelected
+                          ? base.backgroundColor
+                          : 'transparent',
+                        ':hover': {
+                          backgroundColor: '#deebff'
+                        }
+                      })
+                    } satisfies StylesConfig<SelectOption, false>
+                  }
                 />
               </Col>
               <Col xs="6" md="2">

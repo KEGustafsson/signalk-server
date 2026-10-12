@@ -538,6 +538,9 @@ importers:
       '@vitest/coverage-v8':
         specifier: ^4.1.9
         version: 4.1.11(vitest@4.1.11)
+      '@vitest/expect':
+        specifier: ^4.1.9
+        version: 4.1.11
       ansi-to-html:
         specifier: ^0.7.2
         version: 0.7.2

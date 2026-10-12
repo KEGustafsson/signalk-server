@@ -2,7 +2,8 @@ import React, { useMemo } from 'react'
 import Select, {
   components,
   type OptionProps,
-  type SingleValue
+  type SingleValue,
+  type StylesConfig
 } from 'react-select'
 import Card from 'react-bootstrap/Card'
 import Col from 'react-bootstrap/Col'
@@ -100,18 +101,20 @@ const MetaDataPage: React.FC = () => {
                   maxMenuHeight={500}
                   noOptionsMessage={() => 'No contexts available'}
                   components={{ Option: ContextOption }}
-                  styles={{
-                    menu: (base) => ({ ...base, zIndex: 100 }),
-                    option: (base, state) => ({
-                      ...base,
-                      backgroundColor: state.isSelected
-                        ? base.backgroundColor
-                        : 'transparent',
-                      ':hover': {
-                        backgroundColor: '#deebff'
-                      }
-                    })
-                  }}
+                  styles={
+                    {
+                      menu: (base) => ({ ...base, zIndex: 100 }),
+                      option: (base, state) => ({
+                        ...base,
+                        backgroundColor: state.isSelected
+                          ? base.backgroundColor
+                          : 'transparent',
+                        ':hover': {
+                          backgroundColor: '#deebff'
+                        }
+                      })
+                    } satisfies StylesConfig<SelectOption, false>
+                  }
                 />
               </Col>
             </Form.Group>

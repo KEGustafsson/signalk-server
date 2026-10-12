@@ -1,5 +1,5 @@
-import { cpSync } from 'fs'
-import { dirname, resolve } from 'path'
+import { copyFileSync, mkdirSync, readdirSync, statSync } from 'fs'
+import { dirname, join, resolve } from 'path'
 import type { PageEvent, Reflection, Renderer } from 'typedoc'
 import {
   MarkdownEvent,
@@ -10,6 +10,20 @@ import {
 } from 'typedoc'
 import { fileURLToPath } from 'url'
 import { SignalKThemeContext } from './SignalKThemeContext.js'
+
+// Node's native recursive cpSync (cpSyncCopyDir) fails with EACCES on some
+// bind-mounted filesystems; copy entries individually instead.
+function copyRecursive(src: string, dest: string): void {
+  if (statSync(src).isDirectory()) {
+    mkdirSync(dest, { recursive: true })
+    for (const entry of readdirSync(src)) {
+      copyRecursive(join(src, entry), join(dest, entry))
+    }
+  } else {
+    mkdirSync(dirname(dest), { recursive: true })
+    copyFileSync(src, dest)
+  }
+}
 
 export class SignalKTheme extends DefaultTheme {
   constructor(renderer: Renderer) {
@@ -28,7 +42,7 @@ export class SignalKTheme extends DefaultTheme {
       assets.forEach(({ from, to }) => {
         const src = resolve(dirname(fileURLToPath(import.meta.url)), from)
         const dest = resolve(this.application.options.getValue('out'), to)
-        cpSync(src, dest, { recursive: true })
+        copyRecursive(src, dest)
       })
     })
 

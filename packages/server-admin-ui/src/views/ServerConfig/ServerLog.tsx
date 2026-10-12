@@ -18,6 +18,7 @@ import { faAlignJustify } from '@fortawesome/free-solid-svg-icons/faAlignJustify
 import { faTrash } from '@fortawesome/free-solid-svg-icons/faTrash'
 import LogFiles from './Logging'
 import Creatable from 'react-select/creatable'
+import type { MultiValue } from 'react-select'
 import { useWebSocket, useDeltaMessages } from '../../hooks/useWebSocket'
 
 interface LogEntry {
@@ -221,7 +222,7 @@ export default function ServerLogs() {
                           .map((value) => ({ label: value, value }))
                       : null
                   }
-                  onChange={(v) => {
+                  onChange={(v: MultiValue<SelectOption>) => {
                     const value =
                       v !== null
                         ? (v as SelectOption[])

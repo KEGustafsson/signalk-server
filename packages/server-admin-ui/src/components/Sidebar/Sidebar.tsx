@@ -639,7 +639,7 @@ export default function Sidebar({ location }: SidebarProps) {
         ) : (
           <NavLink
             to={url}
-            className={({ isActive }) =>
+            className={({ isActive }: { isActive: boolean }) =>
               isActive ? `${classes.link} active` : classes.link
             }
             {...(item.props || {})}
