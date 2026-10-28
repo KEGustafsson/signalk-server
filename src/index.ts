@@ -55,7 +55,6 @@ import {
 import { filterStaticSelfData } from './staticDataFilter'
 import { incDeltaStatistics, startDeltaStatistics } from './deltastats'
 import { checkForNewServerVersion } from './modules'
-import { ConnectionTracker } from './connectionTracker'
 import { getExternalPort, getPrimaryPort, getSecondaryPort } from './ports'
 import {
   getCertificateOptions,
@@ -131,8 +130,6 @@ class Server {
   // migration scheduled before a restart cannot fire on a torn-down app.
   pendingSourceRefMigrations?: Set<NodeJS.Timeout>
   private providerStatusEmitter: ThrottledCaller
-  private connections?: ConnectionTracker
-  private redirectConnections?: ConnectionTracker
 
   constructor(opts: { securityConfig: SecurityConfig }) {
     checkNodeVersion()
@@ -753,7 +750,6 @@ class Server {
           return
         }
         app.server = server
-        this.connections = new ConnectionTracker(server)
         app.interfaces = {}
         app.clients = 0
 
@@ -784,10 +780,9 @@ class Server {
           startRedirectToSsl(
             secondaryPort,
             getExternalPort(app),
-            (anErr: any, aServer: any, connections: ConnectionTracker) => {
+            (anErr: any, aServer: any) => {
               if (!anErr) {
                 app.redirectServer = aServer
-                this.redirectConnections = connections
               }
             }
           )
@@ -828,8 +823,7 @@ class Server {
 
   async stop(cb?: () => void) {
     this.providerStatusEmitter.cancel()
-    const { connections, redirectConnections } = this
-    if (!this.app.started || !connections) {
+    if (!this.app.started) {
       return this
     }
 
@@ -877,14 +871,13 @@ class Server {
 
       const that = this
       return new Promise((resolve, reject) => {
-        connections.close(CONNECTION_CLOSE_GRACE_MS, () => {
+        this.app.server.close(() => {
           debug('Server closed')
-          if (redirectConnections) {
+          if (that.app.redirectServer) {
             try {
-              redirectConnections.close(CONNECTION_CLOSE_GRACE_MS, () => {
+              that.app.redirectServer.close(() => {
                 debug('Redirect server closed')
                 delete that.app.redirectServer
-                delete that.redirectConnections
                 that.app.started = false
                 cb && cb()
                 resolve(that)
@@ -926,11 +919,6 @@ const SHUTDOWN_TIMEOUT_MS = 8000
 // and close the HTTP server before SHUTDOWN_TIMEOUT_MS forces the exit.
 const TEARDOWN_RESERVE_MS = 2000
 const INTERFACE_STOP_TIMEOUT_MS = SHUTDOWN_TIMEOUT_MS - TEARDOWN_RESERVE_MS
-// How long closing a server waits for its open connections to end before
-// destroying them. The ws interface ends its clients 500 ms after it stops,
-// so a client that answers still gets a clean close; closing the server and
-// then the redirect server stays within TEARDOWN_RESERVE_MS.
-const CONNECTION_CLOSE_GRACE_MS = 900
 
 // Settles when the interface has stopped, has failed to, or has not within
 // INTERFACE_STOP_TIMEOUT_MS, so that one interface can neither end the wait
@@ -1087,7 +1075,7 @@ function createServer(app: any, cb: (err: any, server?: any) => void) {
 function startRedirectToSsl(
   port: number,
   redirectPort: number,
-  cb: (e: unknown, server: any, connections: ConnectionTracker) => void
+  cb: (e: unknown, server: any) => void
 ) {
   const redirectApp = express()
   redirectApp.use((req: Request, res: Response) => {
@@ -1095,10 +1083,9 @@ function startRedirectToSsl(
     res.redirect(`https://${host}:${redirectPort}${req.path}`)
   })
   const server = http.createServer(redirectApp)
-  const connections = new ConnectionTracker(server)
   server.listen(port, () => {
     console.log(`Redirect server running on port ${port.toString()}`)
-    cb(null, server, connections)
+    cb(null, server)
   })
 }
 
