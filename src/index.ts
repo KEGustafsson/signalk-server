@@ -646,7 +646,7 @@ class Server {
     })
 
     installProcessErrorHandlers(app)
-    app.stopAndExit = installShutdownHandlers(this)
+    installShutdownHandlers(this)
   }
 
   start() {
@@ -798,6 +798,7 @@ class Server {
 
   reload(mixed: any) {
     let settings
+    const self = this
 
     if (typeof mixed === 'string') {
       try {
@@ -815,13 +816,11 @@ class Server {
       this.app.config.settings = settings
     }
 
-    // stop() resolves only once the plugins have stopped and the HTTP server
-    // has closed; a start() before that would lose its port and its timers to
-    // the stop still running.
-    this.stop()
-      .catch((e) => console.error(e))
-      .then(() => this.start())
-      .catch((e) => console.error(e))
+    this.stop().catch((e) => console.error(e))
+
+    setTimeout(() => {
+      self.start().catch((e) => console.error(e))
+    }, 1000)
 
     return this
   }
@@ -834,18 +833,15 @@ class Server {
     }
 
     try {
-      // The plugins interface resolves once every plugin's stop() has, and a
-      // shutdown exits as soon as this method resolves: without the wait, a
-      // plugin's asynchronous cleanup is cut off by process.exit.
-      await Promise.all(
-        _.map(this.app.interfaces, (intf: any, name: string) =>
+      _.each(this.app.interfaces, (intf: any) => {
+        if (
           intf !== null &&
           typeof intf === 'object' &&
           typeof intf.stop === 'function'
-            ? stopInterface(name, intf)
-            : undefined
-        )
-      )
+        ) {
+          intf.stop()
+        }
+      })
 
       this.app.intervals.forEach((interval) => {
         clearInterval(interval)
@@ -922,42 +918,11 @@ function identifyPluginFromStack(
 // Below a container runtime's default stop grace period, so the process can
 // exit on its own before the runtime escalates to SIGKILL.
 const SHUTDOWN_TIMEOUT_MS = 8000
-// Time a shutdown keeps after the interfaces to clear timers, end providers
-// and close the HTTP server before SHUTDOWN_TIMEOUT_MS forces the exit.
-const TEARDOWN_RESERVE_MS = 2000
-const INTERFACE_STOP_TIMEOUT_MS = SHUTDOWN_TIMEOUT_MS - TEARDOWN_RESERVE_MS
 // How long closing a server waits for its open connections to end before
 // destroying them. The ws interface ends its clients 500 ms after it stops,
 // so a client that answers still gets a clean close; closing the server and
 // then the redirect server stays within TEARDOWN_RESERVE_MS.
 const CONNECTION_CLOSE_GRACE_MS = 900
-
-// Settles when the interface has stopped, has failed to, or has not within
-// INTERFACE_STOP_TIMEOUT_MS, so that one interface can neither end the wait
-// for the others nor keep Server.stop() from finishing.
-function stopInterface(
-  name: string,
-  intf: { stop: () => unknown }
-): Promise<void> {
-  let timer: NodeJS.Timeout | undefined
-  const timedOut = new Promise<void>((resolve) => {
-    timer = setTimeout(() => {
-      console.error(
-        `Interface ${name} did not stop within ${INTERFACE_STOP_TIMEOUT_MS}ms`
-      )
-      resolve()
-    }, INTERFACE_STOP_TIMEOUT_MS)
-  })
-  const stopped = Promise.resolve()
-    .then(() => intf.stop())
-    .then(
-      () => undefined,
-      (err: unknown) => {
-        console.error(`Error stopping interface ${name}:`, err)
-      }
-    )
-  return Promise.race([stopped, timedOut]).finally(() => clearTimeout(timer))
-}
 
 let currentShutdownHandlers:
   { sigterm: () => void; sigint: () => void } | undefined
@@ -980,9 +945,14 @@ function installShutdownHandlers(server: { stop: () => Promise<unknown> }) {
 
   let shuttingDown = false
 
-  const stopAndExit = (reason: string) => {
+  const shutdown = (signal: NodeJS.Signals) => {
+    // A repeated signal means the caller is no longer waiting for an orderly
+    // shutdown, so stop waiting for one.
+    if (shuttingDown) {
+      process.exit(128 + (signal === 'SIGINT' ? 2 : 15))
+    }
     shuttingDown = true
-    console.log(`${reason}, shutting down`)
+    console.log(`${signal} received, shutting down`)
 
     // Bounded: a provider or interface whose stop() never settles must not
     // turn a graceful shutdown into an indefinite one. The deadline sits
@@ -1011,31 +981,11 @@ function installShutdownHandlers(server: { stop: () => Promise<unknown> }) {
       })
   }
 
-  const shutdown = (signal: NodeJS.Signals) => {
-    // A repeated signal means the caller is no longer waiting for an orderly
-    // shutdown, so stop waiting for one.
-    if (shuttingDown) {
-      process.exit(128 + (signal === 'SIGINT' ? 2 : 15))
-    }
-    stopAndExit(`${signal} received`)
-  }
-
   const sigterm = () => shutdown('SIGTERM')
   const sigint = () => shutdown('SIGINT')
-  const handlers = { sigterm, sigint }
-  currentShutdownHandlers = handlers
+  currentShutdownHandlers = { sigterm, sigint }
   process.on('SIGTERM', sigterm)
   process.on('SIGINT', sigint)
-
-  // A restart from the admin UI relies on the process supervisor to bring
-  // the server back, and must stop it the same way a signal does so plugins
-  // and providers get to close. Like the signal handlers, it belongs to the
-  // most recently constructed Server only.
-  return () => {
-    if (currentShutdownHandlers === handlers && !shuttingDown) {
-      stopAndExit('Restart requested')
-    }
-  }
 }
 
 function installProcessErrorHandlers(app: any) {

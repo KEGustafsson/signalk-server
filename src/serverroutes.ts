@@ -321,7 +321,6 @@ interface App
     PluginManager,
     WithWrappedEmitter {
   webapps: Package[]
-  stopAndExit: () => void
   logging: {
     clearLog: () => void
     rememberDebug: (r: boolean) => void
@@ -517,7 +516,7 @@ module.exports = function (
     if (app.securityStrategy.allowRestart(req)) {
       res.json('Restarting...')
       setTimeout(function () {
-        app.stopAndExit()
+        process.exit(0)
       }, 2000)
     } else {
       res.status(401).json('Restart not allowed')
