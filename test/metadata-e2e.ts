@@ -236,6 +236,7 @@ describe('Metadata end to end', function () {
     expect(metaAfterPut).to.have.property('description', 'Updated description')
 
     await server.stop()
+    await new Promise(setImmediate)
     server = await startServerP(port, false, {
       settings: {
         interfaces: {
