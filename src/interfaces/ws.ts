@@ -283,6 +283,12 @@ interface WsApi {
 }
 
 const DEFAULT_MAX_WS_CONNECTIONS_PER_IP = 30
+const GRACEFUL_CLOSE_DELAY_MS = 500
+
+function isGracefulCloseEnabled(): boolean {
+  const value = process.env.SIGNALK_WS_GRACEFUL_CLOSE?.toLowerCase()
+  return value === '1' || value === 'true'
+}
 
 function wsInterface(app: WsApp): WsApi {
   const maxWsConnectionsPerIp = parseInt(
@@ -690,11 +696,24 @@ function wsInterface(app: WsApp): WsApi {
 
     stop: function () {
       debug('Destroying primuses...')
-      primuses.forEach((primus) =>
-        primus.destroy({ close: false, timeout: 500, reconnect: false }, () => {
-          /* noop */
-        })
-      )
+      const gracefulClose = isGracefulCloseEnabled()
+      primuses.forEach((primus) => {
+        if (!gracefulClose) {
+          primus.forEach((spark: unknown) =>
+            (spark as Spark).request.socket.destroy()
+          )
+        }
+        primus.destroy(
+          {
+            close: false,
+            timeout: gracefulClose ? GRACEFUL_CLOSE_DELAY_MS : 0,
+            reconnect: false
+          },
+          () => {
+            /* noop */
+          }
+        )
+      })
     }
   }
 

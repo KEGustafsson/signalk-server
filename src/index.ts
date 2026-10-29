@@ -927,9 +927,10 @@ const SHUTDOWN_TIMEOUT_MS = 8000
 const TEARDOWN_RESERVE_MS = 2000
 const INTERFACE_STOP_TIMEOUT_MS = SHUTDOWN_TIMEOUT_MS - TEARDOWN_RESERVE_MS
 // How long closing a server waits for its open connections to end before
-// destroying them. The ws interface ends its clients 500 ms after it stops,
-// so a client that answers still gets a clean close; closing the server and
-// then the redirect server stays within TEARDOWN_RESERVE_MS.
+// destroying them. The ws interface drops its clients when it stops, or with
+// SIGNALK_WS_GRACEFUL_CLOSE ends them 500 ms later so a client that answers
+// still gets a clean close; closing the server and then the redirect server
+// stays within TEARDOWN_RESERVE_MS.
 const CONNECTION_CLOSE_GRACE_MS = 900
 
 // Settles when the interface has stopped, has failed to, or has not within
