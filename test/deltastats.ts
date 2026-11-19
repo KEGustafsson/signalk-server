@@ -140,6 +140,30 @@ describe('provider rates', () => {
     })
   })
 
+  it('writes only the first of two connections that map to one path', () => {
+    const { app, sent } = fakeApp()
+    app.providers = [{ id: 'nmea.0183' }, { id: 'nmea_0183' }]
+    incDeltaStatistics(app, 'nmea.0183', delta('navigation.speedOverGround'))
+    incDeltaStatistics(app, 'nmea_0183', delta('navigation.speedOverGround'))
+    app.providerStatistics['nmea.0183'].deltaRate = 5
+    app.providerStatistics['nmea_0183'].deltaRate = 7
+    const errors: string[] = []
+    const consoleError = console.error
+    console.error = (msg: string) => errors.push(msg)
+    try {
+      publishRates(app)
+      publishRates(app)
+    } finally {
+      console.error = consoleError
+    }
+    assert.deepEqual(published(sent), {
+      'providers.nmea_0183.deltaRate': 5,
+      'providers.nmea_0183.writeRate': 0
+    })
+    assert.equal(errors.length, 1)
+    assert.match(errors[0], /"nmea_0183".*"nmea\.0183"/)
+  })
+
   it('sends nothing without connections', () => {
     const { app, sent } = fakeApp()
     app.providers = []

@@ -73,6 +73,10 @@ function ratePathPrefix(providerId: string): string {
   return prefix
 }
 
+// Connections whose rates are left out because an earlier connection's id
+// maps to the same path, so the warning about it is logged once.
+const warnedCollisions = new Set<string>()
+
 export interface WithProviderStatistics {
   selfId?: string
   deltaCount: number
@@ -179,11 +183,22 @@ function noteOwnRates(
 }
 
 // Writes each connection's rates under providers.<id> when they change,
-// other than those the connection has written itself recently.
+// other than those the connection has written itself recently. When two ids
+// map to the same path, only the first connection's rates are written, so
+// that neither overwrites the other's.
 export function publishRates(app: any, now = Date.now()) {
   if (typeof app.handleMessage !== 'function') return
   const values: { path: string; value: number }[] = []
+  const prefixOwners = new Map<string, string>()
   for (const provider of app.providers ?? []) {
+    const prefix = ratePathPrefix(provider.id)
+    const owner = prefixOwners.get(prefix)
+    if (owner === undefined) {
+      prefixOwners.set(prefix, provider.id)
+    } else if (owner !== provider.id) {
+      warnPathCollision(provider.id, owner, prefix)
+      continue
+    }
     const stats: ProviderStats | undefined = app.providerStatistics[provider.id]
     if (!stats) continue
     const own = ownRates.get(stats)
@@ -198,7 +213,7 @@ export function publishRates(app: any, now = Date.now()) {
       } else if (sent.get(rate) !== stats[rate]) {
         sent.set(rate, stats[rate])
         values.push({
-          path: ratePathPrefix(provider.id) + rate,
+          path: prefix + rate,
           value: stats[rate]
         })
       }
@@ -207,6 +222,15 @@ export function publishRates(app: any, now = Date.now()) {
   if (values.length) {
     app.handleMessage(STATS_PROVIDER_ID, { updates: [{ values }] })
   }
+}
+
+function warnPathCollision(id: string, owner: string, prefix: string) {
+  if (warnedCollisions.has(id)) return
+  warnedCollisions.add(id)
+  console.error(
+    `Connection rates for "${id}" are not published: its id maps to ` +
+      `${prefix}* like "${owner}". Rename one of the connections.`
+  )
 }
 
 function updateProviderPeriodStats(app: any) {
