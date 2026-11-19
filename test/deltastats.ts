@@ -123,6 +123,23 @@ describe('provider rates', () => {
     ])
   })
 
+  it('writes a connection id that is not a valid path key as one key', () => {
+    const { app, sent } = fakeApp()
+    app.providers = [{ id: 'Arabella Compass' }, { id: 'nmea.0183' }]
+    incDeltaStatistics(
+      app,
+      'Arabella Compass',
+      delta('navigation.headingMagnetic')
+    )
+    incDeltaStatistics(app, 'nmea.0183', delta('providers.nmea_0183.deltaRate'))
+    publishRates(app)
+    assert.deepEqual(published(sent), {
+      'providers.Arabella_Compass.deltaRate': 0,
+      'providers.Arabella_Compass.writeRate': 0,
+      'providers.nmea_0183.writeRate': 0
+    })
+  })
+
   it('sends nothing without connections', () => {
     const { app, sent } = fakeApp()
     app.providers = []

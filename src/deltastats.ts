@@ -59,6 +59,20 @@ export const OWN_RATE_TIMEOUT_MS = 3 * STATS_UPDATE_INTERVAL_SECONDS * 1000
 // when it changes, so an idle connection's 0 is sent once.
 const sentRates = new WeakMap<ProviderStats, Map<Rate, number>>()
 
+// Connection ids are free text, often with spaces or dots, which are not
+// valid in a Signal K path key and break consumers such as InfluxDB line
+// protocol. Cached because noteOwnRates looks the prefix up for every delta.
+const UNSAFE_PATH_KEY_CHARS = /[^A-Za-z0-9_-]/g
+const ratePrefixes = new Map<string, string>()
+function ratePathPrefix(providerId: string): string {
+  let prefix = ratePrefixes.get(providerId)
+  if (prefix === undefined) {
+    prefix = `providers.${providerId.replace(UNSAFE_PATH_KEY_CHARS, '_')}.`
+    ratePrefixes.set(providerId, prefix)
+  }
+  return prefix
+}
+
 export interface WithProviderStatistics {
   selfId?: string
   deltaCount: number
@@ -122,9 +136,10 @@ export function incDeltaStatistics(
 }
 
 // A connection that counts its own traffic, such as one that runs outside
-// the server, writes providers.<its id>.deltaRate or writeRate itself. From
-// then on the server stops writing that rate for it, until the connection
-// hasn't written it for OWN_RATE_TIMEOUT_MS.
+// the server, writes providers.<its id>.deltaRate or writeRate itself, with
+// the id as ratePathPrefix gives it. From then on the server stops writing
+// that rate for it, until the connection hasn't written it for
+// OWN_RATE_TIMEOUT_MS.
 function noteOwnRates(
   app: WithProviderStatistics,
   providerId: string,
@@ -138,7 +153,7 @@ function noteOwnRates(
   ) {
     return
   }
-  const prefix = `providers.${providerId}.`
+  const prefix = ratePathPrefix(providerId)
   for (const update of delta.updates) {
     if (!Array.isArray(update?.values)) continue
     // handleMessage drops an update with an invalid entry, so it doesn't
@@ -183,7 +198,7 @@ export function publishRates(app: any, now = Date.now()) {
       } else if (sent.get(rate) !== stats[rate]) {
         sent.set(rate, stats[rate])
         values.push({
-          path: `providers.${provider.id}.${rate}`,
+          path: ratePathPrefix(provider.id) + rate,
           value: stats[rate]
         })
       }
